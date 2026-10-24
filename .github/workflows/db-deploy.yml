@@ -23,7 +23,7 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: PostgreSQL araçlarını hazırla
         run: |
           sudo apt-get update -qq
@@ -39,7 +39,7 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Gizli ayarları kontrol et
         id: check
         run: |
@@ -55,7 +55,21 @@ jobs:
           version: 2.122.0
       - name: Projeye bağlan
         if: steps.check.outputs.ready == 'true'
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        run: |
+          set +e
+          out=$(supabase link --project-ref "$SUPABASE_PROJECT_REF" 2>&1); code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            echo "::error title=supabase link::$(echo "$out" | grep -v '^\s*$' | tail -6 | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi
       - name: Migration'ları uygula
         if: steps.check.outputs.ready == 'true'
-        run: supabase db push
+        run: |
+          set +e
+          out=$(supabase db push --include-all 2>&1); code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            echo "::error title=supabase db push::$(echo "$out" | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi
