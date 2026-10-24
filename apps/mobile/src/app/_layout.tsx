@@ -44,7 +44,7 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>
         <Stack.Screen name="index" options={{ title: 'Gidero', headerLargeTitle: true }} />
-        <Stack.Screen name="new-report" options={{ title: 'Yeni rapor', presentation: 'formSheet', sheetAllowedDetents: [0.5] }} />
+        <Stack.Screen name="new-report" options={{ title: 'Yeni rapor', presentation: 'modal' }} />
         <Stack.Screen name="report/[id]" options={{ title: 'Rapor' }} />
         <Stack.Screen name="expense/[id]" options={{ title: 'Fiş' }} />
         <Stack.Screen name="approvals" options={{ title: 'Onayımı bekleyenler' }} />
