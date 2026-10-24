@@ -2,7 +2,6 @@ name: Veritabanını Supabase'e kur
 
 # main dalına yeni migration geldiğinde: önce testler, sonra Supabase projesine uygulama.
 # Gerekli GitHub gizli ayarları (Settings > Secrets and variables > Actions):
-#   SUPABASE_ACCESS_TOKEN  - Supabase hesap erişim anahtarı
 #   SUPABASE_DB_PASSWORD   - projenin veritabanı şifresi
 #   SUPABASE_PROJECT_REF   - proje kimliği (Project Settings > General > Reference ID)
 # Bunlar tanımlı değilse kurulum adımı atlanır, testler yine çalışır.
@@ -35,7 +34,6 @@ jobs:
     needs: test
     runs-on: ubuntu-24.04
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
@@ -43,7 +41,7 @@ jobs:
       - name: Gizli ayarları kontrol et
         id: check
         run: |
-          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
+          if [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::Supabase gizli ayarları tanımlı değil; kurulum atlandı."
@@ -53,21 +51,34 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         with:
           version: 2.122.0
-      - name: Projeye bağlan
+      - name: Veritabanı bağlantısını bul
+        id: db
         if: steps.check.outputs.ready == 'true'
         run: |
-          set +e
-          out=$(supabase link --project-ref "$SUPABASE_PROJECT_REF" 2>&1); code=$?
-          echo "$out"
-          if [ $code -ne 0 ]; then
-            echo "::error title=supabase link::$(echo "$out" | grep -v '^\s*$' | tail -6 | tr '\n' ' ' | cut -c1-900)"
-            exit $code
-          fi
+          # Supabase bağlantı havuzu (IPv4, oturum modu). Bölge: Frankfurt.
+          enc=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
+          for h in aws-1-eu-central-1 aws-0-eu-central-1; do
+            host="$h.pooler.supabase.com"
+            if PGPASSWORD="$SUPABASE_DB_PASSWORD" PGCONNECT_TIMEOUT=10 psql \
+                 "host=$host port=5432 dbname=postgres user=postgres.$SUPABASE_PROJECT_REF sslmode=require" \
+                 -tAc 'select 1' >/dev/null 2>err.txt; then
+              url="postgresql://postgres.$SUPABASE_PROJECT_REF:$enc@$host:5432/postgres"
+              echo "::add-mask::$url"
+              echo "url=$url" >> "$GITHUB_OUTPUT"
+              echo "Bağlandı: $host"
+              exit 0
+            fi
+            echo "$host: $(tail -1 err.txt)"
+          done
+          echo "::error title=Veritabanı bağlantısı::Bağlantı kurulamadı: $(tail -1 err.txt | cut -c1-400)"
+          exit 1
       - name: Migration'ları uygula
         if: steps.check.outputs.ready == 'true'
+        env:
+          DB_URL: ${{ steps.db.outputs.url }}
         run: |
           set +e
-          out=$(supabase db push --include-all 2>&1); code=$?
+          out=$(supabase db push --db-url "$DB_URL" --include-all 2>&1); code=$?
           echo "$out"
           if [ $code -ne 0 ]; then
             echo "::error title=supabase db push::$(echo "$out" | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
