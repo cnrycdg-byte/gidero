@@ -27,6 +27,6 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
 done
 for f in "$ROOT"/supabase/tests/local/[1-9]*.sql; do
   echo "test: $(basename "$f")"
-  "${PSQL[@]}" "${DB[@]}" -f "$f" 2>&1 | sed -n 's/^.*NOTICE:  //p; /BAŞARISIZ\|ERROR/p; /TÜM TESTLER/p'
+  "${PSQL[@]}" "${DB[@]}" -f "$f" 2>&1 | sed -n 's/^.*NOTICE:  //p; /BAŞARISIZ\|ERROR/p; /TEST.* GEÇTİ$/p'
   test "${PIPESTATUS[0]}" -eq 0
 done
