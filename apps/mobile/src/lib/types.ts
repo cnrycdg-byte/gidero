@@ -1,0 +1,75 @@
+export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported';
+
+export type Company = { id: string; legal_name: string; tax_number: string };
+export type Membership = { company_id: string; roles: string[]; companies: Company };
+
+export type Report = {
+  id: string;
+  company_id: string;
+  owner_user_id: string;
+  created_by: string;
+  title: string;
+  period: string | null;
+  status: ReportStatus;
+  total: number;
+  current_approver_ids: string[];
+  submitted_at: string | null;
+  created_at: string;
+};
+
+export type VatLine = { id?: string; rate: number; base: number; vat: number };
+export type Flag = { id: string; code: string; severity: 'info' | 'warning' | 'critical'; message: string; legal_ref: string | null };
+
+export type Expense = {
+  id: string;
+  company_id: string;
+  report_id: string;
+  created_by: string;
+  doc_type: string;
+  seller_name: string | null;
+  seller_vkn: string | null;
+  doc_date: string | null;
+  doc_no: string | null;
+  total: number;
+  read_total: number | null;
+  read_source: 'qr' | 'ai' | 'user' | null;
+  category_id: string | null;
+  description: string;
+  attendees: string[];
+  image_path: string | null;
+  created_at: string;
+  expense_vat_lines?: VatLine[];
+  expense_flags?: Flag[];
+};
+
+export type Category = { id: string; name: string; tax_rule: string; attendees_required: boolean; default_vat_rate: number | null };
+
+export const STATUS_LABEL: Record<ReportStatus, string> = {
+  draft: 'Taslak',
+  pending: 'Onay bekliyor',
+  returned: 'İade edildi',
+  approved: 'Onaylandı',
+  booked: 'Muhasebeleşti',
+  exported: 'Aktarıldı',
+};
+
+export const DOC_TYPE_LABEL: Record<string, string> = {
+  e_fatura: 'e-Fatura',
+  e_arsiv: 'e-Arşiv fatura',
+  okc_fis: 'Yazar kasa fişi',
+  akaryakit_okc: 'Akaryakıt fişi',
+  serbest_meslek: 'Serbest meslek makbuzu',
+  gider_pusulasi: 'Gider pusulası',
+  bilet: 'Bilet',
+  yurtdisi_fatura: 'Yurt dışı fatura',
+  dekont: 'Banka dekontu',
+  no_document: 'Belgesiz',
+  unknown: 'Belge türü belirsiz',
+};
+
+export function statusTone(s: ReportStatus) {
+  if (s === 'approved' || s === 'booked' || s === 'exported') return 'ok' as const;
+  if (s === 'pending') return 'info' as const;
+  if (s === 'returned') return 'bad' as const;
+  return 'neutral' as const;
+}
