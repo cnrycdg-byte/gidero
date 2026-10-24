@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView } from 'react-native';
 
+import { Text } from '@/components/text';
 import { Icon } from '@/components/icon';
 import { Group, Row, SectionTitle } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';

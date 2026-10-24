@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
+import { Text } from '@/components/text';
 import { Button, Field, Notice } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';

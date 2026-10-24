@@ -1,39 +1,47 @@
 import { useColorScheme } from 'react-native';
 
-// Gidero renk dili: fiş kâğıdı (paper) gri masa üstünde (canvas) durur; ana renk tükenmez kalem mavisi,
-// onay yeşili ise ıslak imza mührü gibi yalnızca "onaylandı" anlamında kullanılır.
+// Gidero marka seti: defter yeşili (#0B6E5F), koyu yeşil (#0B3D35), onay amberi (#F2A93B).
+// Amber yalnızca onay ve vurgu içindir; uyarılar turuncu-kırmızı, kritik hatalar kırmızıdır.
 const light = {
-  canvas: '#ECEEF1',
+  canvas: '#F4F6F5',
   paper: '#FFFFFF',
-  paperLine: '#E3E6EA',
-  ink: '#18202B',
-  muted: '#667085',
-  faint: '#98A2B3',
-  pen: '#2341B8',
-  penSoft: '#E6EBFB',
+  paperLine: '#E1E7E5',
+  ink: '#16211F',
+  muted: '#4A5856',
+  faint: '#7D8B88',
+  pen: '#0B6E5F',
+  penSoft: '#E6F1EE',
   onPen: '#FFFFFF',
-  stamp: '#17734F',
-  stampSoft: '#E3F2EA',
-  amber: '#A15C07',
-  amberSoft: '#FCF0DC',
+  deep: '#0B3D35',
+  onDeep: '#FFFFFF',
+  onDeepMuted: '#9CC9BF',
+  stamp: '#9A5B00',
+  stampSoft: '#FDF1DC',
+  gold: '#F2A93B',
+  amber: '#B54708',
+  amberSoft: '#FEF0E6',
   red: '#B42318',
   redSoft: '#FDE8E6',
 };
 
 const dark: typeof light = {
-  canvas: '#0F1318',
-  paper: '#1A2028',
-  paperLine: '#2A313B',
-  ink: '#E8ECF1',
-  muted: '#98A2B3',
-  faint: '#667085',
-  pen: '#8EA4FF',
-  penSoft: '#1E2747',
-  onPen: '#0B1230',
-  stamp: '#55C795',
-  stampSoft: '#15301F',
-  amber: '#F5B54A',
-  amberSoft: '#36280F',
+  canvas: '#0A1513',
+  paper: '#13221F',
+  paperLine: '#22332F',
+  ink: '#E8F0EE',
+  muted: '#A3B3AF',
+  faint: '#6F817C',
+  pen: '#4FC2A8',
+  penSoft: '#123A33',
+  onPen: '#04201B',
+  deep: '#0E4A40',
+  onDeep: '#FFFFFF',
+  onDeepMuted: '#9CC9BF',
+  stamp: '#F2A93B',
+  stampSoft: '#3A2A0E',
+  gold: '#F2A93B',
+  amber: '#F59E5B',
+  amberSoft: '#3A2210',
   red: '#FF8A80',
   redSoft: '#3A1816',
 };
@@ -44,15 +52,25 @@ export function useColors(): Palette {
   return useColorScheme() === 'dark' ? dark : light;
 }
 
+/** Marka yazı aileleri: başlık ve tutarlar Bricolage Grotesque, metin Figtree. */
+export const fonts = {
+  display: 'BricolageGrotesque_700Bold',
+  displayHeavy: 'BricolageGrotesque_800ExtraBold',
+  regular: 'Figtree_400Regular',
+  medium: 'Figtree_500Medium',
+  semibold: 'Figtree_600SemiBold',
+  bold: 'Figtree_700Bold',
+};
+
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;
-export const radius = { sm: 6, md: 10, lg: 14, xl: 20, pill: 999 } as const;
+export const radius = { sm: 6, md: 12, lg: 16, xl: 22, pill: 999 } as const;
 
 export const type = {
-  display: { fontSize: 40, fontWeight: '800' as const, letterSpacing: -1, fontVariant: ['tabular-nums' as const] },
-  title: { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.3 },
+  display: { fontSize: 42, fontFamily: fonts.displayHeavy, letterSpacing: -1.2, fontVariant: ['tabular-nums' as const] },
+  title: { fontSize: 24, fontFamily: fonts.display, letterSpacing: -0.4 },
   body: { fontSize: 16, lineHeight: 22 },
   bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const },
   small: { fontSize: 13, lineHeight: 18 },
-  section: { fontSize: 15, fontWeight: '600' as const },
-  amount: { fontSize: 16, fontWeight: '600' as const, fontVariant: ['tabular-nums' as const] },
+  section: { fontSize: 17, fontFamily: fonts.display, letterSpacing: -0.2 },
+  amount: { fontSize: 16, fontFamily: fonts.display, fontVariant: ['tabular-nums' as const] },
 };

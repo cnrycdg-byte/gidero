@@ -132,6 +132,9 @@ export async function callClaude(
   return { fields: JSON.parse(text) as ReceiptFields, usage: data.usage };
 }
 
+/** Güçlü modele gitmeyi gerektirmeyen sorunlar (kullanıcı ekranda zaten kontrol eder). */
+const SOFT_ISSUES = new Set(["düşük güven"]);
+
 /** Önce hızlı model; sonuç tutarsızsa güçlü model. Karekod alanları her zaman önceliklidir. */
 export async function readReceipt(
   apiKey: string,
@@ -143,14 +146,20 @@ export async function readReceipt(
   const attempts: { model: string; ok: boolean; issues: string[]; usage?: ClaudeCallResult["usage"] }[] = [];
   let best: ReceiptFields | null = null;
   let bestModel = MODELS.fast;
+  let bestIssues = Infinity;
   for (const model of [MODELS.fast, MODELS.strong]) {
     const r = await callClaude(apiKey, model, image, qr, fetchImpl);
     const fields = mergeQr(r.fields, qr);
     const issues = consistencyIssues(fields, allowedRates);
     attempts.push({ model, ok: issues.length === 0, issues, usage: r.usage });
-    best = fields;
-    bestModel = model;
-    if (issues.length === 0) break;
+    // Güçlü model ancak daha az sorunlu sonuç verirse kullanılır
+    if (issues.length < bestIssues) {
+      best = fields;
+      bestModel = model;
+      bestIssues = issues.length;
+    }
+    // Hız için: yalnızca "düşük güven" gibi yumuşak sorunlarda güçlü modele gidilmez
+    if (issues.every((i) => SOFT_ISSUES.has(i))) break;
   }
   return { fields: best!, model: bestModel, attempts };
 }

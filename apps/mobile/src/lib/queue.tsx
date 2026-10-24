@@ -26,7 +26,7 @@ type Ctx = {
 };
 
 const QueueContext = createContext<Ctx | null>(null);
-const CONCURRENCY = 2;
+const CONCURRENCY = 3;
 
 export function QueueProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<QueueItem[]>([]);

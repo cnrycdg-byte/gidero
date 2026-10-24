@@ -32,9 +32,9 @@ const randomId = () => `${Date.now().toString(36)}-${Math.random().toString(36).
  */
 export async function uploadReceipt(p: { uri: string; companyId: string; reportId: string; userId: string }) {
   const ctx = ImageManipulator.manipulate(p.uri);
-  ctx.resize({ width: 1600 });
+  ctx.resize({ width: 1280 });
   const img = await ctx.renderAsync();
-  const saved = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+  const saved = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
   if (!saved.base64) throw new Error('Fotoğraf hazırlanamadı. Tekrar deneyin.');
 
   const path = `${p.companyId}/${p.reportId}/${randomId()}.jpg`;

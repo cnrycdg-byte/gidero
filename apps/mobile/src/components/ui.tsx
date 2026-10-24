@@ -1,21 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { Children, Fragment, isValidElement, useState, type ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type LayoutChangeEvent,
-  type TextInputProps,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View, type LayoutChangeEvent, type TextInputProps, type ViewStyle } from 'react-native';
+
+import { Text } from '@/components/text';
 import Svg, { Path } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/icon';
-import { radius, space, type, useColors, type Palette } from '@/constants/theme';
+import { fonts, radius, space, type, useColors, type Palette } from '@/constants/theme';
 import { STATUS_LABEL, type ReportStatus } from '@/lib/types';
 
 /* ------------------------------------------------------------------ */
@@ -38,21 +29,24 @@ function Zigzag({ color, width }: { color: string; width: number }) {
   );
 }
 
-export function Slip({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+export function Slip({ children, style, tone = 'paper' }: { children: ReactNode; style?: ViewStyle; tone?: 'paper' | 'deep' }) {
   const c = useColors();
   const [w, setW] = useState(0);
+  const bg = tone === 'deep' ? c.deep : c.paper;
   return (
     <View style={style} onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
-      <View style={[styles.slip, { backgroundColor: c.paper }]}>{children}</View>
-      {w > 0 && <Zigzag color={c.paper} width={w} />}
+      <View style={[styles.slip, { backgroundColor: bg }]}>{children}</View>
+      {w > 0 && <Zigzag color={bg} width={w} />}
     </View>
   );
 }
 
 /** Fiş üzerindeki kesik çizgi */
-export function Perforation() {
+export function Perforation({ color }: { color?: string }) {
   const c = useColors();
-  return <View style={{ borderBottomWidth: 1, borderStyle: 'dashed', borderColor: c.paperLine, marginVertical: space.sm }} />;
+  return (
+    <View style={{ borderBottomWidth: 1, borderStyle: 'dashed', borderColor: color ?? c.paperLine, marginVertical: space.sm }} />
+  );
 }
 
 /* ---------------------------- Listeler ----------------------------- */
@@ -157,7 +151,7 @@ export function Stamp({ status }: { status: ReportStatus }) {
   const { fg } = statusColors(c, status);
   return (
     <View style={[styles.stamp, { borderColor: fg }]}>
-      <Text style={{ color: fg, fontWeight: '800', fontSize: 13, letterSpacing: 0.5 }}>{STATUS_LABEL[status]}</Text>
+      <Text style={{ color: fg, fontFamily: fonts.display, fontSize: 14, letterSpacing: 0.2 }}>{STATUS_LABEL[status]}</Text>
     </View>
   );
 }
@@ -167,7 +161,7 @@ export function Stamp({ status }: { status: ReportStatus }) {
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'plain';
+  variant?: 'primary' | 'secondary' | 'danger' | 'plain' | 'light' | 'ghostLight';
   icon?: IconName;
   loading?: boolean;
   disabled?: boolean;
@@ -198,7 +192,7 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           {icon && <Icon name={icon} size={size === 'large' ? 20 : 17} color={look.fg} />}
-          <Text style={{ color: look.fg, fontSize: size === 'large' ? 17 : 16, fontWeight: '600' }}>{title}</Text>
+          <Text style={{ color: look.fg, fontSize: size === 'large' ? 18 : 16, fontFamily: size === 'large' ? fonts.display : fonts.semibold }}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -213,6 +207,10 @@ function buttonLook(c: Palette, v: ButtonProps['variant']) {
       return { bg: c.redSoft, fg: c.red };
     case 'plain':
       return { bg: 'transparent', fg: c.pen };
+    case 'light':
+      return { bg: '#FFFFFF', fg: '#0B3D35' };
+    case 'ghostLight':
+      return { bg: 'rgba(255,255,255,0.12)', fg: '#FFFFFF' };
     default:
       return { bg: c.pen, fg: c.onPen };
   }
@@ -239,7 +237,7 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
         }}
         style={[
           styles.input,
-          { color: c.ink, backgroundColor: c.canvas, borderColor: focus ? c.pen : 'transparent' },
+          { color: c.ink, backgroundColor: c.canvas, borderColor: focus ? c.pen : c.paperLine },
           props.editable === false && { opacity: 0.7 },
           props.multiline && { minHeight: 84, textAlignVertical: 'top' },
           props.style,
@@ -328,7 +326,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space.lg,
   },
-  input: { borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16 },
+  input: { borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, fontFamily: fonts.regular },
   notice: { borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   empty: { alignItems: 'center', gap: space.sm, paddingVertical: space.xxl, paddingHorizontal: space.xl },
   emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: space.xs },

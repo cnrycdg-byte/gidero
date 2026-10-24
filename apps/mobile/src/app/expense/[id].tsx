@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Button, Field, Notice, Perforation, SectionTitle, Slip } from '@/components/ui';
-import { radius, space, type, useColors } from '@/constants/theme';
+import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
@@ -250,7 +252,7 @@ export default function ExpenseScreen() {
               keyboardType="decimal-pad"
               editable={editable}
               placeholder="0,00"
-              style={{ fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] }}
+              style={{ fontSize: 30, fontFamily: fonts.displayHeavy, fontVariant: ['tabular-nums'] }}
               hint={readDiffers ? `Fişten okunan tutar: ${money(exp.read_total)}` : undefined}
             />
             <View style={{ flexDirection: 'row', gap: space.sm }}>

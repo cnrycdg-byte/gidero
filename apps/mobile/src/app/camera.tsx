@@ -3,7 +3,9 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Linking, Pressable, StyleSheet, View } from 'react-native';
+
+import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
@@ -33,7 +35,7 @@ export default function Camera() {
     flash.setValue(1);
     Animated.timing(flash, { toValue: 0, duration: 260, useNativeDriver: true }).start();
     try {
-      const pic = await cam.current.takePictureAsync({ quality: 0.85, shutterSound: false });
+      const pic = await cam.current.takePictureAsync({ quality: 0.6, shutterSound: false });
       if (pic?.uri) {
         setShots((s) => [...s, pic.uri]);
         enqueue({ reportId, companyId, userId, uri: pic.uri });
