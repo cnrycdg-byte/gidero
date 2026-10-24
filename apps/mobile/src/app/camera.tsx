@@ -16,7 +16,14 @@ import { useSession } from '@/lib/session';
 
 // Seri fiş çekimi: kamera açık kalır, her deklanşörde fiş sıraya girer ve arka planda okunur.
 export default function Camera() {
-  const { reportId, companyId } = useLocalSearchParams<{ reportId: string; companyId: string }>();
+  const { reportId, companyId, from } = useLocalSearchParams<{ reportId: string; companyId: string; from?: string }>();
+
+  // Bitince fişlerin işlendiği rapor ekranına geçilir (rapordan gelindiyse oraya dönülür)
+  function finish() {
+    if (from === 'report' || shots.length === 0) return router.back();
+    router.dismiss();
+    router.push({ pathname: '/report/[id]', params: { id: reportId } });
+  }
   const c = useColors();
   const { userId } = useSession();
   const { enqueue } = useQueue();
@@ -126,7 +133,7 @@ export default function Camera() {
 
           <View style={[styles.side, { alignItems: 'flex-end' }]}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={finish}
               style={({ pressed }) => [styles.done, { backgroundColor: shots.length ? c.pen : 'rgba(255,255,255,0.18)', opacity: pressed ? 0.8 : 1 }]}>
               <Text style={{ color: shots.length ? c.onPen : '#fff', fontWeight: '700', fontSize: 15 }}>Bitti</Text>
             </Pressable>

@@ -4,6 +4,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-n
 
 import { Icon } from '@/components/icon';
 import { Logo } from '@/components/logo';
+import { QueueProgress } from '@/components/queue-progress';
 import { Text } from '@/components/text';
 import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
@@ -101,7 +102,7 @@ export default function Home() {
   }
 
   const monthTotal = reports.filter((r) => r.period === period).reduce((a, r) => a + Number(r.total), 0);
-  const inFlight = items.filter((i) => i.status !== 'failed').length;
+  const inFlight = items.filter((i) => i.status === 'waiting' || i.status === 'uploading' || i.status === 'reading').length;
   const monthName = monthTitle.replace(' masrafları', '');
   const pendingCount = reports.filter((r) => r.status === 'pending').length;
   const maxCat = byCategory[0]?.total ?? 0;
@@ -150,6 +151,8 @@ export default function Home() {
             <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
           </View>
         </Slip>
+
+        <QueueProgress />
 
         {error && <Notice tone="bad" text={error} />}
 
