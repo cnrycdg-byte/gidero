@@ -20,6 +20,14 @@
 - Kendi kendini onaylama yok; onaylayıcı bulunamazsa sistem hata verir, rapor onaylanmaz.
 - Muhasebeci/büro başkası adına girdiği raporu onaysız kaydeder; kendi masrafı akıştan geçer.
 
+## Supabase'e kurulum
+
+`main` dalına yeni migration geldiğinde `.github/workflows/db-deploy.yml` önce testleri çalıştırır,
+geçerse `supabase db push` ile migration'ları Supabase projesine uygular. Gerekli üç gizli ayar
+(`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`) GitHub'da
+Settings > Secrets and variables > Actions altında tanımlanır; sohbete veya koda yazılmaz.
+Elle tetiklemek için Actions sekmesinde "Veritabanını Supabase'e kur" > Run workflow.
+
 ## Testler
 
 ```bash
