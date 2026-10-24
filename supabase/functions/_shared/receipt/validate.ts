@@ -68,3 +68,17 @@ export function mergeQr(ai: ReceiptFields, qr: Partial<ReceiptFields> | null): R
   };
   return merged;
 }
+
+/** Plakayı karşılaştırma için sadeleştirir: "35 abc-123" → "35ABC123". Geçersizse null. */
+export function normalizePlate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const p = raw.toLocaleUpperCase("tr-TR").replace(/[^0-9A-ZÇĞİÖŞÜ]/g, "")
+    .replace(/İ/g, "I").replace(/[ÇĞÖŞÜ]/g, (ch) => ({ Ç: "C", Ğ: "G", Ö: "O", Ş: "S", Ü: "U" })[ch] ?? ch);
+  return /^(0[1-9]|[1-7][0-9]|8[01])[A-Z]{1,3}[0-9]{2,4}$/.test(p) ? p : null;
+}
+
+/** "35ABC123" → "35 ABC 123" */
+export function formatPlate(p: string): string {
+  const m = p.match(/^(\d{2})([A-Z]{1,3})(\d{2,4})$/);
+  return m ? `${m[1]} ${m[2]} ${m[3]}` : p;
+}

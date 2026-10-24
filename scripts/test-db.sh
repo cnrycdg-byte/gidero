@@ -13,7 +13,7 @@ RUN=""
 trap cleanup EXIT
 
 if [ "$(id -u)" = "0" ]; then RUN="runuser -u postgres --"; chown -R postgres "$(dirname "$DATA")"; else RUN=""; fi
-$RUN "$PGBIN/initdb" -D "$DATA" -U postgres -A trust >/dev/null
+$RUN "$PGBIN/initdb" -D "$DATA" -U postgres -A trust -E UTF8 --locale=C >/dev/null
 $RUN "$PGBIN/pg_ctl" -D "$DATA" -o "-p $PORT -k /tmp" -l "$LOG" -w start >/dev/null
 
 PSQL=(psql -h /tmp -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -q -X)

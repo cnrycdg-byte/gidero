@@ -41,12 +41,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setMembershipsReady(true);
       return;
     }
-    const { data } = await supabase
+    let data: unknown[] | null;
+    let error: unknown;
+    ({ data, error } = await supabase
       .from('memberships')
-      .select('company_id, roles, companies(id, legal_name, tax_number)')
+      .select('company_id, roles, vehicle_plates, companies(id, legal_name, tax_number)')
       .eq('user_id', userId)
-      .eq('status', 'active');
-    const list = ((data ?? []) as unknown as Membership[]).filter((m) => m.companies);
+      .eq('status', 'active'));
+    if (error) {
+      // Sunucu henüz güncellenmediyse plakasız sorgula
+      ({ data, error } = await supabase
+        .from('memberships')
+        .select('company_id, roles, companies(id, legal_name, tax_number)')
+        .eq('user_id', userId)
+        .eq('status', 'active'));
+    }
+    const list = ((data ?? []) as unknown as Membership[])
+      .filter((m) => m.companies)
+      .map((m) => ({ ...m, vehicle_plates: m.vehicle_plates ?? [] }));
     setMemberships(list);
     setActiveId((cur) => (cur && list.some((m) => m.company_id === cur) ? cur : list[0]?.company_id ?? null));
     setMembershipsReady(true);
