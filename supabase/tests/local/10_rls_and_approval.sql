@@ -40,7 +40,8 @@ insert into auth.users (id, email) values
  ('00000000-0000-0000-0000-0000000000c2','z_acct@buro.test'),
  ('00000000-0000-0000-0000-0000000000c3','z_acct2@buro.test'),
  ('00000000-0000-0000-0000-0000000000d1','c_contact@c.test');
-insert into public.profiles (id, full_name) select id, email from auth.users;
+insert into public.profiles (id, full_name) select id, email from auth.users
+  on conflict (id) do update set full_name = excluded.full_name;
 
 insert into public.accounts (id, kind, name) values
  ('10000000-0000-0000-0000-00000000000a','company','A Ltd hesabı'),

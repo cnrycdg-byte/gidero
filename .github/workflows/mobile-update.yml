@@ -1,0 +1,76 @@
+name: Mobil uygulamayı yayınla (Expo Go)
+
+# main dalına mobil uygulama değişikliği geldiğinde: tip kontrolü, ardından EAS Update ile yayın.
+# Yayınlanan sürüm, proje sahibinin hesabıyla giriş yapılmış Expo Go'da görünür.
+# Gerekli GitHub gizli ayarı: EXPO_TOKEN (expo.dev > Settings > Access tokens)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-update.yml'
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-update
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - name: Tip kontrolü
+        run: npx tsc --noEmit
+
+  publish:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Gizli ayarı kontrol et
+        id: check
+        run: |
+          if [ -n "$EXPO_TOKEN" ]; then echo "ready=true" >> "$GITHUB_OUTPUT";
+          else echo "::notice::EXPO_TOKEN tanımlı değil; yayın atlandı."; echo "ready=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - if: steps.check.outputs.ready == 'true'
+        run: npm ci
+      - name: EAS Update
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set +e
+          npx --yes eas-cli@latest whoami
+          # app.json'daki sahip ve slug'ı Expo projesiyle eşle (proje bir organizasyonda olabilir)
+          npx --yes eas-cli@latest init --id 4841364a-3bf4-49a9-b97c-d3d0aabf281d --force --non-interactive || true
+          git --no-pager diff -- app.json || true
+          out=$(npx --yes eas-cli@latest update --channel main --platform ios --platform android \
+                --message "$(git log -1 --pretty=%s)" --non-interactive 2>&1); code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            echo "::error title=eas update::$(echo "$out" | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi
