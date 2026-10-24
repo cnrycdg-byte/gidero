@@ -64,6 +64,8 @@ export interface TaxContext {
   params: Record<string, unknown>;         // tax_parameters: key -> value (belge yılı)
   same_day_same_seller_total: number;      // aynı gün, aynı satıcı, aynı kullanıcı, bu belge hariç
   duplicate_of: string[];                  // olası mükerrer masraf kimlikleri
-  owner_plates?: string[] | null;          // masraf sahibinin kartındaki araç plakaları (normalize); null = bilinmiyor
+  owner_plates?: string[] | null;
+  /** Gider grubu sınırı: kişinin bu dönemde bu gruptaki diğer harcamaları (bu fiş hariç) */
+  limit?: { category: string; amount: number; period: "month" | "quarter" | "half" | "year"; used_other: number } | null;          // masraf sahibinin kartındaki araç plakaları (normalize); null = bilinmiyor
   today: string;                           // YYYY-MM-DD
 }

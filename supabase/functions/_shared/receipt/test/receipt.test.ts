@@ -155,3 +155,11 @@ test("plaka: sadeleştirme ve kişi kartıyla eşleşme", () => {
   // Geçersiz plaka okunduysa
   assert.ok(codes(ctx({ fields: fuel("XX"), entered_total: 2000, category: cat, owner_plates: [] })).includes("fuel_plate_missing"));
 });
+
+test("gider grubu sınırı: aşım ve yaklaşma", () => {
+  const lim = (used_other: number) => ({ category: "Yemek", amount: 1000, period: "quarter" as const, used_other });
+  assert.ok(codes(ctx({ entered_total: 300, limit: lim(800) })).includes("over_limit"));
+  assert.ok(codes(ctx({ entered_total: 150, limit: lim(760) })).includes("near_limit"));
+  const c = codes(ctx({ entered_total: 100, limit: lim(100) }));
+  assert.ok(!c.includes("over_limit") && !c.includes("near_limit"));
+});

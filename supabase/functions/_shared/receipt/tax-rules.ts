@@ -114,6 +114,21 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
     }
   }
 
+  // 11b. Gider grubu sınırı (şirketin koyduğu kişi başı dönemsel üst limit)
+  if (ctx.limit && total > 0) {
+    const after = ctx.limit.used_other + total;
+    const label = { month: "aylık", quarter: "3 aylık", half: "6 aylık", year: "yıllık" }[ctx.limit.period];
+    if (after > ctx.limit.amount) {
+      add("over_limit", "warning",
+        `${ctx.limit.category} için ${label} sınırınız ${fmt(ctx.limit.amount)} TL. Bu fişle ${fmt(after)} TL oldu, ` +
+          `${fmt(after - ctx.limit.amount)} TL aşıldı. Onaylayıcınız bu aşımı görecek.`);
+    } else if (after >= ctx.limit.amount * 0.9) {
+      add("near_limit", "info",
+        `${ctx.limit.category} için ${label} sınırınızın %${Math.round((after / ctx.limit.amount) * 100)}'ini kullandınız ` +
+          `(${fmt(after)} / ${fmt(ctx.limit.amount)} TL).`);
+    }
+  }
+
   // 12. Binek araç
   if (rule === "car_running" || rule === "fuel") {
     const ratio = Number(ctx.params["car_running_cost_ratio"] ?? 0.7);
