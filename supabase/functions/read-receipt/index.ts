@@ -63,8 +63,9 @@ Deno.serve(async (req) => {
   const user = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: exp, error: expErr } = await user
     .from("expenses")
-    .select("id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, " +
-      "doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total")
+    .select(
+      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total",
+    )
     .eq("id", body.expense_id)
     .maybeSingle();
   if (expErr || !exp) return json(404, { error: "Masraf bulunamadı." });
