@@ -4,7 +4,7 @@ import { AppState, Platform } from 'react-native';
 
 // Bu iki değer herkese açıktır (uygulamanın içine gömülür). Veriyi koruyan şey veritabanındaki RLS kurallarıdır.
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://rakmatyrsoswbbhnzeph.supabase.co';
-const key = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '';
+const key = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? 'sb_publishable_tz56pGEoFDj3yqakGr1uNg_LgaBdNij';
 
 export const supabaseConfigured = key.length > 0;
 
