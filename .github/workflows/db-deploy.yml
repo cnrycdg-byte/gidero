@@ -1,0 +1,61 @@
+name: Veritabanını Supabase'e kur
+
+# main dalına yeni migration geldiğinde: önce testler, sonra Supabase projesine uygulama.
+# Gerekli GitHub gizli ayarları (Settings > Secrets and variables > Actions):
+#   SUPABASE_ACCESS_TOKEN  - Supabase hesap erişim anahtarı
+#   SUPABASE_DB_PASSWORD   - projenin veritabanı şifresi
+#   SUPABASE_PROJECT_REF   - proje kimliği (Project Settings > General > Reference ID)
+# Bunlar tanımlı değilse kurulum adımı atlanır, testler yine çalışır.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/db-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL araçlarını hazırla
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-16 >/dev/null
+      - name: Migration ve RLS testleri
+        run: PGBIN=/usr/lib/postgresql/16/bin ./scripts/test-db.sh
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-24.04
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gizli ayarları kontrol et
+        id: check
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Supabase gizli ayarları tanımlı değil; kurulum atlandı."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: supabase/setup-cli@v1
+        if: steps.check.outputs.ready == 'true'
+        with:
+          version: 2.122.0
+      - name: Projeye bağlan
+        if: steps.check.outputs.ready == 'true'
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Migration'ları uygula
+        if: steps.check.outputs.ready == 'true'
+        run: supabase db push
