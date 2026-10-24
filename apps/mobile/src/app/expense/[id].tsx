@@ -10,6 +10,8 @@ import { Icon } from '@/components/icon';
 import { Button, Field, Notice, Perforation, SectionTitle, Slip } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
+import { AttendeePicker } from '@/components/attendee-picker';
+import { rememberContacts } from '@/lib/contacts';
 import { PERIOD_LABEL, fetchUsage, rangeText, usageState, type Usage } from '@/lib/limits';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
@@ -140,13 +142,6 @@ export default function ExpenseScreen() {
     });
   }
 
-  function addAttendee() {
-    const name = attendeeDraft.trim();
-    if (!name) return;
-    if (!attendees.includes(name)) setAttendees([...attendees, name]);
-    setAttendeeDraft('');
-  }
-
   async function save() {
     if (!exp) return;
     setError(null);
@@ -194,6 +189,7 @@ export default function ExpenseScreen() {
         const { error: e3 } = await supabase.from('expense_vat_lines').insert(vatLines);
         if (e3) throw e3;
       }
+      await rememberContacts(exp.company_id, people).catch(() => {});
       await recheckExpense(exp.id);
       router.back();
     } catch (e) {
@@ -363,37 +359,15 @@ export default function ExpenseScreen() {
           />
         )}
 
-        <SectionTitle title={`Kimlerle${category?.attendees_required ? ' (zorunlu)' : ''}`} />
+        <SectionTitle title={`Kimlerle yapıldı${category?.attendees_required ? ' (zorunlu)' : ''}`} />
         <View style={[styles.box, { backgroundColor: c.paper }]}>
-          {attendees.length > 0 && (
-            <View style={styles.chips}>
-              {attendees.map((p) => (
-                <Pressable
-                  key={p}
-                  disabled={!editable}
-                  onPress={() => setAttendees(attendees.filter((x) => x !== p))}
-                  style={[styles.chip, { backgroundColor: c.penSoft, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
-                  <Text style={{ color: c.pen, fontWeight: '600' }}>{p}</Text>
-                  {editable && <Icon name="close" size={10} color={c.pen} />}
-                </Pressable>
-              ))}
-            </View>
-          )}
-          {editable && (
-            <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-end' }}>
-              <View style={{ flex: 1 }}>
-                <Field
-                  label="Kişi ekle"
-                  value={attendeeDraft}
-                  onChangeText={setAttendeeDraft}
-                  onSubmitEditing={addAttendee}
-                  returnKeyType="done"
-                  placeholder="Ad soyad, firma"
-                />
-              </View>
-              <Button variant="secondary" icon="plus" title="Ekle" onPress={addAttendee} style={{ minHeight: 48, backgroundColor: c.canvas }} />
-            </View>
-          )}
+          <AttendeePicker
+            companyId={exp.company_id}
+            value={attendees}
+            onChange={setAttendees}
+            onDraft={setAttendeeDraft}
+            editable={editable}
+          />
           <Field
             label="Açıklama"
             value={description}

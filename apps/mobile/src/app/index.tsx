@@ -15,13 +15,13 @@ import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
-import type { Report } from '@/lib/types';
+import { ROLE_LABEL, type Report } from '@/lib/types';
 
 type CategorySum = { name: string; total: number };
 
 export default function Home() {
   const c = useColors();
-  const { userId, active, hasRole } = useSession();
+  const { userId, active, hasRole, session } = useSession();
   const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
@@ -130,6 +130,22 @@ export default function Home() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
+        <Pressable onPress={() => router.push('/settings')} style={styles.who}>
+          <View style={[styles.avatar, { backgroundColor: c.penSoft }]}>
+            <Text style={{ color: c.pen, fontWeight: '700' }}>
+              {String(session?.user.user_metadata?.full_name || session?.user.email || '?').trim().charAt(0).toLocaleUpperCase('tr-TR')}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[type.bodyStrong, { color: c.ink }]} numberOfLines={1}>
+              {session?.user.user_metadata?.full_name || session?.user.email}
+            </Text>
+            <Text style={[type.small, { color: c.muted }]} numberOfLines={1}>
+              {(active?.roles ?? []).map((r) => ROLE_LABEL[r] ?? r).join(', ')} olarak görüyorsunuz
+            </Text>
+          </View>
+        </Pressable>
+
         <Slip tone="deep">
           <View style={styles.rowBetween}>
             <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>{monthName} harcamanız</Text>
@@ -275,6 +291,8 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },
+  who: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: -space.xs },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md },
   statRow: { flexDirection: 'row', gap: space.xl, marginTop: space.xs },
   goldPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
