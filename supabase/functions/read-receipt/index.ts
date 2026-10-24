@@ -12,7 +12,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { parseGibQr } from "../_shared/receipt/qr.ts";
 import { readReceipt, type ImageInput } from "../_shared/receipt/claude.ts";
 import { evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
-import type { ReceiptFields } from "../_shared/receipt/types.ts";
+import type { ReceiptFields, TaxContext } from "../_shared/receipt/types.ts";
 import { normalizePlate } from "../_shared/receipt/validate.ts";
 
 const cors = {
@@ -188,7 +188,8 @@ async function evaluate(
   const { data: company } = await admin.from("companies")
     .select("tax_number, car_kkeg_vat_deductible, okc_vat_policy").eq("id", exp.company_id).single();
   const { data: category } = exp.category_id
-    ? await admin.from("categories").select("tax_rule, attendees_required").eq("id", exp.category_id).single()
+    ? await admin.from("categories").select("name, tax_rule, attendees_required, limit_amount, limit_period")
+      .eq("id", exp.category_id).single()
     : { data: null };
   const docYear = f.date ? Number(f.date.slice(0, 4)) : thisYear;
   const params = await loadParams(admin, docYear);
@@ -216,8 +217,26 @@ async function evaluate(
       .eq("company_id", exp.company_id).eq("user_id", rep.owner_user_id).maybeSingle()
     : { data: null };
 
+  // Gider grubu sınırı: aynı kişinin aynı dönemde bu gruptaki diğer harcamaları
+  let limit: TaxContext["limit"] = null;
+  if (category?.limit_amount && category.limit_period && rep) {
+    const { start, end } = periodBounds(category.limit_period, f.date ?? new Date().toISOString().slice(0, 10));
+    const { data: others } = await admin.from("expenses")
+      .select("total, doc_date, created_at, reports!inner(owner_user_id, company_id)")
+      .eq("category_id", exp.category_id).neq("id", exp.id)
+      .eq("reports.owner_user_id", rep.owner_user_id).eq("reports.company_id", exp.company_id);
+    const usedOther = (others ?? [])
+      .filter((o: Row) => {
+        const d = (o.doc_date ?? String(o.created_at).slice(0, 10)) as string;
+        return d >= start && d <= end;
+      })
+      .reduce((a: number, o: Row) => a + Number(o.total), 0);
+    limit = { category: category.name, amount: Number(category.limit_amount), period: category.limit_period, used_other: usedOther };
+  }
+
   const enteredTotal = Number(exp.total) > 0 ? Number(exp.total) : null;
   return evaluateTaxRules({
+    limit,
     owner_plates: owner ? (owner.vehicle_plates ?? []) : null,
     fields: f,
     entered_total: enteredTotal ?? f.total,
@@ -245,4 +264,15 @@ async function replaceFlags(
       flags.map((fl) => ({ expense_id: exp.id, company_id: exp.company_id, ...fl })),
     );
   }
+}
+
+/** Takvim dönemi: ay, çeyrek, yarıyıl veya yıl (veritabanındaki private.period_bounds ile aynı) */
+function periodBounds(period: string, on: string): { start: string; end: string } {
+  const [y, m] = on.slice(0, 7).split("-").map(Number);
+  const startMonth = period === "month" ? m : period === "quarter" ? Math.floor((m - 1) / 3) * 3 + 1
+    : period === "half" ? (m <= 6 ? 1 : 7) : 1;
+  const len = period === "month" ? 1 : period === "quarter" ? 3 : period === "half" ? 6 : 12;
+  const start = new Date(Date.UTC(y, startMonth - 1, 1));
+  const end = new Date(Date.UTC(y, startMonth - 1 + len, 0));
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
 }

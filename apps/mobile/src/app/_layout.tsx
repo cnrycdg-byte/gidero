@@ -80,6 +80,8 @@ function RootStack() {
         <Stack.Screen name="expense/[id]" options={{ title: 'Fiş' }} />
         <Stack.Screen name="approvals" options={{ title: 'Onayınızı bekleyenler' }} />
         <Stack.Screen name="team" options={{ title: 'Ekip' }} />
+        <Stack.Screen name="categories" options={{ title: 'Gider grupları' }} />
+        <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
       </Stack.Protected>
     </Stack>

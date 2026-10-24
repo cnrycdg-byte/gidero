@@ -3,12 +3,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
+import { LimitBars } from '@/components/limit-bars';
 import { Logo } from '@/components/logo';
 import { QueueProgress } from '@/components/queue-progress';
 import { Text } from '@/components/text';
 import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
+import { fetchUsage, usageState, type Usage } from '@/lib/limits';
 import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
@@ -24,6 +26,7 @@ export default function Home() {
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
   const [byCategory, setByCategory] = useState<CategorySum[]>([]);
+  const [limits, setLimits] = useState<Usage[]>([]);
   const [waiting, setWaiting] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
@@ -69,6 +72,9 @@ export default function Home() {
         .filter((x) => x.total > 0)
         .sort((a, b) => b.total - a.total),
     );
+    fetchUsage(active.company_id, userId)
+      .then(setLimits)
+      .catch(() => setLimits([]));
     setLoading(false);
   }, [userId, active, period]);
 
@@ -169,6 +175,20 @@ export default function Home() {
           </Pressable>
         )}
 
+        {limits.length > 0 && (
+          <>
+            <SectionTitle
+              title="Harcama sınırlarınız"
+              action={
+                limits.some((u) => usageState(u).over) ? (
+                  <Text style={[type.small, { color: c.red, fontWeight: '700' }]}>Aşım var</Text>
+                ) : undefined
+              }
+            />
+            <LimitBars rows={limits} />
+          </>
+        )}
+
         {byCategory.length > 0 && (
           <>
             <SectionTitle title="Bu ay nereye harcadınız" />
@@ -227,9 +247,15 @@ export default function Home() {
           </Group>
         )}
 
-        {hasRole('admin') && (
+        {(hasRole('admin') || hasRole('accountant') || hasRole('approver')) && (
           <Group>
-            <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini belirleyin" onPress={() => router.push('/team')} />
+            <Row icon="warning" title="Ekibin sınır durumu" subtitle="Kim hangi gider grubunda sınırı aştı" onPress={() => router.push('/limits')} />
+            {hasRole('admin') || hasRole('accountant') ? (
+              <Row icon="receipt" title="Gider grupları ve sınırlar" subtitle="Kişi başı aylık, 3 aylık, 6 aylık, yıllık sınır" onPress={() => router.push('/categories')} />
+            ) : null}
+            {hasRole('admin') ? (
+              <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini ve araçlarını belirleyin" onPress={() => router.push('/team')} />
+            ) : null}
           </Group>
         )}
       </ScrollView>

@@ -62,6 +62,12 @@ export default function Settings() {
       <Group>
         <Row icon="inbox" title="Onayınızı bekleyenler" onPress={() => router.push('/approvals')} />
         {hasRole('admin') ? <Row icon="team" title="Ekip" onPress={() => router.push('/team')} /> : null}
+        {hasRole('admin') || hasRole('accountant') ? (
+          <Row icon="receipt" title="Gider grupları ve sınırlar" onPress={() => router.push('/categories')} />
+        ) : null}
+        {hasRole('admin') || hasRole('accountant') || hasRole('approver') ? (
+          <Row icon="warning" title="Ekibin sınır durumu" onPress={() => router.push('/limits')} />
+        ) : null}
       </Group>
 
       <Group>

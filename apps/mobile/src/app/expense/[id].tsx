@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon';
 import { Button, Field, Notice, Perforation, SectionTitle, Slip } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
+import { PERIOD_LABEL, fetchUsage, rangeText, usageState, type Usage } from '@/lib/limits';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
@@ -41,6 +42,7 @@ export default function ExpenseScreen() {
   const [attendeeDraft, setAttendeeDraft] = useState('');
   const [lines, setLines] = useState<LineInput[]>([]);
 
+  const [usage, setUsage] = useState<Usage[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +81,11 @@ export default function ExpenseScreen() {
           .order('name'),
       ]);
       setReport((r.data as Report) ?? null);
+      if (r.data) {
+        fetchUsage(e.company_id, (r.data as Report).owner_user_id)
+          .then(setUsage)
+          .catch(() => setUsage([]));
+      }
       setCategories((cats.data ?? []) as Category[]);
       if (e.image_path) setImage(await receiptUrl(e.image_path));
     })();
@@ -98,6 +105,22 @@ export default function ExpenseScreen() {
     (report.owner_user_id === userId || (report.created_by === userId && hasRole('accountant')));
 
   const category = categories.find((k) => k.id === categoryId);
+  const lim = usage.find((u) => u.category_id === categoryId);
+  const limitInfo = (() => {
+    if (!lim) return null;
+    const current = parseAmount(total) ?? 0;
+    const already = Number(exp.total) > 0 && exp.category_id === categoryId ? Number(exp.total) : 0;
+    const after = lim.used - already + current;
+    const st = usageState({ used: after, limit_amount: lim.limit_amount });
+    const head = `${lim.category_name}: ${PERIOD_LABEL[lim.limit_period].toLocaleLowerCase('tr-TR')} sınır ${money(lim.limit_amount)} (${rangeText(lim.period_start, lim.period_end)}).`;
+    return {
+      over: st.over,
+      near: st.near,
+      text: st.over
+        ? `${head} Bu fişle ${money(after)} olur, ${money(after - lim.limit_amount)} aşılır.`
+        : `${head} Bu fişle ${money(after)} kullanılmış olur, ${money(lim.limit_amount - after)} kalır.`,
+    };
+  })();
   const showPlate =
     exp.doc_type === 'akaryakit_okc' || !!exp.plate || ['fuel', 'car_running'].includes(category?.tax_rule ?? '');
   const flags: Flag[] = exp.expense_flags ?? [];
@@ -332,6 +355,13 @@ export default function ExpenseScreen() {
             );
           })}
         </View>
+
+        {limitInfo && (
+          <Notice
+            tone={limitInfo.over ? 'bad' : limitInfo.near ? 'warn' : 'info'}
+            text={limitInfo.text}
+          />
+        )}
 
         <SectionTitle title={`Kimlerle${category?.attendees_required ? ' (zorunlu)' : ''}`} />
         <View style={[styles.box, { backgroundColor: c.paper }]}>
