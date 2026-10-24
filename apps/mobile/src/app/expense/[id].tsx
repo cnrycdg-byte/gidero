@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Body, Button, Card, Field, Label, Notice, Pill } from '@/components/ui';
+import { Icon } from '@/components/icon';
+import { Button, Field, Notice, Perforation, SectionTitle, Slip } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
@@ -80,7 +82,7 @@ export default function ExpenseScreen() {
   if (!exp) {
     return (
       <View style={{ padding: space.xl }}>
-        <Body muted>Yükleniyor…</Body>
+        <ActivityIndicator color={c.pen} />
       </View>
     );
   }
@@ -186,137 +188,147 @@ export default function ExpenseScreen() {
     ]);
   }
 
-  const readDiffers = exp.read_total != null && parseAmount(total) != null && Math.abs(Number(exp.read_total) - (parseAmount(total) ?? 0)) > 0.01;
+  const readDiffers =
+    exp.read_total != null && parseAmount(total) != null && Math.abs(Number(exp.read_total) - (parseAmount(total) ?? 0)) > 0.01;
+  const sevLook = (sev: Flag['severity']) =>
+    sev === 'critical'
+      ? { fg: c.red, bg: c.redSoft, label: 'Önemli' }
+      : sev === 'warning'
+        ? { fg: c.amber, bg: c.amberSoft, label: 'Uyarı' }
+        : { fg: c.pen, bg: c.penSoft, label: 'Bilgi' };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 3 }}>
+        contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 140 }}>
         {image && (
-          <Image source={{ uri: image }} style={[styles.image, { backgroundColor: c.card }]} contentFit="contain" />
+          <View style={[styles.imageWrap, { backgroundColor: c.paper }]}>
+            <Image source={{ uri: image }} style={styles.image} contentFit="contain" transition={150} />
+          </View>
         )}
 
         {readError ? <Notice tone="warn" text={readError} /> : null}
         {exp.read_source && !readError ? (
           <Notice
+            tone="ok"
             text={
               exp.read_source === 'qr'
                 ? 'Bilgiler faturadaki karekoddan okundu.'
-                : 'Bilgiler fotoğraftan okundu. Tutarı ve tarihi fişle karşılaştırıp kaydedin.'
+                : 'Bilgiler fotoğraftan okundu. Tutarı ve tarihi fişle karşılaştırın.'
             }
           />
         ) : null}
 
         {flags.length > 0 && (
-          <Card>
-            <Label>Vergi kontrolü</Label>
-            {flags.map((f) => (
-              <View key={f.id} style={{ gap: 4 }}>
-                <Pill
-                  text={f.severity === 'critical' ? 'Önemli' : f.severity === 'warning' ? 'Uyarı' : 'Bilgi'}
-                  tone={f.severity === 'critical' ? 'bad' : f.severity === 'warning' ? 'warn' : 'info'}
-                />
-                <Text style={[type.body, { color: c.text, lineHeight: 22 }]}>{f.message}</Text>
-                {f.legal_ref ? <Text style={[type.small, { color: c.muted }]}>{f.legal_ref}</Text> : null}
-              </View>
-            ))}
-          </Card>
+          <View style={{ gap: space.sm }}>
+            <SectionTitle title="Vergi kontrolü" />
+            {flags.map((f) => {
+              const look = sevLook(f.severity);
+              return (
+                <View key={f.id} style={[styles.flag, { backgroundColor: c.paper, borderLeftColor: look.fg }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Icon name={f.severity === 'info' ? 'doc' : 'warning'} size={13} color={look.fg} />
+                    <Text style={[type.small, { color: look.fg, fontWeight: '700' }]}>{look.label}</Text>
+                  </View>
+                  <Text style={[type.body, { color: c.ink }]}>{f.message}</Text>
+                  {f.legal_ref ? <Text style={[type.small, { color: c.muted }]}>{f.legal_ref}</Text> : null}
+                </View>
+              );
+            })}
+          </View>
         )}
 
-        <Card>
-          <Label>{DOC_TYPE_LABEL[exp.doc_type] ?? 'Belge'}</Label>
-          <Field
-            label="Toplam tutar (₺)"
-            value={total}
-            onChangeText={setTotal}
-            keyboardType="decimal-pad"
-            editable={editable}
-            placeholder="0,00"
-            style={{ fontSize: 24, fontWeight: '700' }}
-            hint={readDiffers ? `Fişten okunan tutar: ${money(exp.read_total)}` : undefined}
-          />
-          <Field label="Tarih" value={date} onChangeText={setDate} editable={editable} placeholder="GG.AA.YYYY" keyboardType="numbers-and-punctuation" />
-          <Field label="Fiş / fatura numarası" value={docNo} onChangeText={setDocNo} editable={editable} autoCapitalize="characters" />
-          <Field label="Satıcı" value={seller} onChangeText={setSeller} editable={editable} />
-          {exp.seller_vkn ? <Text style={[type.small, { color: c.muted }]}>Satıcı vergi no: {exp.seller_vkn}</Text> : null}
-        </Card>
+        <Slip>
+          <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{DOC_TYPE_LABEL[exp.doc_type] ?? 'Belge'}</Text>
+          <View style={{ gap: space.md, marginTop: space.sm }}>
+            <Field
+              label="Toplam tutar (₺)"
+              value={total}
+              onChangeText={setTotal}
+              keyboardType="decimal-pad"
+              editable={editable}
+              placeholder="0,00"
+              style={{ fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] }}
+              hint={readDiffers ? `Fişten okunan tutar: ${money(exp.read_total)}` : undefined}
+            />
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <View style={{ flex: 1 }}>
+                <Field label="Tarih" value={date} onChangeText={setDate} editable={editable} placeholder="GG.AA.YYYY" keyboardType="numbers-and-punctuation" />
+              </View>
+              <View style={{ flex: 1.2 }}>
+                <Field label="Fiş / fatura no" value={docNo} onChangeText={setDocNo} editable={editable} autoCapitalize="characters" />
+              </View>
+            </View>
+            <Field label="Satıcı" value={seller} onChangeText={setSeller} editable={editable} />
+            {exp.seller_vkn ? <Text style={[type.small, { color: c.muted }]}>Satıcı vergi no: {exp.seller_vkn}</Text> : null}
+          </View>
 
-        <Card>
-          <Label>KDV</Label>
-          {lines.length === 0 && <Body muted>KDV satırı yok.</Body>}
+          <Perforation />
+
+          <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>KDV</Text>
+          {lines.length === 0 && <Text style={[type.small, { color: c.faint }]}>KDV satırı yok.</Text>}
           {lines.map((l, i) => (
             <View key={i} style={styles.lineRow}>
-              <View style={{ width: 70 }}>
+              <View style={{ width: 64 }}>
                 <Field label="Oran %" value={l.rate} onChangeText={(v) => setLine(i, 'rate', v)} keyboardType="number-pad" editable={editable} />
               </View>
               <View style={{ flex: 1 }}>
                 <Field label="Matrah" value={l.base} onChangeText={(v) => setLine(i, 'base', v)} keyboardType="decimal-pad" editable={editable} />
               </View>
               <View style={{ flex: 1 }}>
-                <Field label="KDV" value={l.vat} onChangeText={(v) => setLine(i, 'vat', v)} keyboardType="decimal-pad" editable={editable} />
+                <Field label="KDV tutarı" value={l.vat} onChangeText={(v) => setLine(i, 'vat', v)} keyboardType="decimal-pad" editable={editable} />
               </View>
               {editable && (
-                <Pressable onPress={() => setLines(lines.filter((_, j) => j !== i))} hitSlop={10} style={{ paddingBottom: 14 }}>
-                  <Text style={{ color: c.danger, fontSize: 20 }}>×</Text>
+                <Pressable onPress={() => setLines(lines.filter((_, j) => j !== i))} hitSlop={10} style={{ paddingBottom: 14 }} accessibilityLabel="KDV satırını sil">
+                  <Icon name="close" size={14} color={c.muted} />
                 </Pressable>
               )}
             </View>
           ))}
           {editable && (
-            <Button
-              variant="ghost"
-              title="KDV satırı ekle"
-              onPress={() =>
-                setLines([...lines, { rate: String(category?.default_vat_rate ?? 20), base: '', vat: '' }])
-              }
-            />
+            <Pressable
+              onPress={() => setLines([...lines, { rate: String(category?.default_vat_rate ?? 20), base: '', vat: '' }])}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: space.sm }}>
+              <Icon name="plus" size={14} color={c.pen} />
+              <Text style={{ color: c.pen, fontWeight: '600' }}>KDV satırı ekle</Text>
+            </Pressable>
           )}
-        </Card>
+        </Slip>
 
-        <Card>
-          <Label>Kategori</Label>
-          <View style={styles.chips}>
-            {categories.map((k) => {
-              const on = k.id === categoryId;
-              return (
-                <Pressable
-                  key={k.id}
-                  disabled={!editable}
-                  onPress={() => setCategoryId(on ? null : k.id)}
-                  style={[
-                    styles.chip,
-                    { borderColor: on ? c.primary : c.border, backgroundColor: on ? c.primarySoft : c.card },
-                  ]}>
-                  <Text style={{ color: on ? c.primary : c.text, fontWeight: on ? '600' : '400' }}>{k.name}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Card>
-
-        <Card>
-          <Field
-            label="Açıklama"
-            value={description}
-            onChangeText={setDescription}
-            editable={editable}
-            multiline
-            placeholder="Örnek: ABC firmasıyla sipariş görüşmesi"
-          />
-          <Label>Masrafı kimlerle yaptınız{category?.attendees_required ? ' (zorunlu)' : ''}</Label>
-          <View style={styles.chips}>
-            {attendees.map((p) => (
+        <SectionTitle title="Kategori" />
+        <View style={styles.chips}>
+          {categories.map((k) => {
+            const on = k.id === categoryId;
+            return (
               <Pressable
-                key={p}
+                key={k.id}
                 disabled={!editable}
-                onPress={() => setAttendees(attendees.filter((x) => x !== p))}
-                style={[styles.chip, { borderColor: c.border, backgroundColor: c.card }]}>
-                <Text style={{ color: c.text }}>{p}{editable ? '  ×' : ''}</Text>
+                onPress={() => setCategoryId(on ? null : k.id)}
+                style={[styles.chip, { backgroundColor: on ? c.pen : c.paper }]}>
+                <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{k.name}</Text>
               </Pressable>
-            ))}
-          </View>
+            );
+          })}
+        </View>
+
+        <SectionTitle title={`Kimlerle${category?.attendees_required ? ' (zorunlu)' : ''}`} />
+        <View style={[styles.box, { backgroundColor: c.paper }]}>
+          {attendees.length > 0 && (
+            <View style={styles.chips}>
+              {attendees.map((p) => (
+                <Pressable
+                  key={p}
+                  disabled={!editable}
+                  onPress={() => setAttendees(attendees.filter((x) => x !== p))}
+                  style={[styles.chip, { backgroundColor: c.penSoft, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                  <Text style={{ color: c.pen, fontWeight: '600' }}>{p}</Text>
+                  {editable && <Icon name="close" size={10} color={c.pen} />}
+                </Pressable>
+              ))}
+            </View>
+          )}
           {editable && (
             <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-end' }}>
               <View style={{ flex: 1 }}>
@@ -329,28 +341,52 @@ export default function ExpenseScreen() {
                   placeholder="Ad soyad, firma"
                 />
               </View>
-              <Button variant="secondary" title="Ekle" onPress={addAttendee} style={{ minHeight: 46 }} />
+              <Button variant="secondary" icon="plus" title="Ekle" onPress={addAttendee} style={{ minHeight: 48, backgroundColor: c.canvas }} />
             </View>
           )}
-        </Card>
+          <Field
+            label="Açıklama"
+            value={description}
+            onChangeText={setDescription}
+            editable={editable}
+            multiline
+            placeholder="Örnek: ABC firmasıyla sipariş görüşmesi"
+          />
+        </View>
 
         {error && <Notice tone="bad" text={error} />}
         {editable ? (
-          <>
-            <Button title="Kaydet" onPress={save} loading={busy} />
-            <Button variant="ghost" title="Fişi sil" onPress={remove} />
-          </>
+          <Button variant="plain" icon="trash" title="Fişi sil" onPress={remove} />
         ) : (
-          <Notice text="Bu rapor onaya gönderildiği için fiş değiştirilemez." />
+          <Notice text="Rapor onaya gönderildiği için fiş değiştirilemez." />
         )}
       </ScrollView>
+
+      {editable && (
+        <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
+          <Button icon="check" title="Kaydet" onPress={save} loading={busy} style={{ flex: 1 }} />
+        </SafeAreaView>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  image: { width: '100%', height: 320, borderRadius: radius.lg },
-  lineRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-end' },
+  imageWrap: { borderRadius: radius.lg, overflow: 'hidden' },
+  image: { width: '100%', height: 300 },
+  flag: { borderRadius: radius.md, borderLeftWidth: 3, padding: space.md, gap: 4 },
+  lineRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-end', marginTop: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
+  chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
+  box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

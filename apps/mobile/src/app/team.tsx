@@ -2,21 +2,14 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Card, Field, Label, Notice, Pill } from '@/components/ui';
+import { Button, Field, Group, Notice, Row, SectionTitle } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+import { ROLE_LABEL } from '@/lib/types';
 
 type Member = { user_id: string; roles: string[]; manager_user_id: string | null; full_name: string };
 
-const ROLE_LABEL: Record<string, string> = {
-  employee: 'Çalışan',
-  approver: 'Onaylayıcı',
-  accountant: 'Muhasebeci',
-  admin: 'Yönetici',
-  auditor: 'Denetçi',
-  cost_center_owner: 'Masraf merkezi sorumlusu',
-};
 const CHOICES = ['employee', 'approver', 'accountant', 'admin'];
 
 export default function Team() {
@@ -57,11 +50,7 @@ export default function Team() {
     setInfo(null);
     if (!email.includes('@')) return setError('Kişinin e-postasını yazın.');
     setBusy(true);
-    const { error: e } = await supabase.rpc('add_member', {
-      p_company: active.company_id,
-      p_email: email.trim(),
-      p_roles: roles,
-    });
+    const { error: e } = await supabase.rpc('add_member', { p_company: active.company_id, p_email: email.trim(), p_roles: roles });
     setBusy(false);
     if (e) return setError(errorText(e));
     setInfo('Kişi eklendi. Masraflarını siz onaylayacaksınız.');
@@ -74,11 +63,13 @@ export default function Team() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
-      <Card>
-        <Label>Kişi ekle</Label>
-        <Body muted>Kişi önce Gidero'yu indirip kendi e-postasıyla kaydolmalı. Sonra e-postasını buraya yazın.</Body>
+      <SectionTitle title="Kişi ekle" />
+      <View style={[styles.box, { backgroundColor: c.paper }]}>
+        <Text style={[type.small, { color: c.muted }]}>
+          Kişi önce Gidero'yu indirip kendi e-postasıyla kaydolmalı. Sonra e-postasını buraya yazın.
+        </Text>
         <Field label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-        <Label>Rolleri</Label>
+        <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Rolleri</Text>
         <View style={styles.chips}>
           {CHOICES.map((r) => {
             const on = roles.includes(r);
@@ -86,39 +77,37 @@ export default function Team() {
               <Pressable
                 key={r}
                 onPress={() => setRoles(on ? roles.filter((x) => x !== r) : [...roles, r])}
-                style={[styles.chip, { borderColor: on ? c.primary : c.border, backgroundColor: on ? c.primarySoft : c.card }]}>
-                <Text style={{ color: on ? c.primary : c.text }}>{ROLE_LABEL[r]}</Text>
+                style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
+                <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{ROLE_LABEL[r]}</Text>
               </Pressable>
             );
           })}
         </View>
         {error && <Notice tone="bad" text={error} />}
-        {info && <Notice text={info} />}
-        <Button title="Ekle" onPress={add} loading={busy} disabled={roles.length === 0} />
-      </Card>
+        {info && <Notice tone="ok" text={info} />}
+        <Button icon="personAdd" title="Ekle" onPress={add} loading={busy} disabled={roles.length === 0} />
+      </View>
 
-      <Label>Ekip ({members.length})</Label>
-      {members.map((m) => (
-        <Card key={m.user_id}>
-          <Text style={[type.body, { color: c.text, fontWeight: '600' }]}>
-            {m.full_name}
-            {m.user_id === userId ? ' (siz)' : ''}
-          </Text>
-          <View style={styles.chips}>
-            {m.roles.map((r) => (
-              <Pill key={r} text={ROLE_LABEL[r] ?? r} />
-            ))}
-          </View>
-          {m.manager_user_id ? (
-            <Text style={[type.small, { color: c.muted }]}>Yöneticisi: {nameOf(m.manager_user_id) ?? '—'}</Text>
-          ) : null}
-        </Card>
-      ))}
+      <SectionTitle title={`Ekip (${members.length})`} />
+      <Group>
+        {members.map((m) => (
+          <Row
+            key={m.user_id}
+            icon="team"
+            title={`${m.full_name}${m.user_id === userId ? ' (siz)' : ''}`}
+            subtitle={
+              m.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') +
+              (m.manager_user_id ? `. Yöneticisi: ${nameOf(m.manager_user_id) ?? '—'}` : '')
+            }
+          />
+        ))}
+      </Group>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
+  chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
 });

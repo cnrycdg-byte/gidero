@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
-import { Body, Button, Field, Notice } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { Button, Field, Notice } from '@/components/ui';
+import { space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 
 export default function Onboarding() {
+  const c = useColors();
   const { reloadMemberships } = useSession();
   const [name, setName] = useState('');
   const [vkn, setVkn] = useState('');
@@ -28,24 +29,24 @@ export default function Onboarding() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg }} keyboardShouldPersistTaps="handled">
-      <Body muted>
-        Masrafları hangi şirket adına toplayacağınızı yazın. Vergi numarası, faturaların şirket adına kesilip
+    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
+      <Text style={[type.body, { color: c.muted }]}>
+        Masrafları hangi şirket adına toplayacağınızı yazın. Vergi numarası, faturaların şirketiniz adına kesilip
         kesilmediğini kontrol etmek için kullanılır.
-      </Body>
-      <Field label="Şirket unvanı" value={name} onChangeText={setName} placeholder="Örnek Ticaret Ltd. Şti." />
-      <Field
-        label="Vergi numarası"
-        value={vkn}
-        onChangeText={setVkn}
-        keyboardType="number-pad"
-        maxLength={11}
-        hint="Şahıs şirketiyseniz 11 haneli TC kimlik numarası."
-      />
-      {error && <Notice tone="bad" text={error} />}
-      <View style={{ marginTop: space.sm }}>
-        <Button title="Şirketi kur" onPress={create} loading={busy} />
+      </Text>
+      <View style={{ backgroundColor: c.paper, borderRadius: 14, padding: space.lg, gap: space.md }}>
+        <Field label="Şirket unvanı" value={name} onChangeText={setName} placeholder="Örnek Ticaret Ltd. Şti." />
+        <Field
+          label="Vergi numarası"
+          value={vkn}
+          onChangeText={setVkn}
+          keyboardType="number-pad"
+          maxLength={11}
+          hint="Şahıs şirketiyseniz 11 haneli TC kimlik numarası."
+        />
       </View>
+      {error && <Notice tone="bad" text={error} />}
+      <Button size="large" title="Şirketi kur" onPress={create} loading={busy} />
       <Notice text="Şirketi kuran kişi yönetici ve muhasebeci olur. Çalışanlarınızı sonra Ekip ekranından eklersiniz." />
     </ScrollView>
   );

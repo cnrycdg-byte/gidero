@@ -4,6 +4,7 @@ import { useColorScheme } from 'react-native';
 
 import { Loading } from '@/components/ui';
 import { useColors } from '@/constants/theme';
+import { QueueProvider } from '@/lib/queue';
 import { SessionProvider, useSession } from '@/lib/session';
 
 export default function RootLayout() {
@@ -11,8 +12,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SessionProvider>
-        <StatusBar style="auto" />
-        <RootStack />
+        <QueueProvider>
+          <StatusBar style="auto" />
+          <RootStack />
+        </QueueProvider>
       </SessionProvider>
     </ThemeProvider>
   );
@@ -30,24 +33,27 @@ function RootStack() {
     <Stack
       screenOptions={{
         headerBackButtonDisplayMode: 'minimal',
-        headerTintColor: c.primary,
-        headerTitleStyle: { color: c.text },
-        contentStyle: { backgroundColor: c.bg },
+        headerTintColor: c.pen,
+        headerTitleStyle: { color: c.ink },
+        headerLargeTitleStyle: { color: c.ink },
+        contentStyle: { backgroundColor: c.canvas },
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: c.bg },
+        headerLargeTitleShadowVisible: false,
+        headerStyle: { backgroundColor: c.canvas },
       }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !hasCompany}>
-        <Stack.Screen name="onboarding" options={{ title: 'Şirketinizi kurun' }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Şirketinizi kurun', headerLargeTitle: true }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>
-        <Stack.Screen name="index" options={{ title: 'Gidero', headerLargeTitle: true }} />
+        <Stack.Screen name="index" options={{ title: 'Masraflarım', headerLargeTitle: true }} />
+        <Stack.Screen name="camera" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="new-report" options={{ title: 'Yeni rapor', presentation: 'modal' }} />
-        <Stack.Screen name="report/[id]" options={{ title: 'Rapor' }} />
+        <Stack.Screen name="report/[id]" options={{ title: '' }} />
         <Stack.Screen name="expense/[id]" options={{ title: 'Fiş' }} />
-        <Stack.Screen name="approvals" options={{ title: 'Onayımı bekleyenler' }} />
+        <Stack.Screen name="approvals" options={{ title: 'Onayınızı bekleyenler' }} />
         <Stack.Screen name="team" options={{ title: 'Ekip' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
       </Stack.Protected>

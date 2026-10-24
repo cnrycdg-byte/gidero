@@ -1,64 +1,72 @@
 import Constants from 'expo-constants';
-import * as Updates from 'expo-updates';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import * as Updates from 'expo-updates';
+import { ScrollView, Text } from 'react-native';
 
-import { Body, Button, Card, Label } from '@/components/ui';
+import { Icon } from '@/components/icon';
+import { Group, Row, SectionTitle } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-
-const ROLE_LABEL: Record<string, string> = {
-  employee: 'Çalışan',
-  approver: 'Onaylayıcı',
-  accountant: 'Muhasebeci',
-  admin: 'Yönetici',
-  auditor: 'Denetçi',
-  cost_center_owner: 'Masraf merkezi sorumlusu',
-};
+import { ROLE_LABEL } from '@/lib/types';
 
 export default function Settings() {
   const c = useColors();
-  const { session, memberships, active, setActiveCompany } = useSession();
+  const { session, memberships, active, setActiveCompany, hasRole } = useSession();
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }}>
-      <Card>
-        <Label>Hesap</Label>
-        <Body>{session?.user.email}</Body>
-        {active && <Body muted>{active.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ')}</Body>}
-      </Card>
+      <Group>
+        <Row
+          title={session?.user.user_metadata?.full_name || session?.user.email || ''}
+          subtitle={active ? active.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') : session?.user.email}
+          icon="team"
+        />
+      </Group>
 
-      {memberships.length > 1 && (
-        <Card>
-          <Label>Şirket</Label>
-          {memberships.map((m) => {
-            const on = m.company_id === active?.company_id;
-            return (
-              <Pressable
-                key={m.company_id}
-                onPress={() => {
-                  setActiveCompany(m.company_id);
-                  router.back();
-                }}>
-                <View style={{ paddingVertical: space.sm }}>
-                  <Text style={[type.body, { color: on ? c.primary : c.text, fontWeight: on ? '600' : '400' }]}>
-                    {on ? '✓ ' : ''}
-                    {m.companies.legal_name}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </Card>
-      )}
+      <SectionTitle title={memberships.length > 1 ? 'Şirketler' : 'Şirket'} />
+      <Group>
+        {memberships.map((m) => {
+          const on = m.company_id === active?.company_id;
+          return (
+            <Row
+              key={m.company_id}
+              title={m.companies.legal_name}
+              subtitle={`Vergi no ${m.companies.tax_number}`}
+              right={on ? <Icon name="check" size={16} color={c.pen} /> : undefined}
+              chevron={false}
+              onPress={
+                on
+                  ? undefined
+                  : () => {
+                      setActiveCompany(m.company_id);
+                      router.back();
+                    }
+              }
+            />
+          );
+        })}
+      </Group>
 
-      <Button variant="secondary" title="Onayımı bekleyenler" onPress={() => router.push('/approvals')} />
-      <Button variant="danger" title="Çıkış yap" onPress={() => supabase.auth.signOut()} />
+      <Group>
+        <Row icon="inbox" title="Onayınızı bekleyenler" onPress={() => router.push('/approvals')} />
+        {hasRole('admin') ? <Row icon="team" title="Ekip" onPress={() => router.push('/team')} /> : null}
+      </Group>
 
-      <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>
+      <Group>
+        <Row
+          icon="logout"
+          iconColor={c.red}
+          iconBg={c.redSoft}
+          title="Çıkış yap"
+          chevron={false}
+          onPress={() => supabase.auth.signOut()}
+        />
+      </Group>
+
+      <Text style={[type.small, { color: c.faint, textAlign: 'center' }]}>
         Gidero {Constants.expoConfig?.version ?? ''}
-        {Updates.updateId ? ` · ${Updates.updateId.slice(0, 8)}` : ''}
+        {Updates.updateId ? ` (${Updates.updateId.slice(0, 8)})` : ''}
       </Text>
     </ScrollView>
   );

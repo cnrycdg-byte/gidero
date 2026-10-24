@@ -11,7 +11,7 @@ import { errorText, supabase } from '@/lib/supabase';
 export default function NewReport() {
   const { userId, active } = useSession();
   const def = currentPeriod();
-  const [title, setTitle] = useState(def.title);
+  const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,13 +22,7 @@ export default function NewReport() {
     setError(null);
     const { data, error: e } = await supabase
       .from('reports')
-      .insert({
-        company_id: active.company_id,
-        owner_user_id: userId,
-        created_by: userId,
-        title: title.trim(),
-        period: def.period,
-      })
+      .insert({ company_id: active.company_id, owner_user_id: userId, created_by: userId, title: title.trim(), period: def.period })
       .select('id')
       .single();
     setBusy(false);
@@ -38,16 +32,17 @@ export default function NewReport() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg }} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
       <Field
         label="Rapor başlığı"
         value={title}
         onChangeText={setTitle}
         autoFocus
-        hint="Bir dönemin ya da bir işin masraflarını tek başlık altında toplayın."
+        placeholder="Örnek: İstanbul fuarı"
+        hint={`Aylık fişleriniz zaten “${def.title}” raporuna gidiyor. Bir iş ya da seyahat için ayrı rapor açın.`}
       />
       {error && <Notice tone="bad" text={error} />}
-      <Button title="Raporu aç" onPress={create} loading={busy} />
+      <Button size="large" title="Raporu aç" onPress={create} loading={busy} />
     </ScrollView>
   );
 }

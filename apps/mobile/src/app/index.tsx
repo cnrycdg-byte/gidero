@@ -1,20 +1,28 @@
-import { Link, router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, Stack, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Card, Label, Pill } from '@/components/ui';
-import { radius, space, type, useColors } from '@/constants/theme';
+import { Icon } from '@/components/icon';
+import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
+import { space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
+import { useQueue } from '@/lib/queue';
+import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
-import { supabase } from '@/lib/supabase';
-import { STATUS_LABEL, statusTone, type Report } from '@/lib/types';
+import { errorText, supabase } from '@/lib/supabase';
+import type { Report } from '@/lib/types';
 
 export default function Home() {
   const c = useColors();
   const { userId, active, hasRole } = useSession();
+  const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
+  const [receiptCount, setReceiptCount] = useState(0);
   const [waiting, setWaiting] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { period, title: monthTitle } = currentPeriod();
 
   const load = useCallback(async () => {
     if (!userId || !active) return;
@@ -22,7 +30,7 @@ export default function Home() {
     const [mine, approvals] = await Promise.all([
       supabase
         .from('reports')
-        .select('*')
+        .select('*, expenses(count)')
         .eq('company_id', active.company_id)
         .or(`owner_user_id.eq.${userId},created_by.eq.${userId}`)
         .order('created_at', { ascending: false })
@@ -34,21 +42,47 @@ export default function Home() {
         .eq('status', 'pending')
         .contains('current_approver_ids', [userId]),
     ]);
-    setReports((mine.data ?? []) as Report[]);
+    const list = (mine.data ?? []) as (Report & { expenses: { count: number }[] })[];
+    setReports(list);
+    setReceiptCount(
+      list.filter((r) => r.period === period).reduce((a, r) => a + (r.expenses?.[0]?.count ?? 0), 0),
+    );
     setWaiting(approvals.count ?? 0);
     setLoading(false);
-  }, [userId, active]);
+  }, [userId, active, period]);
 
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load]),
   );
+  useEffect(() => {
+    load();
+  }, [version, load]);
 
-  const { period } = currentPeriod();
+  async function capture(source: 'camera' | 'gallery') {
+    if (!userId || !active) return;
+    setError(null);
+    setOpening(source);
+    try {
+      const reportId = await ensureMonthReport(active.company_id, userId);
+      if (source === 'camera') {
+        router.push({ pathname: '/camera', params: { reportId, companyId: active.company_id } });
+      } else {
+        const uris = await pickFromLibrary();
+        uris.forEach((uri) => enqueue({ reportId, companyId: active.company_id, userId, uri }));
+        if (uris.length) router.push({ pathname: '/report/[id]', params: { id: reportId } });
+      }
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setOpening(null);
+    }
+  }
+
   const monthTotal = reports.filter((r) => r.period === period).reduce((a, r) => a + Number(r.total), 0);
-  const openCount = reports.filter((r) => r.status === 'draft' || r.status === 'returned').length;
-  const pendingCount = reports.filter((r) => r.status === 'pending').length;
+  const inFlight = items.filter((i) => i.status !== 'failed').length;
+  const monthName = monthTitle.replace(' masrafları', '');
 
   return (
     <>
@@ -56,93 +90,115 @@ export default function Home() {
         options={{
           headerRight: () => (
             <Pressable onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
-              <Text style={{ color: c.primary, fontSize: 16, fontWeight: '600' }}>Ayarlar</Text>
+              <Icon name="settings" size={22} color={c.pen} />
             </Pressable>
           ),
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 }}
+        contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-        <Body muted>{active?.companies.legal_name}</Body>
-
-        <Card>
-          <Label>Bu ay harcadığınız</Label>
-          <Text style={[type.amount, { color: c.text }]}>{money(monthTotal)}</Text>
-          <View style={styles.statRow}>
-            <Stat label="Açık rapor" value={openCount} />
-            <Stat label="Onayda" value={pendingCount} />
-            <Stat label="Toplam rapor" value={reports.length} />
+        <Slip>
+          <View style={styles.slipHead}>
+            <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{monthName}</Text>
+            <Text style={[type.small, { color: c.muted }]} numberOfLines={1}>
+              {active?.companies.legal_name}
+            </Text>
           </View>
-        </Card>
+          <Text style={[type.display, { color: c.ink }]} adjustsFontSizeToFit numberOfLines={1}>
+            {money(monthTotal)}
+          </Text>
+          <Perforation />
+          <View style={styles.slipFoot}>
+            <Text style={[type.small, { color: c.muted }]}>
+              {receiptCount} fiş
+              {inFlight > 0 ? `, ${inFlight} fiş okunuyor` : ''}
+            </Text>
+            <Text style={[type.small, { color: c.muted }]}>
+              {reports.filter((r) => r.status === 'pending').length} rapor onayda
+            </Text>
+          </View>
+        </Slip>
 
-        <Button title="Yeni masraf raporu aç" onPress={() => router.push('/new-report')} />
+        <View style={{ gap: space.sm }}>
+          <Button
+            size="large"
+            icon="camera"
+            title="Fiş çek"
+            onPress={() => capture('camera')}
+            loading={opening === 'camera'}
+          />
+          <Button
+            variant="secondary"
+            icon="gallery"
+            title="Galeriden ekle"
+            onPress={() => capture('gallery')}
+            loading={opening === 'gallery'}
+          />
+          <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>
+            Fişler “{monthTitle}” raporuna eklenir.
+          </Text>
+        </View>
+
+        {error && <Notice tone="bad" text={error} />}
 
         {waiting > 0 && (
-          <Link href="/approvals" asChild>
-            <Pressable style={[styles.banner, { backgroundColor: c.infoSoft }]}>
-              <Text style={{ color: c.info, fontWeight: '600', fontSize: 16 }}>
-                {waiting} rapor onayınızı bekliyor
-              </Text>
-              <Text style={{ color: c.info }}>Aç ›</Text>
-            </Pressable>
-          </Link>
+          <Group>
+            <Row
+              icon="inbox"
+              title={`${waiting} rapor onayınızı bekliyor`}
+              subtitle="İnceleyip onaylayın ya da iade edin"
+              onPress={() => router.push('/approvals')}
+            />
+          </Group>
         )}
 
-        <Label>Raporlarım</Label>
-        {reports.length === 0 && !loading && (
-          <Card>
-            <Body>Henüz rapor yok.</Body>
-            <Body muted>
-              Bir başlık açın (örneğin “Ekim masrafları”), sonra fişlerinizi çekip içine ekleyin. Ay sonunda tek seferde
-              onaya gönderin.
-            </Body>
-          </Card>
-        )}
-        {reports.map((r) => (
-          <Link key={r.id} href={{ pathname: '/report/[id]', params: { id: r.id } }} asChild>
-            <Pressable>
-              <Card>
-                <View style={styles.rowBetween}>
-                  <Text style={[type.heading, { color: c.text, flex: 1 }]} numberOfLines={1}>
-                    {r.title}
-                  </Text>
-                  <Text style={[type.heading, { color: c.text, fontVariant: ['tabular-nums'] }]}>{money(r.total)}</Text>
-                </View>
-                <View style={styles.rowBetween}>
-                  <Pill text={STATUS_LABEL[r.status]} tone={statusTone(r.status)} />
-                  <Text style={[type.small, { color: c.muted }]}>{dateText(r.created_at)}</Text>
-                </View>
-              </Card>
+        <SectionTitle
+          title="Raporlarım"
+          action={
+            <Pressable onPress={() => router.push('/new-report')} hitSlop={10}>
+              <Text style={{ color: c.pen, fontWeight: '600', fontSize: 15 }}>Yeni rapor</Text>
             </Pressable>
-          </Link>
-        ))}
+          }
+        />
+        {reports.length === 0 && !loading ? (
+          <Empty
+            icon="receipt"
+            title="Henüz rapor yok"
+            text="“Fiş çek”e dokunun; bu ayın raporu kendiliğinden açılır ve fişleriniz içine eklenir."
+          />
+        ) : (
+          <Group>
+            {reports.map((r) => (
+              <Row
+                key={r.id}
+                title={r.title}
+                subtitle={
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <StatusTag status={r.status} />
+                    <Text style={[type.small, { color: c.faint }]}>{dateText(r.created_at)}</Text>
+                  </View>
+                }
+                value={money(r.total)}
+                onPress={() => router.push({ pathname: '/report/[id]', params: { id: r.id } })}
+              />
+            ))}
+          </Group>
+        )}
 
-        {hasRole('admin') && <Button variant="secondary" title="Ekibi yönet" onPress={() => router.push('/team')} />}
+        {hasRole('admin') && (
+          <Group>
+            <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini belirleyin" onPress={() => router.push('/team')} />
+          </Group>
+        )}
       </ScrollView>
     </>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
-  const c = useColors();
-  return (
-    <View style={{ flex: 1 }}>
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Text>
-      <Text style={[type.small, { color: c.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  statRow: { flexDirection: 'row', marginTop: space.sm },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
-  banner: {
-    borderRadius: radius.md,
-    padding: space.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },
+  slipHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
+  slipFoot: { flexDirection: 'row', justifyContent: 'space-between' },
 });

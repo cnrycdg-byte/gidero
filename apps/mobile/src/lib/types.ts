@@ -73,3 +73,12 @@ export function statusTone(s: ReportStatus) {
   if (s === 'returned') return 'bad' as const;
   return 'neutral' as const;
 }
+
+export const ROLE_LABEL: Record<string, string> = {
+  employee: 'Çalışan',
+  approver: 'Onaylayıcı',
+  accountant: 'Muhasebeci',
+  admin: 'Yönetici',
+  auditor: 'Denetçi',
+  cost_center_owner: 'Masraf merkezi sorumlusu',
+};
