@@ -4,11 +4,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { supabase } from './supabase';
 import type { Membership } from './types';
 
+export type Bureau = { account_id: string; name: string; role: 'owner' | 'accountant' };
+
 type Ctx = {
   ready: boolean;
   session: Session | null;
   userId: string | null;
+  /** Erişilen firmalar (kendi üyelikleri + büro müşterileri) */
   memberships: Membership[];
+  bureaus: Bureau[];
+  platformAdmin: boolean;
   active: Membership | null;
   setActiveCompany: (id: string) => void;
   reloadMemberships: () => Promise<void>;
@@ -17,10 +22,23 @@ type Ctx = {
 
 const SessionContext = createContext<Ctx | null>(null);
 
+type WorkspaceCompany = {
+  company_id: string;
+  legal_name: string;
+  tax_number: string;
+  roles: string[];
+  vehicle_plates: string[];
+  bureau_account_id: string | null;
+  billing_account_id: string;
+  active: boolean;
+};
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [bureaus, setBureaus] = useState<Bureau[]>([]);
+  const [platformAdmin, setPlatformAdmin] = useState(false);
   const [membershipsReady, setMembershipsReady] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -38,27 +56,44 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const reloadMemberships = useCallback(async () => {
     if (!userId) {
       setMemberships([]);
+      setBureaus([]);
+      setPlatformAdmin(false);
       setMembershipsReady(true);
       return;
     }
-    let data: unknown[] | null;
-    let error: unknown;
-    ({ data, error } = await supabase
-      .from('memberships')
-      .select('company_id, roles, vehicle_plates, companies(id, legal_name, tax_number)')
-      .eq('user_id', userId)
-      .eq('status', 'active'));
-    if (error) {
-      // Sunucu henüz güncellenmediyse plakasız sorgula
-      ({ data, error } = await supabase
+    // Gidero sahibinin hesabı ilk girişte yönetici olarak tanınır (sunucu doğrular)
+    await supabase.rpc('claim_platform_admin').then(
+      () => {},
+      () => {},
+    );
+    const { data, error } = await supabase.rpc('my_workspace');
+    let list: Membership[] = [];
+    if (!error && data) {
+      const ws = data as { companies: WorkspaceCompany[]; bureaus: Bureau[]; platform_admin: boolean };
+      list = ws.companies.map((c) => ({
+        company_id: c.company_id,
+        roles: c.roles,
+        vehicle_plates: c.vehicle_plates ?? [],
+        bureau_account_id: c.bureau_account_id,
+        billing_account_id: c.billing_account_id,
+        company_active: c.active,
+        companies: { id: c.company_id, legal_name: c.legal_name, tax_number: c.tax_number },
+      }));
+      setBureaus(ws.bureaus ?? []);
+      setPlatformAdmin(!!ws.platform_admin);
+    } else {
+      // Sunucu henüz güncellenmediyse eski sorgu
+      const { data: rows } = await supabase
         .from('memberships')
         .select('company_id, roles, companies(id, legal_name, tax_number)')
         .eq('user_id', userId)
-        .eq('status', 'active'));
+        .eq('status', 'active');
+      list = ((rows ?? []) as unknown as Membership[])
+        .filter((m) => m.companies)
+        .map((m) => ({ ...m, vehicle_plates: [], bureau_account_id: null, billing_account_id: null, company_active: true }));
+      setBureaus([]);
+      setPlatformAdmin(false);
     }
-    const list = ((data ?? []) as unknown as Membership[])
-      .filter((m) => m.companies)
-      .map((m) => ({ ...m, vehicle_plates: m.vehicle_plates ?? [] }));
     setMemberships(list);
     setActiveId((cur) => (cur && list.some((m) => m.company_id === cur) ? cur : list[0]?.company_id ?? null));
     setMembershipsReady(true);
@@ -77,12 +112,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       session,
       userId,
       memberships,
+      bureaus,
+      platformAdmin,
       active,
       setActiveCompany: setActiveId,
       reloadMemberships,
       hasRole: (role) => !!active?.roles.includes(role),
     }),
-    [authReady, membershipsReady, session, userId, memberships, active, reloadMemberships],
+    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

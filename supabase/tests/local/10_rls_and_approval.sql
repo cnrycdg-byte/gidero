@@ -52,6 +52,9 @@ insert into public.companies (id, account_id, bureau_account_id, legal_name, tax
  ('20000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-00000000000a', null, 'A Ltd', '1111111111'),
  ('20000000-0000-0000-0000-00000000000b','10000000-0000-0000-0000-00000000000b', null, 'B AŞ', '2222222222'),
  ('20000000-0000-0000-0000-00000000000c','10000000-0000-0000-0000-00000000000c','10000000-0000-0000-0000-00000000000c','C Gıda', '3333333333');
+insert into public.subscriptions (account_id, status, trial_ends_at, max_companies, max_users)
+select id, 'trial', now() + interval '14 days', case when kind = 'bureau' then 3 end, 10 from public.accounts
+on conflict (account_id) do nothing;
 
 insert into public.memberships (company_id, user_id, roles, manager_user_id) values
  ('20000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000a1','{employee}','00000000-0000-0000-0000-0000000000a2'),

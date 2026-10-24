@@ -22,7 +22,11 @@
       "package": "tr.gidero.app"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "output": "single",
+      "name": "Gidero",
+      "backgroundColor": "#F4F6F5",
+      "themeColor": "#0B6E5F"
     },
     "plugins": [
       "expo-router",

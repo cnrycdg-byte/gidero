@@ -418,3 +418,8 @@ enabled = true
 [functions.read-receipt]
 enabled = true
 verify_jwt = true
+
+# iyzico ödeme dönüşü oturumsuz gelir; ödeme başlatma isteği fonksiyonun içinde kullanıcı oturumuyla doğrulanır.
+[functions.payments]
+enabled = true
+verify_jwt = false

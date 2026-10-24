@@ -1,5 +1,5 @@
 import { SymbolView, type SFSymbol, type AndroidSymbol } from 'expo-symbols';
-import type { ColorValue } from 'react-native';
+import { Platform, Text, type ColorValue } from 'react-native';
 
 // Uygulamadaki ikonlar: iOS'ta SF Symbols, Android'de Material Symbols
 const ICONS = {
@@ -29,6 +29,20 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
+// Web'de (yönetim paneli) sembol yazı tipi olmadığından basit karakterler kullanılır
+const WEB_GLYPH: Partial<Record<IconName, string>> = {
+  chevron: '›', check: '✓', checkCircle: '✓', close: '✕', plus: '+', warning: '!', error: '!', camera: '◉',
+  gallery: '▦', settings: '⚙', team: '◎', personAdd: '+', logout: '⏻', trash: '✕', receipt: '▤', doc: '▤',
+  clock: '◷', send: '➤', undo: '↺', inbox: '▣', flashOn: 'ϟ', flashOff: 'ϟ',
+};
+
 export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color: ColorValue }) {
+  if (Platform.OS === 'web') {
+    return (
+      <Text style={{ color, fontSize: size * 0.9, lineHeight: size, width: size, textAlign: 'center', fontWeight: '700' }}>
+        {WEB_GLYPH[name] ?? '•'}
+      </Text>
+    );
+  }
   return <SymbolView name={ICONS[name]} size={size} tintColor={color} resizeMode="scaleAspectFit" />;
 }

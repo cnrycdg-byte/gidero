@@ -14,7 +14,7 @@ import { ROLE_LABEL } from '@/lib/types';
 
 export default function Settings() {
   const c = useColors();
-  const { session, memberships, active, setActiveCompany, hasRole } = useSession();
+  const { session, memberships, active, setActiveCompany, hasRole, bureaus, platformAdmin } = useSession();
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }}>
@@ -57,6 +57,26 @@ export default function Settings() {
             />
           );
         })}
+      </Group>
+
+      {platformAdmin && (
+        <Group>
+          <Row
+            icon="settings"
+            iconColor={c.onPen}
+            iconBg={c.pen}
+            title="Gidero Yönetim Paneli"
+            subtitle="Müşteriler, siparişler, paketler, kampanyalar"
+            onPress={() => router.push('/admin')}
+          />
+        </Group>
+      )}
+
+      <Group>
+        {bureaus.length > 0 ? <Row icon="doc" title="Müşteri firmalar" onPress={() => router.push('/clients')} /> : null}
+        {hasRole('admin') || bureaus.some((b) => b.role === 'owner') ? (
+          <Row icon="receipt" title="Abonelik ve ödeme" subtitle="Paket, süre, kampanya kodu" onPress={() => router.push('/subscription')} />
+        ) : null}
       </Group>
 
       <Group>
