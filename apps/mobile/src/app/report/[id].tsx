@@ -6,6 +6,7 @@ import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { QueueProgress } from '@/components/queue-progress';
 import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Slip, Stamp } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
@@ -78,7 +79,8 @@ export default function ReportScreen() {
     (report.status === 'draft' || report.status === 'returned') && (isOwner || (isCreator && hasRole('accountant')));
   const iApprove = report.status === 'pending' && !!userId && report.current_approver_ids.includes(userId);
   const pending = queue.items.filter((i) => i.reportId === id);
-  const reading = pending.filter((i) => i.status !== 'failed');
+  const reading = pending.filter((i) => i.status === 'waiting' || i.status === 'uploading' || i.status === 'reading');
+  const failed = pending.filter((i) => i.status === 'failed');
   const knownIds = new Set(expenses.map((e) => e.id));
   const stillReading = new Set(reading.map((i) => i.expenseId).filter(Boolean) as string[]);
   const warnCount = expenses.reduce((a, e) => a + (e.expense_flags ?? []).filter((f) => f.severity !== 'info').length, 0);
@@ -193,25 +195,24 @@ export default function ReportScreen() {
           }
         />
 
-        {expenses.length === 0 && pending.length === 0 ? (
-          <Empty icon="camera" title="Bu raporda fiş yok" text="“Fiş çek”e dokunun; fişleri arka arkaya çekebilirsiniz." />
+        <QueueProgress reportId={id} />
+
+        {expenses.length === 0 && failed.length === 0 ? (
+          reading.length ? null : <Empty icon="camera" title="Bu raporda fiş yok" text="“Fiş çek”e dokunun; fişleri arka arkaya çekebilirsiniz." />
         ) : (
           <Group>
-            {pending
-              .filter((p) => p.status === 'failed' || !p.expenseId || !knownIds.has(p.expenseId))
-              .map((p) => (
-                <Row
-                  key={p.key}
-                  icon={p.status === 'failed' ? 'error' : 'clock'}
-                  iconColor={p.status === 'failed' ? c.red : c.muted}
-                  iconBg={p.status === 'failed' ? c.redSoft : c.canvas}
-                  title={p.status === 'failed' ? 'Fiş yüklenemedi' : 'Fiş yükleniyor…'}
-                  subtitle={p.status === 'failed' ? `${p.error ?? ''} Tekrar denemek için dokunun.` : 'Birkaç saniye sürer'}
-                  right={p.status === 'failed' ? undefined : <ActivityIndicator color={c.muted} />}
-                  onPress={p.status === 'failed' ? () => queue.retry(p.key) : undefined}
-                  chevron={false}
-                />
-              ))}
+            {failed.map((p) => (
+              <Row
+                key={p.key}
+                icon="error"
+                iconColor={c.red}
+                iconBg={c.redSoft}
+                title="Fiş yüklenemedi"
+                subtitle={`${p.error ?? ''} Tekrar denemek için dokunun.`}
+                onPress={() => queue.retry(p.key)}
+                chevron={false}
+              />
+            ))}
             {expenses.map((e) => {
               const warns = (e.expense_flags ?? []).filter((f) => f.severity !== 'info');
               const critical = warns.some((f) => f.severity === 'critical');
@@ -275,7 +276,7 @@ export default function ReportScreen() {
             icon="camera"
             title="Fiş çek"
             variant={expenses.length ? 'secondary' : 'primary'}
-            onPress={() => router.push({ pathname: '/camera', params: { reportId: report.id, companyId: report.company_id } })}
+            onPress={() => router.push({ pathname: '/camera', params: { reportId: report.id, companyId: report.company_id, from: 'report' } })}
             style={{ flex: 1 }}
           />
           {expenses.length > 0 && (
