@@ -13,6 +13,7 @@ import { parseGibQr } from "../_shared/receipt/qr.ts";
 import { readReceipt, type ImageInput } from "../_shared/receipt/claude.ts";
 import { evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
 import type { ReceiptFields } from "../_shared/receipt/types.ts";
+import { normalizePlate } from "../_shared/receipt/validate.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
     doc_date: f.date,
     doc_no: f.doc_no,
     ettn: f.ettn && UUID.test(f.ettn) ? f.ettn : null,
-    plate: f.plate,
+    plate: normalizePlate(f.plate) ?? f.plate,
     currency: f.currency || "TRY",
     read_total: f.total,
     read_source: qr?.total != null ? "qr" : "ai",
@@ -208,8 +209,16 @@ async function evaluate(
     sameDay = (rows ?? []).reduce((a: number, r: { total: number }) => a + Number(r.total), 0);
   }
 
+  // Masraf sahibinin (raporun sahibi) kişi kartındaki araç plakaları
+  const { data: rep } = await admin.from("reports").select("owner_user_id").eq("id", exp.report_id).single();
+  const { data: owner } = rep
+    ? await admin.from("memberships").select("vehicle_plates")
+      .eq("company_id", exp.company_id).eq("user_id", rep.owner_user_id).maybeSingle()
+    : { data: null };
+
   const enteredTotal = Number(exp.total) > 0 ? Number(exp.total) : null;
   return evaluateTaxRules({
+    owner_plates: owner ? (owner.vehicle_plates ?? []) : null,
     fields: f,
     entered_total: enteredTotal ?? f.total,
     read_total: readTotal,

@@ -9,6 +9,7 @@ import { Group, Row, SectionTitle } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
+import { formatPlate } from '@/lib/plate';
 import { ROLE_LABEL } from '@/lib/types';
 
 export default function Settings() {
@@ -22,6 +23,15 @@ export default function Settings() {
           title={session?.user.user_metadata?.full_name || session?.user.email || ''}
           subtitle={active ? active.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') : session?.user.email}
           icon="team"
+        />
+      </Group>
+
+      <SectionTitle title="Araçlarım" />
+      <Group>
+        <Row
+          icon="receipt"
+          title={(active?.vehicle_plates ?? []).length ? active!.vehicle_plates.map(formatPlate).join(', ') : 'Kayıtlı araç yok'}
+          subtitle="Akaryakıt fişindeki plaka bu araçlarla karşılaştırılır. Değişiklik için yöneticinize başvurun."
         />
       </Group>
 

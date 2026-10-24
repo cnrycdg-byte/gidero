@@ -76,7 +76,7 @@ Alanlar:
 - Türk sayı biçimi: "1.234,56" = 1234.56; "*45,00" = 45.
 - date: YYYY-MM-DD; time: HH:MM.
 - seller_vkn / buyer_vkn: yalnızca rakamlar (10 haneli VKN veya 11 haneli TCKN).
-- plate: akaryakıt fişinde araç plakası, boşluksuz büyük harf.
+- plate: akaryakıt fişinde araç plakası (genellikle "PLAKA" satırında). Türk plakası biçiminde, boşluksuz büyük harf (ör. 35ABC123). Emin değilsen null.
 - confidence: her alan için 0 ile 1 arasında ne kadar emin olduğun.
 
 Okunamayan alanı tahmin etme; null bırak ve güveni düşük ver. Görüntü bir harcama belgesi değilse readable=false.`;

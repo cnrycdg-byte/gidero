@@ -1,7 +1,7 @@
 export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported';
 
 export type Company = { id: string; legal_name: string; tax_number: string };
-export type Membership = { company_id: string; roles: string[]; companies: Company };
+export type Membership = { company_id: string; roles: string[]; vehicle_plates: string[]; companies: Company };
 
 export type Report = {
   id: string;
@@ -30,6 +30,7 @@ export type Expense = {
   seller_vkn: string | null;
   doc_date: string | null;
   doc_no: string | null;
+  plate: string | null;
   total: number;
   read_total: number | null;
   read_source: 'qr' | 'ai' | 'user' | null;

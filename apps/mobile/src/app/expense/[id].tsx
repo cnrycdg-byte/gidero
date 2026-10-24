@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon';
 import { Button, Field, Notice, Perforation, SectionTitle, Slip } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
+import { formatPlate, normalizePlate } from '@/lib/plate';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
@@ -33,6 +34,7 @@ export default function ExpenseScreen() {
   const [date, setDate] = useState('');
   const [docNo, setDocNo] = useState('');
   const [seller, setSeller] = useState('');
+  const [plate, setPlate] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [attendees, setAttendees] = useState<string[]>([]);
@@ -56,6 +58,7 @@ export default function ExpenseScreen() {
       setDate(dateInput(e.doc_date));
       setDocNo(e.doc_no ?? '');
       setSeller(e.seller_name ?? '');
+      setPlate(formatPlate(e.plate));
       setCategoryId(e.category_id);
       setDescription(e.description ?? '');
       setAttendees(e.attendees ?? []);
@@ -95,6 +98,8 @@ export default function ExpenseScreen() {
     (report.owner_user_id === userId || (report.created_by === userId && hasRole('accountant')));
 
   const category = categories.find((k) => k.id === categoryId);
+  const showPlate =
+    exp.doc_type === 'akaryakit_okc' || !!exp.plate || ['fuel', 'car_running'].includes(category?.tax_rule ?? '');
   const flags: Flag[] = exp.expense_flags ?? [];
   const order = { critical: 0, warning: 1, info: 2 } as const;
   flags.sort((a, b) => order[a.severity] - order[b.severity]);
@@ -139,6 +144,7 @@ export default function ExpenseScreen() {
     const people = attendeeDraft.trim() && !attendees.includes(attendeeDraft.trim())
       ? [...attendees, attendeeDraft.trim()]
       : attendees;
+    if (plate.trim() && !normalizePlate(plate)) return setError('Plakayı 35 ABC 123 biçiminde yazın.');
     if (category?.attendees_required && people.length === 0) {
       return setError(`${category.name} için masrafı kimlerle yaptığınızı yazın.`);
     }
@@ -152,6 +158,7 @@ export default function ExpenseScreen() {
           doc_date: d,
           doc_no: docNo.trim() || null,
           seller_name: seller.trim() || null,
+          plate: plate.trim() ? normalizePlate(plate) ?? plate.trim().toUpperCase() : null,
           category_id: categoryId,
           description: description.trim(),
           attendees: people,
@@ -264,6 +271,17 @@ export default function ExpenseScreen() {
               </View>
             </View>
             <Field label="Satıcı" value={seller} onChangeText={setSeller} editable={editable} />
+            {showPlate && (
+              <Field
+                label="Araç plakası"
+                value={plate}
+                onChangeText={setPlate}
+                editable={editable}
+                autoCapitalize="characters"
+                placeholder="35 ABC 123"
+                hint={plate.trim() && !normalizePlate(plate) ? 'Plaka 35 ABC 123 biçiminde olmalı.' : 'Akaryakıt fişlerinde kişi kartınızdaki araçla karşılaştırılır.'}
+              />
+            )}
             {exp.seller_vkn ? <Text style={[type.small, { color: c.muted }]}>Satıcı vergi no: {exp.seller_vkn}</Text> : null}
           </View>
 

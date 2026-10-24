@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseGibQr } from "../qr.ts";
-import { consistencyIssues, isValidTckn, isValidVkn, mergeQr } from "../validate.ts";
+import { consistencyIssues, isValidTckn, isValidVkn, mergeQr, normalizePlate } from "../validate.ts";
 import { evaluateTaxRules } from "../tax-rules.ts";
 import { readReceipt } from "../claude.ts";
 import type { ReceiptFields, TaxContext } from "../types.ts";
@@ -135,4 +135,23 @@ test("Claude: hızlı model tutarlıysa güçlü modele gidilmez; tutarsızsa gi
   r = await readReceipt("k", img, null, [1, 10, 20], fakeFetch([base({ total: 999 }), base()]));
   assert.deepEqual(calls, ["claude-haiku-5-5", "claude-sonnet-5-5"]);
   assert.equal(r.fields.total, 1100);
+});
+
+test("plaka: sadeleştirme ve kişi kartıyla eşleşme", () => {
+  assert.equal(normalizePlate("35 abc 123"), "35ABC123");
+  assert.equal(normalizePlate("34-ŞK-45"), "34SK45");
+  assert.equal(normalizePlate("ABC"), null);
+  const fuel = (plate: string | null) => base({ doc_type: "akaryakit_okc", buyer_vkn: null, total: 2000, vat_lines: [], plate });
+  const cat = { tax_rule: "fuel" as const, attendees_required: false };
+  // Kartla eşleşiyor
+  assert.ok(!codes(ctx({ fields: fuel("35ABC123"), entered_total: 2000, category: cat, owner_plates: ["35 ABC 123"] }))
+    .some((c) => c.startsWith("plate_")));
+  // Eşleşmiyor
+  assert.ok(codes(ctx({ fields: fuel("06XYZ99"), entered_total: 2000, category: cat, owner_plates: ["35ABC123"] }))
+    .includes("plate_mismatch"));
+  // Kartta araç yok
+  assert.ok(codes(ctx({ fields: fuel("06XYZ99"), entered_total: 2000, category: cat, owner_plates: [] }))
+    .includes("plate_not_registered"));
+  // Geçersiz plaka okunduysa
+  assert.ok(codes(ctx({ fields: fuel("XX"), entered_total: 2000, category: cat, owner_plates: [] })).includes("fuel_plate_missing"));
 });

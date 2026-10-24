@@ -3,6 +3,7 @@
 // Kurallar ve dayanaklar: docs/vergi-kurallari.md, docs/bagimsiz-inceleme.md, turk-masraf-vergi skill'i.
 
 import type { Flag, TaxContext } from "./types.ts";
+import { formatPlate, normalizePlate } from "./validate.ts";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
@@ -92,10 +93,25 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
     add("attendees_missing", "warning", "Bu masraf için birlikte harcama yapılan kişileri yazın.");
   }
 
-  // 11. Akaryakıt: plaka
-  if ((f.doc_type === "akaryakit_okc" || rule === "fuel") && !f.plate) {
+  // 11. Akaryakıt: plaka okunmalı ve masraf sahibinin kartındaki araçlardan biri olmalı
+  const isFuel = f.doc_type === "akaryakit_okc" || rule === "fuel";
+  const plate = normalizePlate(f.plate);
+  if (isFuel && !plate) {
     add("fuel_plate_missing", "warning",
-      "Akaryakıt fişinde plaka okunamadı. Plakasız veya UTTS dışı akaryakıt gider yazılamaz.", "UTTS GT");
+      f.plate
+        ? `Fişteki plaka (${f.plate}) geçerli bir plaka gibi görünmüyor. Fişteki plakayı kontrol edip düzeltin.`
+        : "Akaryakıt fişinde plaka okunamadı. Fişteki plakayı yazın; plakasız akaryakıt gider yazılamaz.",
+      "UTTS GT");
+  } else if (isFuel && plate && ctx.owner_plates) {
+    const own = ctx.owner_plates.map((p) => normalizePlate(p)).filter((p): p is string => !!p);
+    if (own.length === 0) {
+      add("plate_not_registered", "info",
+        `Fişteki plaka ${formatPlate(plate)}. Kişi kartınızda kayıtlı araç yok; yöneticiniz Ekip ekranından ekleyebilir.`);
+    } else if (!own.includes(plate)) {
+      add("plate_mismatch", "critical",
+        `Fişteki plaka (${formatPlate(plate)}) kişi kartınızdaki araçlarla eşleşmiyor: ${own.map(formatPlate).join(", ")}. ` +
+          "Başka bir araca alınan yakıt bu masrafa yazılamaz.");
+    }
   }
 
   // 12. Binek araç

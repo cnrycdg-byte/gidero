@@ -7,27 +7,32 @@ import { Button, Field, Group, Notice, Row, SectionTitle } from '@/components/ui
 import { radius, space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+import { formatPlate, normalizePlate } from '@/lib/plate';
 import { ROLE_LABEL } from '@/lib/types';
 
-type Member = { user_id: string; roles: string[]; manager_user_id: string | null; full_name: string };
+type Member = { user_id: string; roles: string[]; manager_user_id: string | null; vehicle_plates: string[]; full_name: string };
 
 const CHOICES = ['employee', 'approver', 'accountant', 'admin'];
 
 export default function Team() {
   const c = useColors();
-  const { active, userId } = useSession();
+  const { active, userId, reloadMemberships } = useSession();
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>(['employee']);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [plateDraft, setPlateDraft] = useState('');
+  const [plateBusy, setPlateBusy] = useState(false);
+  const [plateError, setPlateError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!active) return;
     const { data } = await supabase
       .from('memberships')
-      .select('user_id, roles, manager_user_id')
+      .select('user_id, roles, manager_user_id, vehicle_plates')
       .eq('company_id', active.company_id)
       .eq('status', 'active');
     const list = (data ?? []) as Omit<Member, 'full_name'>[];
@@ -62,6 +67,31 @@ export default function Team() {
 
   const nameOf = (id: string | null) => members.find((m) => m.user_id === id)?.full_name;
 
+  function startEdit(m: Member) {
+    setEditing(editing === m.user_id ? null : m.user_id);
+    setPlateDraft((m.vehicle_plates ?? []).map(formatPlate).join(', '));
+    setPlateError(null);
+  }
+
+  async function savePlates(m: Member) {
+    if (!active) return;
+    const parts = plateDraft.split(/[,\n;]+/).map((x) => x.trim()).filter(Boolean);
+    const bad = parts.filter((x) => !normalizePlate(x));
+    if (bad.length) return setPlateError(`Şu plaka geçersiz: ${bad.join(', ')}. Örnek: 35 ABC 123`);
+    setPlateBusy(true);
+    setPlateError(null);
+    const { error: e } = await supabase.rpc('set_member_plates', {
+      p_company: active.company_id,
+      p_user: m.user_id,
+      p_plates: parts.map((x) => normalizePlate(x) as string),
+    });
+    setPlateBusy(false);
+    if (e) return setPlateError(errorText(e));
+    setEditing(null);
+    load();
+    if (m.user_id === userId) reloadMemberships();
+  }
+
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
       <SectionTitle title="Kişi ekle" />
@@ -90,17 +120,39 @@ export default function Team() {
       </View>
 
       <SectionTitle title={`Ekip (${members.length})`} />
+      <Text style={[type.small, { color: c.muted, marginTop: -space.sm }]}>Araç plakası eklemek için kişiye dokunun.</Text>
       <Group>
         {members.map((m) => (
-          <Row
-            key={m.user_id}
-            icon="team"
-            title={`${m.full_name}${m.user_id === userId ? ' (siz)' : ''}`}
-            subtitle={
-              m.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') +
-              (m.manager_user_id ? `. Yöneticisi: ${nameOf(m.manager_user_id) ?? '—'}` : '')
-            }
-          />
+          <View key={m.user_id}>
+            <Row
+              icon="team"
+              title={`${m.full_name}${m.user_id === userId ? ' (siz)' : ''}`}
+              subtitle={
+                m.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') +
+                (m.manager_user_id ? `. Yöneticisi: ${nameOf(m.manager_user_id) ?? '—'}` : '') +
+                ((m.vehicle_plates ?? []).length ? `. Araç: ${m.vehicle_plates.map(formatPlate).join(', ')}` : '. Araç yok')
+              }
+              onPress={() => startEdit(m)}
+              chevron={false}
+            />
+            {editing === m.user_id && (
+              <View style={[styles.edit, { borderTopColor: c.paperLine }]}>
+                <Field
+                  label="Araç plakaları"
+                  value={plateDraft}
+                  onChangeText={setPlateDraft}
+                  autoCapitalize="characters"
+                  placeholder="35 ABC 123, 06 XYZ 45"
+                  hint="Birden çok aracı virgülle ayırın. Akaryakıt fişindeki plaka bunlarla karşılaştırılır."
+                />
+                {plateError && <Notice tone="bad" text={plateError} />}
+                <View style={{ flexDirection: 'row', gap: space.sm }}>
+                  <Button variant="secondary" title="Vazgeç" onPress={() => setEditing(null)} style={{ flex: 1, backgroundColor: c.canvas }} />
+                  <Button title="Kaydet" onPress={() => savePlates(m)} loading={plateBusy} style={{ flex: 1 }} />
+                </View>
+              </View>
+            )}
+          </View>
         ))}
       </Group>
     </ScrollView>
@@ -111,4 +163,5 @@ const styles = StyleSheet.create({
   box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
+  edit: { padding: space.lg, gap: space.md, borderTopWidth: StyleSheet.hairlineWidth },
 });
