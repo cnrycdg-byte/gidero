@@ -1,16 +1,19 @@
-import { Link, router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Body, Button, Card, Field, Label, Notice, Pill } from '@/components/ui';
+import { Icon } from '@/components/icon';
+import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Slip, Stamp } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
-import { addReceipt, pickReceipt, type Source } from '@/lib/receipts';
+import { useQueue } from '@/lib/queue';
+import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
-import { DOC_TYPE_LABEL, STATUS_LABEL, statusTone, type Expense, type Report } from '@/lib/types';
+import { DOC_TYPE_LABEL, type Expense, type Report } from '@/lib/types';
 
-type Action = { id: string; action: string; note: string | null; created_at: string; actor_user_id: string };
+type Action = { id: string; action: string; note: string | null; created_at: string };
 
 const ACTION_LABEL: Record<string, string> = {
   submitted: 'Onaya gönderildi',
@@ -24,11 +27,12 @@ export default function ReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColors();
   const { userId, hasRole } = useSession();
+  const queue = useQueue();
   const [report, setReport] = useState<Report | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | 'add' | 'submit' | 'approve' | 'return'>(null);
+  const [busy, setBusy] = useState<null | 'submit' | 'approve' | 'return'>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
@@ -41,7 +45,7 @@ export default function ReportScreen() {
         .select('*, expense_flags(id, code, severity, message, legal_ref)')
         .eq('report_id', id)
         .order('created_at', { ascending: true }),
-      supabase.from('approval_actions').select('*').eq('report_id', id).order('created_at', { ascending: true }),
+      supabase.from('approval_actions').select('id, action, note, created_at').eq('report_id', id).order('created_at'),
     ]);
     setReport((r.data as Report) ?? null);
     setExpenses((e.data ?? []) as Expense[]);
@@ -54,11 +58,14 @@ export default function ReportScreen() {
       load();
     }, [load]),
   );
+  useEffect(() => {
+    load();
+  }, [queue.version, load]);
 
   if (!report) {
     return (
       <View style={{ padding: space.xl }}>
-        <Body muted>{loading ? 'Yükleniyor…' : 'Rapor bulunamadı ya da görme yetkiniz yok.'}</Body>
+        {loading ? <ActivityIndicator color={c.pen} /> : <Notice tone="bad" text="Rapor bulunamadı ya da görme yetkiniz yok." />}
       </View>
     );
   }
@@ -68,33 +75,23 @@ export default function ReportScreen() {
   const editable =
     (report.status === 'draft' || report.status === 'returned') && (isOwner || (isCreator && hasRole('accountant')));
   const iApprove = report.status === 'pending' && !!userId && report.current_approver_ids.includes(userId);
-  const flagCount = expenses.reduce(
-    (a, e) => a + (e.expense_flags ?? []).filter((f) => f.severity !== 'info').length,
-    0,
-  );
-  const zeroTotals = expenses.filter((e) => Number(e.total) === 0).length;
+  const pending = queue.items.filter((i) => i.reportId === id);
+  const reading = pending.filter((i) => i.status !== 'failed');
+  const knownIds = new Set(expenses.map((e) => e.id));
+  const stillReading = new Set(reading.map((i) => i.expenseId).filter(Boolean) as string[]);
+  const warnCount = expenses.reduce((a, e) => a + (e.expense_flags ?? []).filter((f) => f.severity !== 'info').length, 0);
+  const zeroTotals = expenses.filter((e) => Number(e.total) === 0 && !stillReading.has(e.id)).length;
+  const lastReturn = [...actions].reverse().find((a) => a.action === 'returned');
 
-  async function add(source: Source) {
+  async function addFromGallery() {
     if (!report || !userId) return;
-    setError(null);
-    try {
-      const uri = await pickReceipt(source);
-      if (!uri) return;
-      setBusy('add');
-      const res = await addReceipt({ uri, companyId: report.company_id, reportId: report.id, userId });
-      router.push({ pathname: '/expense/[id]', params: { id: res.expenseId, readError: res.readError ?? '' } });
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(null);
-    }
+    const uris = await pickFromLibrary();
+    uris.forEach((uri) => queue.enqueue({ reportId: report.id, companyId: report.company_id, userId, uri }));
   }
 
   function confirmSubmit() {
-    if (zeroTotals > 0) {
-      setError(`${zeroTotals} fişin tutarı 0. Önce tutarları kontrol edin.`);
-      return;
-    }
+    if (reading.length) return setError('Fişlerin okunması bitsin, sonra gönderin.');
+    if (zeroTotals > 0) return setError(`${zeroTotals} fişin tutarı yok. Fişe dokunup tutarı yazın.`);
     Alert.alert('Onaya gönderilsin mi?', `${expenses.length} fiş, toplam ${money(report?.total)}`, [
       { text: 'Vazgeç', style: 'cancel' },
       { text: 'Gönder', onPress: submit },
@@ -132,7 +129,7 @@ export default function ReportScreen() {
     load();
   }
 
-  async function remove() {
+  function remove() {
     Alert.alert('Rapor silinsin mi?', 'Taslak rapor ve içindeki fişler silinir.', [
       { text: 'Vazgeç', style: 'cancel' },
       {
@@ -140,7 +137,6 @@ export default function ReportScreen() {
         style: 'destructive',
         onPress: async () => {
           const paths = expenses.map((e) => e.image_path).filter((p): p is string => !!p);
-          // Önce görseller silinir: rapor silindikten sonra depolama izni kalmaz
           if (paths.length) await supabase.storage.from('receipts').remove(paths);
           const { error: e } = await supabase.from('reports').delete().eq('id', id);
           if (e) return setError(errorText(e));
@@ -150,111 +146,156 @@ export default function ReportScreen() {
     ]);
   }
 
-  const lastReturn = [...actions].reverse().find((a) => a.action === 'returned');
-
   return (
-    <>
-      <Stack.Screen options={{ title: report.title }} />
+    <View style={{ flex: 1 }}>
+      <Stack.Screen options={{ title: '' }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 }}
+        contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 140 }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-        <Card>
-          <View style={styles.rowBetween}>
-            <Pill text={STATUS_LABEL[report.status]} tone={statusTone(report.status)} />
-            <Text style={[type.small, { color: c.muted }]}>{expenses.length} fiş</Text>
+        <Slip>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: space.md }}>
+            <Text style={[type.title, { color: c.ink, flex: 1 }]}>{report.title}</Text>
+            <Stamp status={report.status} />
           </View>
-          <Text style={[type.amount, { color: c.text }]}>{money(report.total)}</Text>
-          {flagCount > 0 && <Notice tone="warn" text={`${flagCount} vergi uyarısı var. Fişlere dokunup inceleyin.`} />}
-        </Card>
+          <Text style={[type.display, { color: c.ink, marginTop: space.sm }]} adjustsFontSizeToFit numberOfLines={1}>
+            {money(report.total)}
+          </Text>
+          <Perforation />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={[type.small, { color: c.muted }]}>
+              {expenses.length} fiş{reading.length ? `, ${reading.length} okunuyor` : ''}
+            </Text>
+            {warnCount > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon name="warning" size={12} color={c.amber} />
+                <Text style={[type.small, { color: c.amber, fontWeight: '600' }]}>{warnCount} vergi uyarısı</Text>
+              </View>
+            ) : (
+              <Text style={[type.small, { color: c.muted }]}>{dateText(report.created_at)}</Text>
+            )}
+          </View>
+        </Slip>
 
-        {report.status === 'returned' && lastReturn?.note && (
-          <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />
-        )}
+        {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />}
         {error && <Notice tone="bad" text={error} />}
 
-        {editable && (
-          <View style={{ gap: space.sm }}>
-            <Button title={busy === 'add' ? 'Fiş okunuyor…' : 'Fiş çek'} onPress={() => add('camera')} loading={busy === 'add'} />
-            <Button variant="secondary" title="Galeriden seç" onPress={() => add('library')} disabled={!!busy} />
-          </View>
-        )}
+        <SectionTitle
+          title="Fişler"
+          action={
+            editable ? (
+              <Text onPress={addFromGallery} style={{ color: c.pen, fontWeight: '600', fontSize: 15 }}>
+                Galeriden ekle
+              </Text>
+            ) : undefined
+          }
+        />
 
-        <Label>Fişler</Label>
-        {expenses.length === 0 && (
-          <Card>
-            <Body muted>Bu raporda henüz fiş yok. “Fiş çek” ile ekleyin; tutarı, tarihi ve KDV'yi Gidero okur.</Body>
-          </Card>
-        )}
-        {expenses.map((e) => {
-          const warn = (e.expense_flags ?? []).filter((f) => f.severity !== 'info');
-          const critical = warn.some((f) => f.severity === 'critical');
-          return (
-            <Link key={e.id} href={{ pathname: '/expense/[id]', params: { id: e.id } }} asChild>
-              <Pressable>
-                <Card>
-                  <View style={styles.rowBetween}>
-                    <Text style={[type.body, { color: c.text, flex: 1, fontWeight: '600' }]} numberOfLines={1}>
-                      {e.seller_name || DOC_TYPE_LABEL[e.doc_type] || 'Fiş'}
-                    </Text>
-                    <Text style={[type.body, { color: c.text, fontWeight: '600', fontVariant: ['tabular-nums'] }]}>
-                      {money(e.total)}
-                    </Text>
-                  </View>
-                  <View style={styles.rowBetween}>
-                    <Text style={[type.small, { color: c.muted }]}>
-                      {dateText(e.doc_date)} · {DOC_TYPE_LABEL[e.doc_type] ?? e.doc_type}
-                    </Text>
-                    {warn.length > 0 ? (
-                      <Pill text={`${warn.length} uyarı`} tone={critical ? 'bad' : 'warn'} />
-                    ) : Number(e.total) === 0 ? (
-                      <Pill text="Tutar yok" tone="bad" />
-                    ) : null}
-                  </View>
-                </Card>
-              </Pressable>
-            </Link>
-          );
-        })}
-
-        {editable && expenses.length > 0 && (
-          <Button title="Onaya gönder" onPress={confirmSubmit} loading={busy === 'submit'} />
+        {expenses.length === 0 && pending.length === 0 ? (
+          <Empty icon="camera" title="Bu raporda fiş yok" text="“Fiş çek”e dokunun; fişleri arka arkaya çekebilirsiniz." />
+        ) : (
+          <Group>
+            {pending
+              .filter((p) => p.status === 'failed' || !p.expenseId || !knownIds.has(p.expenseId))
+              .map((p) => (
+                <Row
+                  key={p.key}
+                  icon={p.status === 'failed' ? 'error' : 'clock'}
+                  iconColor={p.status === 'failed' ? c.red : c.muted}
+                  iconBg={p.status === 'failed' ? c.redSoft : c.canvas}
+                  title={p.status === 'failed' ? 'Fiş yüklenemedi' : 'Fiş yükleniyor…'}
+                  subtitle={p.status === 'failed' ? `${p.error ?? ''} Tekrar denemek için dokunun.` : 'Birkaç saniye sürer'}
+                  right={p.status === 'failed' ? undefined : <ActivityIndicator color={c.muted} />}
+                  onPress={p.status === 'failed' ? () => queue.retry(p.key) : undefined}
+                  chevron={false}
+                />
+              ))}
+            {expenses.map((e) => {
+              const warns = (e.expense_flags ?? []).filter((f) => f.severity !== 'info');
+              const critical = warns.some((f) => f.severity === 'critical');
+              const isReading = stillReading.has(e.id);
+              const noTotal = Number(e.total) === 0 && !isReading;
+              return (
+                <Row
+                  key={e.id}
+                  icon={isReading ? 'clock' : warns.length || noTotal ? 'warning' : 'receipt'}
+                  iconColor={isReading ? c.muted : critical || noTotal ? c.red : warns.length ? c.amber : c.pen}
+                  iconBg={isReading ? c.canvas : critical || noTotal ? c.redSoft : warns.length ? c.amberSoft : c.penSoft}
+                  title={isReading ? 'Fiş okunuyor…' : e.seller_name || DOC_TYPE_LABEL[e.doc_type] || 'Fiş'}
+                  subtitle={
+                    isReading
+                      ? 'Tutar, tarih ve KDV dolduruluyor'
+                      : noTotal
+                        ? 'Tutar okunamadı, dokunup yazın'
+                        : warns.length
+                          ? `${dateText(e.doc_date)}, ${warns.length} uyarı`
+                          : dateText(e.doc_date)
+                  }
+                  value={isReading ? undefined : noTotal ? '—' : money(e.total)}
+                  right={isReading ? <ActivityIndicator color={c.muted} /> : undefined}
+                  onPress={() => router.push({ pathname: '/expense/[id]', params: { id: e.id } })}
+                />
+              );
+            })}
+          </Group>
         )}
 
         {iApprove && (
-          <Card>
-            <Label>Onay kararınız</Label>
+          <View style={{ gap: space.md }}>
+            <SectionTitle title="Kararınız" />
             <Field label="Not" value={note} onChangeText={setNote} placeholder="İade ederken zorunlu" multiline />
-            <Button title="Onayla" onPress={approve} loading={busy === 'approve'} disabled={!!busy} />
-            <Button variant="danger" title="İade et" onPress={giveBack} loading={busy === 'return'} disabled={!!busy} />
-          </Card>
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <Button variant="danger" icon="undo" title="İade et" onPress={giveBack} loading={busy === 'return'} disabled={!!busy} style={{ flex: 1 }} />
+              <Button icon="check" title="Onayla" onPress={approve} loading={busy === 'approve'} disabled={!!busy} style={{ flex: 1 }} />
+            </View>
+          </View>
         )}
 
         {actions.length > 0 && (
           <>
-            <Label>Geçmiş</Label>
-            <Card>
+            <SectionTitle title="Geçmiş" />
+            <Group>
               {actions.map((a) => (
-                <View key={a.id} style={{ gap: 2 }}>
-                  <Text style={[type.body, { color: c.text }]}>{ACTION_LABEL[a.action] ?? a.action}</Text>
-                  <Text style={[type.small, { color: c.muted }]}>
-                    {dateText(a.created_at)}
-                    {a.note ? ` · ${a.note}` : ''}
-                  </Text>
-                </View>
+                <Row key={a.id} title={ACTION_LABEL[a.action] ?? a.action} subtitle={a.note ? `${dateText(a.created_at)}: ${a.note}` : dateText(a.created_at)} />
               ))}
-            </Card>
+            </Group>
           </>
         )}
 
         {report.status === 'draft' && (isOwner || isCreator) && (
-          <Button variant="ghost" title="Taslak raporu sil" onPress={remove} />
+          <Button variant="plain" title="Taslak raporu sil" onPress={remove} />
         )}
       </ScrollView>
-    </>
+
+      {editable && (
+        <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
+          <Button
+            icon="camera"
+            title="Fiş çek"
+            variant={expenses.length ? 'secondary' : 'primary'}
+            onPress={() => router.push({ pathname: '/camera', params: { reportId: report.id, companyId: report.company_id } })}
+            style={{ flex: 1 }}
+          />
+          {expenses.length > 0 && (
+            <Button icon="send" title="Onaya gönder" onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
+          )}
+        </SafeAreaView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

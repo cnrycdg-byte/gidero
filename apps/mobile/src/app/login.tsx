@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Body, Button, Field, Notice } from '@/components/ui';
+import { Button, Field, Notice, Perforation, Slip } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
-import { errorText, supabase, supabaseConfigured } from '@/lib/supabase';
+import { errorText, supabase } from '@/lib/supabase';
 
 export default function Login() {
   const c = useColors();
@@ -36,7 +36,7 @@ export default function Login() {
         });
         if (e) throw e;
         if (!data.session) {
-          setInfo('Hesabınız açıldı. E-postanıza gelen bağlantıya dokunarak doğrulayın, sonra buradan giriş yapın.');
+          setInfo('Hesabınız açıldı. E-postanıza gelen bağlantıya dokunun, sonra buradan giriş yapın.');
           setMode('signin');
         }
       }
@@ -48,20 +48,18 @@ export default function Login() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-          <View style={{ gap: space.sm, marginBottom: space.xl }}>
-            <Text style={[styles.brand, { color: c.primary }]}>gidero</Text>
-            <Text style={[type.title, { color: c.text }]}>
-              {mode === 'signin' ? 'Tekrar hoş geldiniz' : 'Hesap oluşturun'}
-            </Text>
-            <Body muted>Fişinizi çekin, gerisini Gidero halletsin.</Body>
-          </View>
+          <Slip style={{ marginBottom: space.xxl }}>
+            <Text style={[styles.brand, { color: c.pen }]}>gidero</Text>
+            <Perforation />
+            <Text style={[type.body, { color: c.ink }]}>Fişi çekin. Gidero okusun, kontrol etsin, onaya göndersin.</Text>
+          </Slip>
 
-          {!supabaseConfigured && (
-            <Notice tone="bad" text="Uygulama sunucuya bağlanacak anahtarı içermiyor. Yöneticinize haber verin." />
-          )}
+          <Text style={[type.title, { color: c.ink, marginBottom: space.lg }]}>
+            {mode === 'signin' ? 'Giriş yapın' : 'Hesap oluşturun'}
+          </Text>
 
           <View style={{ gap: space.lg }}>
             {mode === 'signup' && (
@@ -86,10 +84,10 @@ export default function Login() {
               hint={mode === 'signup' ? 'En az 6 karakter.' : undefined}
             />
             {error && <Notice tone="bad" text={error} />}
-            {info && <Notice text={info} />}
-            <Button title={mode === 'signin' ? 'Giriş yap' : 'Hesap oluştur'} onPress={submit} loading={busy} />
+            {info && <Notice tone="ok" text={info} />}
+            <Button size="large" title={mode === 'signin' ? 'Giriş yap' : 'Hesap oluştur'} onPress={submit} loading={busy} />
             <Button
-              variant="ghost"
+              variant="plain"
               title={mode === 'signin' ? 'Hesabınız yok mu? Kaydolun' : 'Hesabınız var mı? Giriş yapın'}
               onPress={() => {
                 setMode(mode === 'signin' ? 'signup' : 'signin');
@@ -105,5 +103,5 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   wrap: { padding: space.xl, paddingTop: space.xxl * 2, flexGrow: 1 },
-  brand: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  brand: { fontSize: 34, fontWeight: '800', letterSpacing: -1.2 },
 });
