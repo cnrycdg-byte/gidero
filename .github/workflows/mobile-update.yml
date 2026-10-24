@@ -67,7 +67,7 @@ jobs:
           # app.json'daki sahip ve slug'ı Expo projesiyle eşle (proje bir organizasyonda olabilir)
           npx --yes eas-cli@latest init --id 4841364a-3bf4-49a9-b97c-d3d0aabf281d --force --non-interactive || true
           git --no-pager diff -- app.json || true
-          out=$(npx --yes eas-cli@latest update --channel main --platform ios --platform android \
+          out=$(npx --yes eas-cli@latest update --channel main --platform all \
                 --message "$(git log -1 --pretty=%s)" --non-interactive 2>&1); code=$?
           echo "$out"
           if [ $code -ne 0 ]; then
