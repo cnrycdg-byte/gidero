@@ -74,3 +74,35 @@ jobs:
             echo "::error title=eas update::$(echo "$out" | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
             exit $code
           fi
+
+  web:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - name: Web paneli derle
+        run: npx expo export --platform web
+      - name: Web paneli yayınla (EAS Hosting)
+        run: |
+          set +e
+          npx --yes eas-cli@latest init --id 4841364a-3bf4-49a9-b97c-d3d0aabf281d --force --non-interactive || true
+          out=$(npx --yes eas-cli@latest deploy --prod --non-interactive 2>&1); code=$?
+          echo "$out"
+          url=$(echo "$out" | grep -Eo 'https://[a-z0-9.-]+\.expo\.app[^ ]*' | tail -1)
+          if [ -n "$url" ]; then echo "::notice title=Web panel adresi::$url"; fi
+          if [ $code -ne 0 ]; then
+            echo "::error title=eas deploy::$(echo "$out" | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi

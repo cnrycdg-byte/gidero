@@ -47,12 +47,13 @@ export default function RootLayout() {
 }
 
 function RootStack() {
-  const { ready, session, active } = useSession();
+  const { ready, session, active, bureaus, platformAdmin } = useSession();
   const c = useColors();
   if (!ready) return <Loading />;
 
   const signedIn = !!session;
   const hasCompany = !!active;
+  const hasBureau = bureaus.length > 0;
 
   return (
     <Stack
@@ -69,8 +70,8 @@ function RootStack() {
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !hasCompany}>
-        <Stack.Screen name="onboarding" options={{ title: 'Şirketinizi kurun', headerLargeTitle: true }} />
+      <Stack.Protected guard={signedIn && !hasCompany && !hasBureau}>
+        <Stack.Screen name="onboarding" options={{ title: 'Hoş geldiniz', headerLargeTitle: true }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>
         <Stack.Screen name="index" options={{ title: '' }} />
@@ -82,7 +83,18 @@ function RootStack() {
         <Stack.Screen name="team" options={{ title: 'Ekip' }} />
         <Stack.Screen name="categories" options={{ title: 'Gider grupları' }} />
         <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
+        <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />
+        <Stack.Screen name="subscription" options={{ title: 'Abonelik' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && platformAdmin}>
+        <Stack.Screen name="admin/index" options={{ title: 'Gidero Yönetim', headerLargeTitle: true }} />
+        <Stack.Screen name="admin/account/[id]" options={{ title: 'Müşteri' }} />
+        <Stack.Screen name="admin/orders" options={{ title: 'Siparişler' }} />
+        <Stack.Screen name="admin/plans" options={{ title: 'Paketler' }} />
+        <Stack.Screen name="admin/campaigns" options={{ title: 'Kampanyalar' }} />
       </Stack.Protected>
     </Stack>
   );

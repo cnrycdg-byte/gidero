@@ -1,7 +1,17 @@
 export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported';
 
 export type Company = { id: string; legal_name: string; tax_number: string };
-export type Membership = { company_id: string; roles: string[]; vehicle_plates: string[]; companies: Company };
+export type Membership = {
+  company_id: string;
+  roles: string[];
+  vehicle_plates: string[];
+  bureau_account_id: string | null;
+  /** Faturalanan hesap (büroya bağlı firmada büro) */
+  billing_account_id: string | null;
+  /** Abonelik aktif mi (deneme veya ödenmiş dönem) */
+  company_active: boolean;
+  companies: Company;
+};
 
 export type Report = {
   id: string;

@@ -10,6 +10,7 @@ import { Text } from '@/components/text';
 import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
+import { accountStatus, daysLeft, type AccountStatus } from '@/lib/billing';
 import { fetchUsage, usageState, type Usage } from '@/lib/limits';
 import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
@@ -21,12 +22,13 @@ type CategorySum = { name: string; total: number };
 
 export default function Home() {
   const c = useColors();
-  const { userId, active, hasRole, session } = useSession();
+  const { userId, active, hasRole, session, memberships, bureaus, platformAdmin } = useSession();
   const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
   const [byCategory, setByCategory] = useState<CategorySum[]>([]);
   const [limits, setLimits] = useState<Usage[]>([]);
+  const [sub, setSub] = useState<AccountStatus | null>(null);
   const [waiting, setWaiting] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
@@ -72,6 +74,11 @@ export default function Home() {
         .filter((x) => x.total > 0)
         .sort((a, b) => b.total - a.total),
     );
+    if (active.billing_account_id) {
+      accountStatus(active.billing_account_id)
+        .then(setSub)
+        .catch(() => setSub(null));
+    }
     fetchUsage(active.company_id, userId)
       .then(setLimits)
       .catch(() => setLimits([]));
@@ -90,6 +97,10 @@ export default function Home() {
   async function capture(source: 'camera' | 'gallery') {
     if (!userId || !active) return;
     setError(null);
+    if (!active.company_active) {
+      setError('Aboneliğin süresi doldu; yeni fiş girilemiyor. Ayarlar > Abonelik ve ödeme bölümünden paketi yenileyin.');
+      return;
+    }
     setOpening(source);
     try {
       const reportId = await ensureMonthReport(active.company_id, userId);
@@ -130,7 +141,7 @@ export default function Home() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-        <Pressable onPress={() => router.push('/settings')} style={styles.who}>
+        <Pressable onPress={() => router.push(bureaus.length ? '/clients' : '/settings')} style={styles.who}>
           <View style={[styles.avatar, { backgroundColor: c.penSoft }]}>
             <Text style={{ color: c.pen, fontWeight: '700' }}>
               {String(session?.user.user_metadata?.full_name || session?.user.email || '?').trim().charAt(0).toLocaleUpperCase('tr-TR')}
@@ -141,10 +152,33 @@ export default function Home() {
               {session?.user.user_metadata?.full_name || session?.user.email}
             </Text>
             <Text style={[type.small, { color: c.muted }]} numberOfLines={1}>
+              {memberships.length > 1 ? `${active?.companies.legal_name}, ` : ''}
               {(active?.roles ?? []).map((r) => ROLE_LABEL[r] ?? r).join(', ')} olarak görüyorsunuz
             </Text>
           </View>
         </Pressable>
+
+        {platformAdmin && (
+          <Pressable onPress={() => router.push('/admin')} style={[styles.trial, { backgroundColor: c.deep }]}>
+            <Icon name="settings" size={16} color={c.gold} />
+            <Text style={[type.small, { flex: 1, color: c.onDeep, fontWeight: '600' }]}>Gidero Yönetim Paneli: müşteriler, siparişler, paketler</Text>
+            <Icon name="chevron" size={12} color={c.onDeepMuted} />
+          </Pressable>
+        )}
+
+        {sub && (!sub.active || (sub.status === 'trial' && (daysLeft(sub.ends_at) ?? 99) <= 14)) && (
+          <Pressable
+            onPress={() => (sub.can_manage ? router.push({ pathname: '/subscription', params: { account: sub.account_id } }) : undefined)}
+            style={[styles.trial, { backgroundColor: sub.active ? c.stampSoft : c.redSoft }]}>
+            <Icon name={sub.active ? 'clock' : 'warning'} size={16} color={sub.active ? c.stamp : c.red} />
+            <Text style={[type.small, { flex: 1, color: sub.active ? c.stamp : c.red, fontWeight: '600' }]}>
+              {sub.active
+                ? `Ücretsiz denemenizin bitmesine ${daysLeft(sub.ends_at)} gün kaldı.${sub.can_manage ? ' Paket seçmek için dokunun.' : ''}`
+                : `Aboneliğin süresi doldu; yeni fiş girilemiyor.${sub.can_manage ? ' Yenilemek için dokunun.' : ' Yöneticinize haber verin.'}`}
+            </Text>
+            {sub.can_manage && <Icon name="chevron" size={12} color={sub.active ? c.stamp : c.red} />}
+          </Pressable>
+        )}
 
         <Slip tone="deep">
           <View style={styles.rowBetween}>
@@ -291,6 +325,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },
+  trial: { borderRadius: radius.md, padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   who: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: -space.xs },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md },

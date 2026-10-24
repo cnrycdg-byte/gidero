@@ -27,13 +27,13 @@ jobs:
         with:
           node-version: 22
       - name: Birim testleri
-        run: node --test supabase/functions/_shared/receipt/test/receipt.test.ts
+        run: node --test supabase/functions/_shared/receipt/test/receipt.test.ts supabase/functions/_shared/payments/test/iyzico.test.ts
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - name: Tip kontrolü
         working-directory: supabase/functions
-        run: deno check read-receipt/index.ts
+        run: deno check read-receipt/index.ts payments/index.ts
 
   deploy:
     needs: test
@@ -57,13 +57,15 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         with:
           version: 2.122.0
-      - name: read-receipt fonksiyonunu kur
+      - name: Fonksiyonları kur (read-receipt, payments)
         if: steps.check.outputs.ready == 'true'
         run: |
           set +e
-          out=$(supabase functions deploy read-receipt --project-ref "$SUPABASE_PROJECT_REF" --use-api 2>&1); code=$?
-          echo "$out"
-          if [ $code -ne 0 ]; then
-            echo "::error title=supabase functions deploy::$(echo "$out" | grep -v '^\s*$' | tail -6 | tr '\n' ' ' | cut -c1-900)"
-            exit $code
-          fi
+          for fn in read-receipt payments; do
+            out=$(supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --use-api 2>&1); code=$?
+            echo "$out"
+            if [ $code -ne 0 ]; then
+              echo "::error title=supabase functions deploy $fn::$(echo "$out" | grep -v '^\s*$' | tail -6 | tr '\n' ' ' | cut -c1-900)"
+              exit $code
+            fi
+          done
