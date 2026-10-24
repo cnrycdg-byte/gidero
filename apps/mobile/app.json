@@ -8,15 +8,14 @@
     "scheme": "gidero",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "tr.gidero.app",
       "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B6E5F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -30,9 +29,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0B7A5A",
+          "backgroundColor": "#F4F6F5",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 96,
+          "dark": {
+            "backgroundColor": "#0A1513",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       [
@@ -42,7 +45,8 @@
           "photosPermission": "Gidero galerideki fiş fotoğraflarını eklemek için fotoğraflarınıza erişir.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -58,6 +62,11 @@
       "eas": {
         "projectId": "4841364a-3bf4-49a9-b97c-d3d0aabf281d"
       }
+    },
+    "splash": {
+      "backgroundColor": "#F4F6F5",
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain"
     }
   }
 }

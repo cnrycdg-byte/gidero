@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+
+import { Logo } from '@/components/logo';
+import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Field, Notice, Perforation, Slip } from '@/components/ui';
-import { space, type, useColors } from '@/constants/theme';
+import { fonts, space, type, useColors } from '@/constants/theme';
 import { errorText, supabase } from '@/lib/supabase';
 
 export default function Login() {
@@ -51,10 +54,15 @@ export default function Login() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-          <Slip style={{ marginBottom: space.xxl }}>
-            <Text style={[styles.brand, { color: c.pen }]}>gidero</Text>
-            <Perforation />
-            <Text style={[type.body, { color: c.ink }]}>Fişi çekin. Gidero okusun, kontrol etsin, onaya göndersin.</Text>
+          <Slip tone="deep" style={{ marginBottom: space.xxl }}>
+            <Logo size={44} color="#FFFFFF" />
+            <Perforation color="rgba(255,255,255,0.18)" />
+            <Text style={{ fontFamily: fonts.display, fontSize: 26, lineHeight: 30, color: '#FFFFFF', letterSpacing: -0.4 }}>
+              Fişi çek, vergini kurtar.
+            </Text>
+            <Text style={[type.body, { color: c.onDeepMuted, marginTop: space.xs }]}>
+              Gidero fişi okur, vergi açısından kontrol eder ve onaya gönderir.
+            </Text>
           </Slip>
 
           <Text style={[type.title, { color: c.ink, marginBottom: space.lg }]}>
@@ -103,5 +111,4 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   wrap: { padding: space.xl, paddingTop: space.xxl * 2, flexGrow: 1 },
-  brand: { fontSize: 34, fontWeight: '800', letterSpacing: -1.2 },
 });

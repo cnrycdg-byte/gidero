@@ -1,10 +1,12 @@
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
+import { Logo } from '@/components/logo';
+import { Text } from '@/components/text';
 import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
-import { space, type, useColors } from '@/constants/theme';
+import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
 import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
@@ -12,12 +14,15 @@ import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import type { Report } from '@/lib/types';
 
+type CategorySum = { name: string; total: number };
+
 export default function Home() {
   const c = useColors();
   const { userId, active, hasRole } = useSession();
   const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
+  const [byCategory, setByCategory] = useState<CategorySum[]>([]);
   const [waiting, setWaiting] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
@@ -27,10 +32,10 @@ export default function Home() {
   const load = useCallback(async () => {
     if (!userId || !active) return;
     setLoading(true);
-    const [mine, approvals] = await Promise.all([
+    const [mine, approvals, spend] = await Promise.all([
       supabase
         .from('reports')
-        .select('*, expenses(count)')
+        .select('*')
         .eq('company_id', active.company_id)
         .or(`owner_user_id.eq.${userId},created_by.eq.${userId}`)
         .order('created_at', { ascending: false })
@@ -41,13 +46,28 @@ export default function Home() {
         .eq('company_id', active.company_id)
         .eq('status', 'pending')
         .contains('current_approver_ids', [userId]),
+      supabase
+        .from('expenses')
+        .select('total, categories(name), reports!inner(period, owner_user_id)')
+        .eq('company_id', active.company_id)
+        .eq('reports.period', period)
+        .eq('reports.owner_user_id', userId),
     ]);
-    const list = (mine.data ?? []) as (Report & { expenses: { count: number }[] })[];
-    setReports(list);
-    setReceiptCount(
-      list.filter((r) => r.period === period).reduce((a, r) => a + (r.expenses?.[0]?.count ?? 0), 0),
-    );
+    setReports((mine.data ?? []) as Report[]);
     setWaiting(approvals.count ?? 0);
+    const rows = (spend.data ?? []) as unknown as { total: number; categories: { name: string } | null }[];
+    setReceiptCount(rows.length);
+    const sums = new Map<string, number>();
+    rows.forEach((r) => {
+      const k = r.categories?.name ?? 'Kategorisiz';
+      sums.set(k, (sums.get(k) ?? 0) + Number(r.total));
+    });
+    setByCategory(
+      [...sums.entries()]
+        .map(([name, total]) => ({ name, total }))
+        .filter((x) => x.total > 0)
+        .sort((a, b) => b.total - a.total),
+    );
     setLoading(false);
   }, [userId, active, period]);
 
@@ -83,11 +103,15 @@ export default function Home() {
   const monthTotal = reports.filter((r) => r.period === period).reduce((a, r) => a + Number(r.total), 0);
   const inFlight = items.filter((i) => i.status !== 'failed').length;
   const monthName = monthTitle.replace(' masrafları', '');
+  const pendingCount = reports.filter((r) => r.status === 'pending').length;
+  const maxCat = byCategory[0]?.total ?? 0;
 
   return (
     <>
       <Stack.Screen
         options={{
+          headerTitle: () => <Logo size={26} color={c.ink} />,
+          headerTitleAlign: 'left',
           headerRight: () => (
             <Pressable onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
               <Icon name="settings" size={22} color={c.pen} />
@@ -99,65 +123,78 @@ export default function Home() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-        <Slip>
-          <View style={styles.slipHead}>
-            <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{monthName}</Text>
-            <Text style={[type.small, { color: c.muted }]} numberOfLines={1}>
-              {active?.companies.legal_name}
-            </Text>
+        <Slip tone="deep">
+          <View style={styles.rowBetween}>
+            <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>{monthName} harcamanız</Text>
+            {inFlight > 0 ? (
+              <View style={[styles.goldPill, { backgroundColor: c.gold }]}>
+                <Text style={{ color: '#3B2500', fontSize: 12, fontWeight: '700' }}>{inFlight} fiş okunuyor</Text>
+              </View>
+            ) : (
+              <Text style={[type.small, { color: c.onDeepMuted, flexShrink: 1 }]} numberOfLines={1}>
+                {active?.companies.legal_name}
+              </Text>
+            )}
           </View>
-          <Text style={[type.display, { color: c.ink }]} adjustsFontSizeToFit numberOfLines={1}>
+          <Text style={[type.display, { color: c.onDeep, fontSize: 46 }]} adjustsFontSizeToFit numberOfLines={1}>
             {money(monthTotal)}
           </Text>
-          <Perforation />
-          <View style={styles.slipFoot}>
-            <Text style={[type.small, { color: c.muted }]}>
-              {receiptCount} fiş
-              {inFlight > 0 ? `, ${inFlight} fiş okunuyor` : ''}
-            </Text>
-            <Text style={[type.small, { color: c.muted }]}>
-              {reports.filter((r) => r.status === 'pending').length} rapor onayda
-            </Text>
+          <View style={styles.statRow}>
+            <Stat value={receiptCount} label="fiş" />
+            <Stat value={reports.filter((r) => r.period === period).length} label="rapor" />
+            <Stat value={pendingCount} label="onayda" />
+          </View>
+          <Perforation color="rgba(255,255,255,0.18)" />
+          <View style={{ gap: space.sm, marginTop: space.xs }}>
+            <Button size="large" variant="light" icon="camera" title="Fiş çek" onPress={() => capture('camera')} loading={opening === 'camera'} />
+            <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
           </View>
         </Slip>
-
-        <View style={{ gap: space.sm }}>
-          <Button
-            size="large"
-            icon="camera"
-            title="Fiş çek"
-            onPress={() => capture('camera')}
-            loading={opening === 'camera'}
-          />
-          <Button
-            variant="secondary"
-            icon="gallery"
-            title="Galeriden ekle"
-            onPress={() => capture('gallery')}
-            loading={opening === 'gallery'}
-          />
-          <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>
-            Fişler “{monthTitle}” raporuna eklenir.
-          </Text>
-        </View>
 
         {error && <Notice tone="bad" text={error} />}
 
         {waiting > 0 && (
-          <Group>
-            <Row
-              icon="inbox"
-              title={`${waiting} rapor onayınızı bekliyor`}
-              subtitle="İnceleyip onaylayın ya da iade edin"
-              onPress={() => router.push('/approvals')}
-            />
-          </Group>
+          <Pressable onPress={() => router.push('/approvals')} style={[styles.approvalCard, { backgroundColor: c.stampSoft }]}>
+            <View style={[styles.approvalBadge, { backgroundColor: c.gold }]}>
+              <Text style={{ fontFamily: fonts.displayHeavy, fontSize: 18, color: '#3B2500' }}>{waiting}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[type.bodyStrong, { color: c.ink }]}>Onayınızı bekleyen rapor</Text>
+              <Text style={[type.small, { color: c.muted }]}>İnceleyip onaylayın ya da iade edin</Text>
+            </View>
+            <Icon name="chevron" size={13} color={c.muted} />
+          </Pressable>
+        )}
+
+        {byCategory.length > 0 && (
+          <>
+            <SectionTitle title="Bu ay nereye harcadınız" />
+            <View style={[styles.box, { backgroundColor: c.paper }]}>
+              {byCategory.slice(0, 6).map((k, i) => (
+                <View key={k.name} style={{ gap: 6 }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={[type.body, { color: c.ink }]}>{k.name}</Text>
+                    <Text style={[type.amount, { color: c.ink }]}>{money(k.total)}</Text>
+                  </View>
+                  <View style={[styles.track, { backgroundColor: c.canvas }]}>
+                    <View
+                      style={[
+                        styles.bar,
+                        { width: `${Math.max(4, (k.total / maxCat) * 100)}%`, backgroundColor: c.pen, opacity: 1 - i * 0.13 },
+                      ]}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
         )}
 
         <SectionTitle
           title="Raporlarım"
           action={
-            <Pressable onPress={() => router.push('/new-report')} hitSlop={10}>
+            <Pressable onPress={() => router.push('/new-report')} hitSlop={10} style={styles.newReport}>
+              <Icon name="plus" size={13} color={c.pen} />
               <Text style={{ color: c.pen, fontWeight: '600', fontSize: 15 }}>Yeni rapor</Text>
             </Pressable>
           }
@@ -197,8 +234,25 @@ export default function Home() {
   );
 }
 
+function Stat({ value, label }: { value: number; label: string }) {
+  const c = useColors();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+      <Text style={{ fontFamily: fonts.display, fontSize: 18, color: c.onDeep }}>{value}</Text>
+      <Text style={[type.small, { color: c.onDeepMuted }]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },
-  slipHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
-  slipFoot: { flexDirection: 'row', justifyContent: 'space-between' },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md },
+  statRow: { flexDirection: 'row', gap: space.xl, marginTop: space.xs },
+  goldPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
+  approvalCard: { borderRadius: radius.lg, padding: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md },
+  approvalBadge: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
+  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  bar: { height: 8, borderRadius: 4 },
+  newReport: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
