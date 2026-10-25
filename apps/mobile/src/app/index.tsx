@@ -321,6 +321,9 @@ export default function Home() {
             {hasRole('admin') || hasRole('accountant') ? (
               <Row icon="inbox" title="Muhasebe aktarımı" subtitle="Excel döküm, Luca ve Logo dosyası" onPress={() => router.push('/export')} />
             ) : null}
+            {hasRole('accountant') ? (
+              <Row icon="gallery" title="Toplu yükleme" subtitle="WhatsApp fişleri, PDF ve e-Fatura XML, bilgisayardan" onPress={() => router.push('/bulk')} />
+            ) : null}
             {hasRole('admin') ? (
               <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini ve araçlarını belirleyin" onPress={() => router.push('/team')} />
             ) : null}
