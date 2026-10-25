@@ -303,6 +303,9 @@ export default function Home() {
             {hasRole('admin') || hasRole('accountant') ? (
               <Row icon="receipt" title="Gider grupları ve sınırlar" subtitle="Kişi başı aylık, 3 aylık, 6 aylık, yıllık sınır" onPress={() => router.push('/categories')} />
             ) : null}
+            {hasRole('admin') || hasRole('accountant') ? (
+              <Row icon="inbox" title="Muhasebe aktarımı" subtitle="Excel döküm, Luca ve Logo dosyası" onPress={() => router.push('/export')} />
+            ) : null}
             {hasRole('admin') ? (
               <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini ve araçlarını belirleyin" onPress={() => router.push('/team')} />
             ) : null}
