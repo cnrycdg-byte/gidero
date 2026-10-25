@@ -143,6 +143,28 @@ tfoot td { font-weight: 700; border: 0; }
 footer { border-top: 1px solid var(--line); padding: 28px 0 calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: .9rem; }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 28px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } html { scroll-behavior: auto; } }
+
+/* Sohbet asistanı */
+.chat-btn { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 30; display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 20px 0 14px; border-radius: 999px; border: 0; background: var(--deep); color: #fff; font: 700 1rem var(--body); cursor: pointer; box-shadow: 0 16px 40px -14px rgba(11,61,53,.6); }
+.chat-btn[hidden] { display: none; }
+.chat { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 31; width: min(380px, calc(100vw - 32px)); height: min(560px, calc(100svh - 32px)); background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 30px 80px -30px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; }
+.chat[hidden] { display: none; }
+.chat-h { background: var(--deep); color: #fff; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+.chat-h b { font-family: var(--display); font-size: 1.1rem; }
+.chat-h span { display: block; font-size: .82rem; color: var(--on-deep-muted); }
+.chat-x { margin-left: auto; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 1.2rem; cursor: pointer; }
+.chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 86%; padding: 10px 13px; border-radius: 16px; font-size: .96rem; line-height: 1.45; white-space: pre-wrap; }
+.msg.me { align-self: flex-end; background: var(--deep); color: #fff; border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: var(--ground); border-bottom-left-radius: 4px; }
+.msg.wait { color: var(--muted); }
+.chat-sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+.chat-sugg[hidden] { display: none; }
+.chat-sugg button { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: 500 .88rem var(--body); cursor: pointer; }
+.chat-f { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+.chat-f input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--ground); color: var(--ink); border-radius: 12px; padding: 0 12px; min-height: 44px; font: 16px var(--body); }
+.chat-f button { border: 0; background: var(--amber); color: #2B1A00; border-radius: 12px; padding: 0 16px; font: 700 .95rem var(--body); cursor: pointer; }
+.chat-note { font-size: .75rem; color: var(--muted); padding: 0 12px 10px; }
 </style>
 
 <header class="nav">
@@ -350,7 +372,62 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
   </div>
 </footer>
 
+<button class="chat-btn" id="chat-open" type="button" aria-controls="chat" aria-expanded="false">
+  <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E5F"/><path d="M22 12H42Q46 12 46 16V48L42.5 45L39 48L35.5 45L32 48L28.5 45L25 48L21.5 45L18 48V16Q18 12 22 12Z" fill="#fff"/><path d="M24.5 33.5L29.5 38.5L40 28" fill="none" stroke="#F2A93B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Soru sorun
+</button>
+<section class="chat" id="chat" role="dialog" aria-label="Gidero'ya soru sorun" hidden>
+  <div class="chat-h">
+    <div><b>Gidero'ya sorun</b><span>Genellikle birkaç saniyede yanıt verir</span></div>
+    <button class="chat-x" id="chat-close" type="button" aria-label="Sohbeti kapat">×</button>
+  </div>
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <div class="msg bot">Merhaba, Gidero hakkında ne merak ediyorsunuz? Fiyatlar, deneme ya da muhasebe büroları için kullanım hakkında sorabilirsiniz.</div>
+  </div>
+  <div class="chat-sugg" id="chat-sugg">
+    <button type="button">Büro paketi kaç firma içeriyor?</button>
+    <button type="button">Fiş okunamazsa ne olur?</button>
+    <button type="button">Demo görmek istiyorum</button>
+  </div>
+  <form class="chat-f" id="chat-form">
+    <input id="chat-in" maxlength="600" autocomplete="off" placeholder="Sorunuzu yazın" aria-label="Sorunuz">
+    <button type="submit">Gönder</button>
+  </form>
+  <p class="chat-note">Yazdıklarınız size yanıt vermek ve geri dönmek için kaydedilir.</p>
+</section>
+
 <script>
+(function () {
+  // Sohbet asistanı: sorular site-chat sunucu fonksiyonuna gider, soru ve yanıtlar yönetim panelinde izlenir
+  var CHAT_URL = 'https://rakmatyrsoswbbhnzeph.supabase.co/functions/v1/site-chat';
+  var KEY = 'sb_publishable_tz56pGEoFDj3yqakGr1uNg_LgaBdNij';
+  var openBtn = document.getElementById('chat-open'), box = document.getElementById('chat'), closeBtn = document.getElementById('chat-close');
+  var log = document.getElementById('chat-log'), form = document.getElementById('chat-form'), input = document.getElementById('chat-in'), sugg = document.getElementById('chat-sugg');
+  var sid = null, busy = false;
+  try { sid = localStorage.getItem('gidero-chat'); } catch (e) {}
+  function show(on) { box.hidden = !on; openBtn.hidden = on; openBtn.setAttribute('aria-expanded', String(on)); if (on) input.focus(); else openBtn.focus(); }
+  openBtn.addEventListener('click', function () { show(true); });
+  closeBtn.addEventListener('click', function () { show(false); });
+  box.addEventListener('keydown', function (e) { if (e.key === 'Escape') show(false); });
+  function add(text, who) { var d = document.createElement('div'); d.className = 'msg ' + who; d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; }
+  function send(text) {
+    text = (text || '').trim();
+    if (!text || busy) return;
+    busy = true; sugg.hidden = true; input.value = '';
+    add(text, 'me');
+    var wait = add('Yazıyor…', 'bot wait');
+    fetch(CHAT_URL, { method: 'POST', headers: { 'content-type': 'application/json', apikey: KEY }, body: JSON.stringify({ session_id: sid, message: text, page: location.pathname }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.session_id) { sid = d.session_id; try { localStorage.setItem('gidero-chat', sid); } catch (e) {} }
+        wait.className = 'msg bot'; wait.textContent = d.reply || d.error || 'Yanıt alınamadı. Lütfen tekrar deneyin.';
+      })
+      .catch(function () { wait.className = 'msg bot'; wait.textContent = 'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.'; })
+      .then(function () { busy = false; log.scrollTop = log.scrollHeight; });
+  }
+  form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
+  sugg.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { send(b.textContent); }); });
+})();
 (function () {
   // Video: oynat/duraklat ve o an görünen ekranın açıklaması
   var vid = document.getElementById('vid'), btn = document.getElementById('vbtn'), ico = document.getElementById('vico'), cap = document.getElementById('cap');
