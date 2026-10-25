@@ -1,0 +1,570 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gidero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Gidero: fişi çekin, masraf okunsun, vergi açısından kontrol edilsin, onaylansın ve muhasebeye hazır olsun. Şirketler ve muhasebe büroları için.">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Düzen: kâğıt fiş metaforu. Koyu yeşil bantlar alt kenarından fiş gibi yırtılır; içerik sola hizalı, ekran görüntüleri telefon çerçevesinde. */
+:root {
+  --ground: #F4F6F5;
+  --paper: #FFFFFF;
+  --ink: #16211F;
+  --muted: #4A5856;
+  --line: #DCE3E0;
+  --green: #0B6E5F;
+  --deep: #0B3D35;
+  --on-deep: #FFFFFF;
+  --on-deep-muted: #A9D2C9;
+  --mint: #E6F1EE;
+  --amber: #F2A93B;
+  --amber-ink: #8A5300;
+  --amber-soft: #FDF1DC;
+  --red: #B42318;
+  --red-soft: #FDE8E6;
+  --display: 'Bricolage Grotesque', 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  --body: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 18px;
+  --gutter-l: max(20px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(20px, env(safe-area-inset-right, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0A1513; --paper: #12201D; --ink: #E8F0EE; --muted: #A3B3AF; --line: #22332F;
+    --green: #4FC2A8; --deep: #0D3F37; --on-deep: #FFFFFF; --on-deep-muted: #9CC9BF; --mint: #123A33;
+    --amber-ink: #F2A93B; --amber-soft: #3A2A0E; --red: #FF8A80; --red-soft: #3A1816; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0A1513; --paper: #12201D; --ink: #E8F0EE; --muted: #A3B3AF; --line: #22332F;
+  --green: #4FC2A8; --deep: #0D3F37; --on-deep: #FFFFFF; --on-deep-muted: #9CC9BF; --mint: #123A33;
+  --amber-ink: #F2A93B; --amber-soft: #3A2A0E; --red: #FF8A80; --red-soft: #3A1816; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.08; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.6rem, 6.4vw, 5rem); font-weight: 800; letter-spacing: -0.035em; }
+h2 { font-size: clamp(2rem, 4vw, 3.1rem); font-weight: 800; }
+h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+p { margin: 0; }
+.wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+.num { font-variant-numeric: tabular-nums; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 60ch; }
+.kicker { font-weight: 700; color: var(--green); font-size: 0.95rem; }
+
+/* Üst menü */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--ground) 88%, transparent); backdrop-filter: saturate(160%) blur(12px); -webkit-backdrop-filter: saturate(160%) blur(12px); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.nav .wrap { display: flex; align-items: center; gap: 24px; padding-block: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.55rem; letter-spacing: -0.03em; color: var(--deep); }
+:root[data-theme="dark"] .brand { color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand { color: var(--ink); } }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-weight: 500; font-size: 0.97rem; }
+.nav-links a { text-decoration: none; color: var(--muted); }
+.nav-links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 14px; font-weight: 700; font-size: 1rem; text-decoration: none; border: 0; cursor: pointer; font-family: var(--body); transition: transform .15s ease, background .15s ease; }
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--green); color: #fff; }
+:root[data-theme="dark"] .btn-primary { color: #04201B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary { color: #04201B; } }
+.btn-primary:hover { background: color-mix(in srgb, var(--green) 88%, #000); }
+.btn-ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.btn-light { background: #fff; color: #0B3D35; }
+.nav .btn { min-height: 42px; padding: 0 16px; font-size: .95rem; }
+@media (max-width: 860px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+
+/* Kahraman */
+.hero { padding-block: clamp(40px, 7vw, 88px) clamp(48px, 7vw, 96px); }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+.hero-copy { display: grid; gap: 22px; min-width: 0; }
+.hero-copy .lede { font-size: 1.22rem; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.trust { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .95rem; }
+.trust span { display: inline-flex; align-items: center; gap: 6px; }
+.trust svg { flex: none; }
+.hero-visual { position: relative; display: flex; justify-content: center; min-width: 0; }
+.phone { width: min(300px, 78vw); aspect-ratio: 390 / 844; border-radius: 44px; padding: 10px; background: #0E1513; box-shadow: 0 30px 60px -20px rgba(11,61,53,.45), 0 0 0 1px rgba(255,255,255,.06) inset; flex: none; max-width: 100%; }
+.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 34px; display: block; background: #F4F6F5; }
+
+/* İmza: fiş kâğıdı ve yırtık kenar */
+.slip { position: relative; background: var(--paper); color: var(--ink); padding: 22px 22px 18px; border-radius: 14px 14px 0 0; box-shadow: 0 24px 50px -24px rgba(11,61,53,.35); }
+.slip::after { content: ""; position: absolute; left: 0; right: 0; bottom: -11px; height: 12px; background: linear-gradient(-45deg, transparent 8px, var(--paper) 0) 0 0 / 16px 12px repeat-x, linear-gradient(45deg, transparent 8px, var(--paper) 0) 0 0 / 16px 12px repeat-x; }
+.hero-slip { position: absolute; left: -8%; bottom: 6%; width: min(330px, 86%); font-size: .86rem; transform: rotate(-3deg); }
+.slip-head { display: flex; justify-content: space-between; font-family: var(--display); font-weight: 700; font-size: .95rem; letter-spacing: .02em; padding-bottom: 10px; border-bottom: 1px dashed var(--line); margin-bottom: 8px; }
+.slip-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); animation: print .5s ease both; }
+.slip-row:nth-child(2) { animation-delay: .25s } .slip-row:nth-child(3) { animation-delay: .55s } .slip-row:nth-child(4) { animation-delay: .85s } .slip-row:nth-child(5) { animation-delay: 1.15s } .slip-total { animation-delay: 1.45s !important; }
+.slip-row b { font-weight: 600; }
+.slip-row .amt { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.tag { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; }
+.tag.ok { color: var(--green); } .tag.warn { color: var(--amber-ink); } .tag.bad { color: var(--red); }
+.slip-total { display: flex; justify-content: space-between; padding-top: 10px; font-family: var(--display); font-weight: 800; font-size: 1.05rem; border: 0; animation: print .5s ease both; }
+@keyframes print { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slip-row, .slip-total { animation: none; } }
+
+/* Bantlar */
+.band { padding-block: clamp(64px, 9vw, 120px); }
+.band-deep { background: var(--deep); color: var(--on-deep); position: relative; }
+.band-deep .lede { color: var(--on-deep-muted); }
+.band-deep .kicker { color: var(--amber); }
+.torn { position: relative; }
+.torn::after { content: ""; position: absolute; left: 0; right: 0; bottom: -13px; height: 14px; z-index: 2; background: linear-gradient(-45deg, transparent 9px, var(--deep) 0) 0 0 / 18px 14px repeat-x, linear-gradient(45deg, transparent 9px, var(--deep) 0) 0 0 / 18px 14px repeat-x; }
+.section-head { display: grid; gap: 14px; margin-bottom: clamp(32px, 4vw, 52px); max-width: 760px; }
+
+/* Süreç */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; counter-reset: s; }
+.steps li { counter-increment: s; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); border-radius: var(--radius); padding: 20px 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.steps li::before { content: counter(s); font-family: var(--display); font-weight: 800; font-size: 2.2rem; line-height: 1; color: var(--amber); }
+.steps h3 { font-size: 1.15rem; }
+.steps p { color: var(--on-deep-muted); font-size: .95rem; }
+@media (max-width: 980px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+
+/* Özellik blokları */
+.feature { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 88px); align-items: center; }
+.feature + .feature { margin-top: clamp(72px, 9vw, 128px); }
+.feature.flip .feature-visual { order: -1; }
+.feature-copy { display: grid; gap: 18px; min-width: 0; }
+.feature-visual { display: flex; justify-content: center; position: relative; min-width: 0; }
+.checks { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 12px; }
+.checks li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; }
+.checks .ic { width: 26px; height: 26px; border-radius: 13px; display: grid; place-items: center; background: var(--mint); color: var(--green); margin-top: 1px; }
+.checks b { display: block; font-weight: 700; }
+.checks span.d { color: var(--muted); font-size: .97rem; }
+.checks .ref { display: inline-block; margin-left: 6px; font-size: .78rem; font-weight: 600; color: var(--muted); background: var(--ground); border: 1px solid var(--line); padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+@media (max-width: 900px) { .feature, .hero .wrap { grid-template-columns: 1fr; } .feature.flip .feature-visual { order: 0; } .hero-slip { left: 0; } }
+
+.note { font-size: .9rem; color: var(--muted); border-left: 3px solid var(--amber); padding: 4px 0 4px 12px; }
+
+/* Kaçaklar ızgarası */
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--paper); border-radius: var(--radius); padding: 24px; display: grid; gap: 10px; align-content: start; border: 1px solid var(--line); min-width: 0; }
+.card .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--red-soft); color: var(--red); }
+.card p { color: var(--muted); font-size: .97rem; }
+.card .ex { font-size: .88rem; color: var(--ink); background: var(--ground); border-radius: 10px; padding: 10px 12px; font-variant-numeric: tabular-nums; }
+@media (max-width: 980px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .grid3 { grid-template-columns: 1fr; } }
+
+/* Zaman karşılaştırması */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.compare .col { border-radius: var(--radius); padding: 26px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.compare .before { background: rgba(255,255,255,.05); border: 1px dashed rgba(255,255,255,.22); }
+.compare .after { background: var(--paper); color: var(--ink); }
+.compare h3 { font-size: 1.2rem; }
+.compare ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.compare .before li { color: var(--on-deep-muted); }
+.compare .after li::marker { color: var(--green); font-weight: 700; }
+@media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
+
+/* Muhasebe kaydı */
+.ledger { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; width: 100%; }
+.ledger-head { display: flex; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); font-size: .9rem; color: var(--muted); flex-wrap: wrap; }
+.ledger-head b { color: var(--ink); font-family: var(--display); font-size: 1.05rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 460px; }
+th, td { text-align: left; padding: 12px 20px; border-bottom: 1px dashed var(--line); }
+th { font-size: .8rem; font-weight: 700; color: var(--muted); letter-spacing: .03em; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot td { font-weight: 700; border-bottom: 0; }
+.code { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--green); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: .92rem; }
+.chip small { color: var(--muted); font-weight: 500; margin-left: 4px; }
+
+/* Kimler için */
+.audience { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.aud { border-radius: var(--radius); padding: clamp(24px, 3vw, 36px); display: grid; gap: 16px; align-content: start; min-width: 0; }
+.aud.company { background: var(--paper); border: 1px solid var(--line); }
+.aud.bureau { background: var(--deep); color: var(--on-deep); }
+.aud.bureau .checks .ic { background: rgba(255,255,255,.1); color: var(--amber); }
+.aud.bureau .checks span.d { color: var(--on-deep-muted); }
+@media (max-width: 860px) { .audience { grid-template-columns: 1fr; } }
+
+/* Fiyatlar */
+.toggle { display: inline-flex; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+.toggle button { border: 0; background: transparent; padding: 10px 18px; border-radius: 10px; font: 600 .97rem var(--body); color: var(--ink); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--green); color: #fff; }
+.price-group { margin-top: 28px; display: grid; gap: 14px; }
+.price-group h3 { font-size: 1.15rem; color: var(--muted); font-family: var(--body); font-weight: 700; letter-spacing: 0; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.plan { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: grid; gap: 10px; align-content: start; position: relative; min-width: 0; }
+.plan.pick { border: 2px solid var(--green); }
+.plan .badge { position: absolute; top: -12px; left: 18px; background: var(--amber); color: #3B2500; font-weight: 700; font-size: .8rem; padding: 3px 10px; border-radius: 999px; }
+.plan .name { font-family: var(--display); font-weight: 800; font-size: 1.4rem; }
+.plan .price { font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.plan .per { font-size: .9rem; color: var(--muted); font-family: var(--body); font-weight: 500; letter-spacing: 0; }
+.plan ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .95rem; display: grid; gap: 4px; }
+
+/* Güvenlik */
+.sec { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.sec div { border-top: 2px solid var(--amber); padding-top: 14px; display: grid; gap: 6px; min-width: 0; }
+.sec b { font-family: var(--display); font-size: 1.1rem; }
+.sec p { color: var(--on-deep-muted); font-size: .95rem; }
+@media (max-width: 900px) { .sec { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sec { grid-template-columns: 1fr; } }
+
+/* SSS */
+.faq { display: grid; gap: 10px; max-width: 860px; }
+.faq details { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px; }
+.faq summary { cursor: pointer; font-weight: 700; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--display); font-size: 1.4rem; line-height: 1; color: var(--green); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { color: var(--muted); padding-bottom: 16px; }
+
+/* Son çağrı ve alt bilgi */
+.final { text-align: left; display: grid; gap: 22px; }
+footer { padding-block: 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: center; justify-content: space-between; }
+.proto { background: var(--amber-soft); color: var(--amber-ink); font-weight: 600; font-size: .85rem; padding: 8px 12px; border-radius: 10px; }
+</style>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Gidero ana sayfa">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E5F"/><path d="M22 12H42Q46 12 46 16V48L42.5 45L39 48L35.5 45L32 48L28.5 45L25 48L21.5 45L18 48V16Q18 12 22 12Z" fill="#fff"/><path d="M24 19H40M24 25H34" stroke="#9CC9BF" stroke-width="2.5" stroke-linecap="round"/><path d="M24.5 33.5L29.5 38.5L40 28" fill="none" stroke="#F2A93B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      gidero
+    </a>
+    <nav class="nav-links" aria-label="Sayfa bölümleri">
+      <a href="#nasil">Nasıl çalışır</a>
+      <a href="#vergi">Vergi</a>
+      <a href="#kacak">Kaçaklar</a>
+      <a href="#sinirlar">Sınırlar</a>
+      <a href="#muhasebe">Muhasebe</a>
+      <a href="#fiyat">Fiyatlar</a>
+    </nav>
+    <a class="btn btn-primary" href="https://gidero.expo.app" target="_blank" rel="noopener">Ücretsiz dene</a>
+  </div>
+</header>
+
+<main id="top">
+  <!-- Kahraman -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="kicker">Şirketler ve muhasebe büroları için masraf yönetimi</span>
+        <h1>Fişi çek, vergini kurtar.</h1>
+        <p class="lede">Çalışan fişi telefonla çeker. Gidero tutarı, tarihi ve KDV'yi okur, vergi kurallarına göre kontrol eder, onaya gönderir ve muhasebeye hazır hale getirir. Kaybolan fiş, yanlış belge, ay sonu kovalamacası biter.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://gidero.expo.app" target="_blank" rel="noopener">14 gün ücretsiz dene</a>
+          <a class="btn btn-ghost" href="#nasil">Nasıl çalıştığını gör</a>
+        </div>
+        <div class="trust">
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Kart bilgisi gerekmez</span>
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Türk vergi mevzuatına göre</span>
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Veriler Avrupa'da, şirket bazında ayrı</span>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="phone"><img src="img/app-home.webp" alt="Gidero ana ekranı: ayın harcaması, fiş çek düğmesi ve harcama sınırları" width="390" height="844"></div>
+        <div class="slip hero-slip" aria-label="Örnek kontrol fişi">
+          <div class="slip-head"><span>KONTROL FİŞİ</span><span class="num">EKİM 2026</span></div>
+          <div class="slip-row"><b>Kebapçı Halil</b><span class="amt">1.840,00</span><span class="tag ok">✓ e-Arşiv, şirket adına, 2 katılımcı</span></div>
+          <div class="slip-row"><b>Hilton Garden Inn</b><span class="amt">4.200,00</span><span class="tag ok">✓ e-Fatura, karekoddan okundu</span></div>
+          <div class="slip-row"><b>Opet Bornova</b><span class="amt">2.150,40</span><span class="tag bad">! Plaka kart ile eşleşmiyor</span></div>
+          <div class="slip-row"><b>Migros Alsancak</b><span class="amt">880,00</span><span class="tag warn">! Yemek fişle: KDV indirilemez</span></div>
+          <div class="slip-total"><span>Muhasebeye hazır</span><span class="num">2 / 4</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Nasıl çalışır -->
+  <section class="band band-deep torn" id="nasil">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Bir fişin yolculuğu</span>
+        <h2>Cepten muhasebeye beş adım</h2>
+        <p class="lede">Çalışanın yaptığı tek iş fotoğraf çekmek. Gerisini Gidero ve sizin kurduğunuz onay akışı yürütür.</p>
+      </div>
+      <ol class="steps">
+        <li><h3>Çek</h3><p>Fişler arka arkaya çekilir. Kamera açık kalır; her fiş arka planda yüklenir, çalışan beklemez.</p></li>
+        <li><h3>Okunur</h3><p>Satıcı, vergi numarası, tarih, belge numarası, KDV oranları ve tutarları ayrı ayrı okunur. e-Fatura karekodu varsa doğrudan oradan.</p></li>
+        <li><h3>Kontrol edilir</h3><p>Fatura sınırı, şirket adına kesilme, mükerrer fiş, plaka, harcama sınırı ve KDV kuralları anında denetlenir.</p></li>
+        <li><h3>Onaylanır</h3><p>Rapor, şirketin kendi kurduğu akışla yöneticiye gider. Kimse kendi masrafını onaylayamaz.</p></li>
+        <li><h3>Muhasebeleşir</h3><p>Her gider grubunun hesap kodu hazır. Muhasebeci kontrol edilmiş, belgesi ekli kaydı alır.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Vergi -->
+  <section class="band" id="vergi">
+    <div class="wrap">
+      <div class="feature">
+        <div class="feature-copy">
+          <span class="kicker">Vergi avantajı</span>
+          <h2>Her fiş, vergi gözüyle bir kez daha bakılmış olarak gelir</h2>
+          <p class="lede">Bir masrafın gider ya da KDV indirimi olarak kabul edilmesi belgesine bağlıdır. Gidero bunu fiş çekildiği anda kontrol eder; sorun ay sonunda değil, fiş hâlâ çalışanın elindeyken çözülür.</p>
+          <ul class="checks">
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Fatura sınırı <span class="ref">VUK 232</span></b><span class="d">2026'da 12.000 TL'yi (KDV dahil) aşan harcamada yazar kasa fişi yetmez; fatura istenmesi gerektiğini çalışana o an söyler.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Şirket adına mı?</b><span class="d">Faturadaki alıcı vergi numarası şirketinizle eşleşmiyorsa ya da çalışanın adına kesilmişse uyarır.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Yazar kasa fişinde KDV <span class="ref">KDVK 29</span></b><span class="d">Yemek ve konaklama gibi giderlerde fişle KDV indirilemeyeceğini, fatura gerektiğini belirtir.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Binek araç kısıtı <span class="ref">GVK 40/1-5</span></b><span class="d">Akaryakıt ve araç giderlerinde kabul edilmeyen kısmı ayırır, kira sınırını takip eder.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>KDV indirim süresi <span class="ref">KDVK 29/3</span></b><span class="d">Süresi geçmiş belgede KDV'nin artık indirilemeyeceğini işaretler.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Temsil ve ağırlama</b><span class="d">Yemekte kimlerle ve hangi firmayla yenildiği sorulur; kişi ve firma bir sonraki fişte birkaç harfle önerilir.</span></div></li>
+          </ul>
+          <p class="note">Tutarlar ve oranlar yıl bazında tutulur, mevzuat değiştikçe güncellenir. Son karar her zaman muhasebecinizindir.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone"><img src="img/app-expense.webp" alt="Fiş ekranı: plaka eşleşmiyor uyarısı ve binek araç bilgisi, okunan tutar, tarih ve belge numarası" width="390" height="844" loading="lazy"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kaçaklar -->
+  <section class="band" id="kacak" style="padding-top: 0">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Kaçakları önleme</span>
+        <h2>Aynı fiş iki kez gelmez, başka aracın yakıtı masrafa girmez</h2>
+        <p class="lede">Masraf süreçlerinde kayıp çoğu zaman bilerek değil, kontrol edilemediği için olur. Gidero bu kontrolleri insan unutmadan, her fişte yapar.</p>
+      </div>
+      <div class="grid3">
+        <div class="card"><span class="ic" aria-hidden="true">⧉</span><h3>Mükerrer fiş</h3><p>Aynı fotoğraf, aynı e-Fatura numarası (ETTN) ya da aynı satıcıdan aynı belge numarası ikinci kez gelirse yakalanır.</p></div>
+        <div class="card"><span class="ic" aria-hidden="true">✂</span><h3>Bölünmüş fiş</h3><p>Fatura sınırının altında kalmak için aynı gün aynı satıcıdan alınan parça fişler birlikte değerlendirilir.</p><div class="ex">7.000 + 6.000 TL aynı gün → sınır aşıldı uyarısı</div></div>
+        <div class="card"><span class="ic" aria-hidden="true">⛽</span><h3>Plaka eşleşmesi</h3><p>Akaryakıt fişindeki plaka okunur, çalışanın kartındaki araçlarla karşılaştırılır. Plakayı çalışan kendisi ekleyemez.</p><div class="ex">06 KR 4521 ≠ 35 ABC 123 → önemli uyarı</div></div>
+        <div class="card"><span class="ic" aria-hidden="true">≠</span><h3>Tutar farkı</h3><p>Fişten okunan tutar ile çalışanın yazdığı tutar farklıysa onaylayıcı ve muhasebeci bunu görür.</p></div>
+        <div class="card"><span class="ic" aria-hidden="true">⊘</span><h3>Kendi masrafını onaylama yok</h3><p>Onay akışında kişi kendi raporuna onay veremez; yöneticisi yoksa bir üst kademeye gider. Muhasebecinin masrafı da onaydan geçer.</p></div>
+        <div class="card"><span class="ic" aria-hidden="true">⌛</span><h3>Silinmeyen kayıt</h3><p>Masraf, rapor, onay ve ayar değişiklikleri kim, ne zaman, eski ve yeni değeriyle saklanır. Denetimde iz sürülebilir.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Zaman -->
+  <section class="band band-deep torn" id="zaman">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Zaman</span>
+        <h2>Ay sonu masraf günü takvimden kalkar</h2>
+        <p class="lede">Fiş, harcandığı gün kayda girer. Muhasebe ay sonunda yığılmış zarfla değil, kontrol edilmiş kayıtla çalışır.</p>
+      </div>
+      <div class="compare">
+        <div class="col before">
+          <h3>Bugün</h3>
+          <ol>
+            <li>Fişler cüzdanda ve arabada birikir, bir kısmı kaybolur.</li>
+            <li>Ay sonunda çalışan Excel'e tutar, tarih, KDV yazar.</li>
+            <li>Yönetici e-postayla onay verir, hangi fişe baktığı belli olmaz.</li>
+            <li>Muhasebe kâğıtla Excel'i karşılaştırır, eksik belgeyi arar.</li>
+            <li>Yanlış belge ve kaçan KDV ancak kayıt sırasında fark edilir.</li>
+          </ol>
+        </div>
+        <div class="col after">
+          <h3>Gidero ile</h3>
+          <ol>
+            <li>Fiş harcandığı yerde çekilir; kâğıt kaybolsa da görüntüsü kayıtta.</li>
+            <li>Tutar, tarih, belge no ve KDV kendiliğinden dolar.</li>
+            <li>Yönetici raporu tek ekranda, uyarılarıyla birlikte onaylar.</li>
+            <li>Muhasebeci kontrol edilmiş, hesap kodu belli kayıtları alır.</li>
+            <li>Sorunlu fiş, çalışan hâlâ düzeltebilecekken işaretlenir.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sınırlar ve takip -->
+  <section class="band" id="sinirlar">
+    <div class="wrap">
+      <div class="feature flip">
+        <div class="feature-copy">
+          <span class="kicker">Harcama sınırları ve takip</span>
+          <h2>Kim, ne kadar, hangi gider grubunda: anında görünür</h2>
+          <p class="lede">Muhasebeci her gider grubuna kişi başı sınır koyar. Çalışan kendi durumunu, yönetici ekibini, muhasebe herkesi görür.</p>
+          <ul class="checks">
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Aylık, 3 aylık, 6 aylık, yıllık</b><span class="d">Dönemler takvime göre işler; 3 aylık yemek sınırı Ekim–Aralık için geçerlidir, Ocak'ta yenilenir.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Fişi kaydederken görür</b><span class="d">Çalışan kategori seçtiği an bu fişle ne kadar kalacağını ya da ne kadar aşılacağını görür.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Aşım onaylayıcıya gider</b><span class="d">Sınırı aşan fiş raporda uyarıyla işaretlenir; onaylayıcı bilerek karar verir.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Gider grupları sizin</b><span class="d">Muhasebeci yeni gider grubu ekler, hesap kodunu, KDV oranını ve vergi kontrolünü belirler.</span></div></li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="phone"><img src="img/app-limits.webp" alt="Ekibin sınır durumu: kişi başı yemek, akaryakıt ve konaklama sınırları, aşımlar kırmızı" width="390" height="844" loading="lazy"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Muhasebe -->
+  <section class="band" id="muhasebe" style="padding-top: 0">
+    <div class="wrap">
+      <div class="feature">
+        <div class="feature-copy">
+          <span class="kicker">Muhasebeleştirme</span>
+          <h2>Fişten yevmiye kaydına, hesap kodlarıyla</h2>
+          <p class="lede">Her gider grubunun Tekdüzen Hesap Planı'ndaki karşılığı tanımlıdır. KDV satırları oranlarına göre ayrılır, çalışana borç personel hesabına yazılır. Muhasebeci kontrol edilmiş kaydı onaylar.</p>
+          <div class="chips" aria-label="Aktarım yapılacak muhasebe programları">
+            <span class="chip">Logo</span><span class="chip">Luca</span><span class="chip">Mikro</span><span class="chip">Netsis</span><span class="chip">Zirve</span><span class="chip">ETA</span><span class="chip">Paraşüt</span><span class="chip">Excel</span>
+          </div>
+          <p class="note">Muhasebe programlarına aktarım dosyaları hazırlanıyor. Pilot müşterilerimizle birlikte programınıza göre devreye alıyoruz.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="ledger">
+            <div class="ledger-head"><b>Örnek kayıt: akaryakıt fişi</b><span class="num">Opet, 19.10.2026, 2.150,40 TL</span></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Hesap</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+                <tbody>
+                  <tr><td class="code">770.04</td><td>Akaryakıt giderleri</td><td class="n">1.792,00</td><td class="n"></td></tr>
+                  <tr><td class="code">191</td><td>İndirilecek KDV %20</td><td class="n">358,40</td><td class="n"></td></tr>
+                  <tr><td class="code">335.07</td><td>Personele borçlar: Ayşe Demir</td><td class="n"></td><td class="n">2.150,40</td></tr>
+                </tbody>
+                <tfoot><tr><td></td><td>Toplam</td><td class="n">2.150,40</td><td class="n">2.150,40</td></tr></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kimler için -->
+  <section class="band" id="kimler" style="padding-top: 0">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Kimler için</span>
+        <h2>Şirketinize ya da büronuza göre kurulur</h2>
+      </div>
+      <div class="audience">
+        <div class="aud company">
+          <h3>Muhasebesi içeride olan şirketler</h3>
+          <ul class="checks">
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Kendi onay akışınız</b><span class="d">Yönetici, masraf merkezi sorumlusu, tutara göre ek adım. Akış sonradan değişse de yoldaki rapor etkilenmez.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Ekip ve roller</b><span class="d">Çalışan, onaylayıcı, muhasebeci, yönetici. Onaylayıcı ve muhasebeci ücretsiz.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Araç ve plaka</b><span class="d">Her çalışanın araçları kartında; akaryakıt fişleri buna göre denetlenir.</span></div></li>
+          </ul>
+        </div>
+        <div class="aud bureau">
+          <h3>Mali müşavirlik ve muhasebe büroları</h3>
+          <ul class="checks">
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Tüm müşteri firmalar tek hesapta</b><span class="d">Firma ekleyin, aralarında tek dokunuşla geçin. Paketinizdeki firma sayısı kadar.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Fişi siz ya da firma girsin</b><span class="d">Firmadan bir kişiyi ekleyin, fişleri o çeksin; ya da gelen fişleri büroda siz girin, onaysız kayda alınsın.</span></div></li>
+            <li><span class="ic" aria-hidden="true">✓</span><div><b>Büro personeli sınırsız</b><span class="d">Muhasebecileriniz ek ücretsiz; her biri atandığı firmaları görür.</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fiyatlar -->
+  <section class="band" id="fiyat" style="padding-top: 0">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Fiyatlar</span>
+        <h2>Şeffaf fiyat, 14 gün ücretsiz deneme</h2>
+        <p class="lede">Fiyatlara KDV dahil değildir. Yıllık ödemede aylık ödemeye göre yaklaşık iki ay bedava.</p>
+      </div>
+      <div class="toggle" role="group" aria-label="Ödeme dönemi">
+        <button type="button" id="p-year" aria-pressed="true">Yıllık ödeme</button>
+        <button type="button" id="p-month" aria-pressed="false">Aylık ödeme</button>
+      </div>
+
+      <div class="price-group">
+        <h3>Muhasebe büroları (müşteri firma sayısına göre)</h3>
+        <div class="plans">
+          <div class="plan"><span class="name">Büro 5</span><span class="price" data-y="740" data-m="890"></span><ul><li>5 müşteri firma</li><li>Firma başı 3 çalışan</li><li>Büro personeli sınırsız</li></ul></div>
+          <div class="plan pick"><span class="badge">En çok tercih edilen</span><span class="name">Büro 10</span><span class="price" data-y="1490" data-m="1790"></span><ul><li>10 müşteri firma</li><li>Firma başı 3 çalışan</li><li>Büro personeli sınırsız</li></ul></div>
+          <div class="plan"><span class="name">Büro 50</span><span class="price" data-y="4990" data-m="5990"></span><ul><li>50 müşteri firma</li><li>Firma başı 3 çalışan</li><li>Büro personeli sınırsız</li></ul></div>
+          <div class="plan"><span class="name">Büro 150</span><span class="price" data-y="8990" data-m="10790"></span><ul><li>150 müşteri firma</li><li>Firma başı 3 çalışan</li><li>Büro personeli sınırsız</li></ul></div>
+        </div>
+      </div>
+
+      <div class="price-group">
+        <h3>Şirketler (masraf giren çalışan başına)</h3>
+        <div class="plans">
+          <div class="plan"><span class="name">Başlangıç</span><span class="price" data-y="149" data-m="179" data-unit="kişi"></span><ul><li>Fiş ve fatura okuma</li><li>Tek adımlı onay</li><li>Vergi uyarıları</li><li>En az 3 kişi</li></ul></div>
+          <div class="plan pick"><span class="badge">Önerilen</span><span class="name">Standart</span><span class="price" data-y="249" data-m="299" data-unit="kişi"></span><ul><li>Çok adımlı onay akışı</li><li>Gider grubu sınırları</li><li>Plaka ve araç kontrolü</li><li>En az 3 kişi</li></ul></div>
+          <div class="plan"><span class="name">Pro</span><span class="price" data-y="399" data-m="479" data-unit="kişi"></span><ul><li>Masraf merkezi ve proje</li><li>Denetçi rolü</li><li>Öncelikli destek</li><li>En az 10 kişi</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Güvenlik -->
+  <section class="band band-deep torn" id="guvenlik">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Güvenlik</span>
+        <h2>Verileriniz sizin, sadece sizin</h2>
+      </div>
+      <div class="sec">
+        <div><b>Avrupa'da barındırma</b><p>Veritabanı ve fiş görüntüleri Frankfurt'taki sunucularda tutulur.</p></div>
+        <div><b>Şirket bazında ayrım</b><p>Her şirketin verisi veritabanı kurallarıyla ayrıdır; bir şirket diğerinin kaydını göremez. Her güncellemede otomatik test edilir.</p></div>
+        <div><b>Kart bilgisi bizde yok</b><p>Ödemeler iyzico'nun güvenli sayfasında alınır; Gidero kart bilgisi görmez ve saklamaz.</p></div>
+        <div><b>Değişmez kayıt</b><p>Masraf, onay ve ayar değişikliklerinin geçmişi silinmez; kim ne zaman neyi değiştirdi görünür.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SSS -->
+  <section class="band" id="sss">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Sık sorulanlar</span>
+        <h2>Merak edilenler</h2>
+      </div>
+      <div class="faq">
+        <details><summary>Fiş okunamazsa ne olur?</summary><p>Fiş yine kaydedilir, görüntüsü saklanır. Çalışan tutarı ve tarihi elle yazar; muhasebeci bu fişi "okunamadı" uyarısıyla görür.</p></details>
+        <details><summary>e-Fatura ve e-Arşiv faturaları nasıl okunuyor?</summary><p>Faturadaki karekod varsa satıcı, vergi numarası, tutar ve KDV satırları doğrudan karekoddan alınır. Yoksa yapay zekâ ile fotoğraftan okunur ve tutarlılığı kontrol edilir.</p></details>
+        <details><summary>Muhasebecimiz ayrıca bir şey yapmak zorunda mı?</summary><p>Hayır. Muhasebeci gider gruplarını ve hesap kodlarını bir kez tanımlar; sonra onaylanmış, kontrol edilmiş kayıtları alır. Vergi uyarıları ona da görünür.</p></details>
+        <details><summary>Bir muhasebe bürosu olarak müşterilerim ayrı ödeme yapar mı?</summary><p>Büro paketinde müşteri firmalar büronun hesabına dahildir; tek fatura büroya kesilir. Firmanın çalışanları masraf girer, büro kontrol eder.</p></details>
+        <details><summary>Deneme bitince verilerim ne olur?</summary><p>Hiçbir kayıt silinmez. Paket seçene kadar eski kayıtlar görünür kalır, yalnızca yeni fiş girişi durur.</p></details>
+        <details><summary>Telefonda uygulama olarak mı çalışıyor?</summary><p>Evet, iPhone ve Android için uygulama olarak çalışır; yönetim ve muhasebe ekranları bilgisayardan da açılır. Uygulama mağazası sürümleri yakında.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Son çağrı -->
+  <section class="band band-deep" style="padding-block: clamp(56px, 8vw, 96px)">
+    <div class="wrap final">
+      <h2>Bu ayın fişleriyle başlayın.</h2>
+      <p class="lede">14 gün boyunca tüm özellikler açık. Kart bilgisi istemiyoruz; denemenin sonunda paket seçmezseniz kayıtlarınız silinmez.</p>
+      <div class="hero-actions">
+        <a class="btn btn-light" href="https://gidero.expo.app" target="_blank" rel="noopener">Ücretsiz dene</a>
+        <a class="btn btn-ghost" href="#fiyat" style="background: transparent; color: var(--on-deep); border-color: rgba(255,255,255,.3)">Fiyatlara bak</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top" style="font-size: 1.25rem">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E5F"/><path d="M22 12H42Q46 12 46 16V48L42.5 45L39 48L35.5 45L32 48L28.5 45L25 48L21.5 45L18 48V16Q18 12 22 12Z" fill="#fff"/><path d="M24.5 33.5L29.5 38.5L40 28" fill="none" stroke="#F2A93B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      gidero
+    </a>
+    <span>gidero.tr</span>
+    <span>İletişim: [E-POSTA ADRESİ]</span>
+    <span>KVKK aydınlatma metni ve kullanım koşulları: [HAZIRLANACAK]</span>
+    <span class="proto">Prototip sayfa: ekran görüntüleri örnek verilerle hazırlandı.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var fmt = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 });
+  var yearBtn = document.getElementById('p-year');
+  var monthBtn = document.getElementById('p-month');
+  function render(period) {
+    yearBtn.setAttribute('aria-pressed', String(period === 'year'));
+    monthBtn.setAttribute('aria-pressed', String(period === 'month'));
+    document.querySelectorAll('.price').forEach(function (el) {
+      var v = Number(period === 'year' ? el.dataset.y : el.dataset.m);
+      var unit = el.dataset.unit ? ' / ' + el.dataset.unit + ' / ay' : ' / ay';
+      el.innerHTML = fmt.format(v) + ' ₺<span class="per">' + unit + '</span>';
+    });
+  }
+  yearBtn.addEventListener('click', function () { render('year'); });
+  monthBtn.addEventListener('click', function () { render('month'); });
+  render('year');
+})();
+</script>
+</html>
