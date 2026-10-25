@@ -14,6 +14,7 @@ import { useColorScheme } from 'react-native';
 import { Loading } from '@/components/ui';
 import { fonts, useColors } from '@/constants/theme';
 import { QueueProvider } from '@/lib/queue';
+import { listenForTaps, registerPush } from '@/lib/notifications';
 import { SessionProvider, useSession } from '@/lib/session';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -47,8 +48,12 @@ export default function RootLayout() {
 }
 
 function RootStack() {
-  const { ready, session, active, bureaus, platformAdmin } = useSession();
+  const { ready, session, active, bureaus, platformAdmin, userId } = useSession();
   const c = useColors();
+  useEffect(() => {
+    if (userId) registerPush(userId);
+  }, [userId]);
+  useEffect(() => listenForTaps(), []);
   if (!ready) return <Loading />;
 
   const signedIn = !!session;
@@ -89,6 +94,7 @@ function RootStack() {
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />
         <Stack.Screen name="subscription" options={{ title: 'Abonelik' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && platformAdmin}>
         <Stack.Screen name="admin/index" options={{ title: 'Gidero Yönetim', headerLargeTitle: true }} />

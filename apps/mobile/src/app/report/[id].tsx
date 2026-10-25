@@ -14,6 +14,7 @@ import { useQueue } from '@/lib/queue';
 import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+import { sendPending } from '@/lib/notifications';
 import { DOC_TYPE_LABEL, type Expense, type Report } from '@/lib/types';
 
 type Action = { id: string; action: string; note: string | null; created_at: string };
@@ -108,6 +109,7 @@ export default function ReportScreen() {
     const { data, error: e } = await supabase.rpc('submit_report', { p_report: id });
     setBusy(null);
     if (e) return setError(errorText(e));
+    sendPending();
     Alert.alert(data === 'approved' ? 'Rapor onaylandı' : 'Rapor onaya gönderildi');
     load();
   }
@@ -118,6 +120,7 @@ export default function ReportScreen() {
     const { error: e } = await supabase.rpc('approve_report', { p_report: id, p_note: note.trim() || null });
     setBusy(null);
     if (e) return setError(errorText(e));
+    sendPending();
     setNote('');
     load();
   }
@@ -129,6 +132,7 @@ export default function ReportScreen() {
     const { error: e } = await supabase.rpc('return_report', { p_report: id, p_note: note.trim() });
     setBusy(null);
     if (e) return setError(errorText(e));
+    sendPending();
     setNote('');
     load();
   }
