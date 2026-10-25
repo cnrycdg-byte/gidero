@@ -83,6 +83,7 @@ function RootStack() {
         <Stack.Screen name="team" options={{ title: 'Ekip' }} />
         <Stack.Screen name="categories" options={{ title: 'Gider grupları' }} />
         <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
+        <Stack.Screen name="export" options={{ title: 'Muhasebe aktarımı' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />

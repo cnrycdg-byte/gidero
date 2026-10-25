@@ -20,6 +20,7 @@ type Cat = {
   attendees_required: boolean;
   limit_amount: number | null;
   limit_period: LimitPeriod | null;
+  kkeg_ratio: number | null;
   active: boolean;
 };
 
@@ -50,9 +51,10 @@ type Draft = {
   attendees: boolean;
   period: LimitPeriod | null;
   amount: string;
+  kkeg: string;
 };
 
-const EMPTY: Draft = { name: '', account: '770.', vat: 20, rule: 'standard', attendees: false, period: null, amount: '' };
+const EMPTY: Draft = { name: '', account: '770.', vat: 20, rule: 'standard', attendees: false, period: null, amount: '', kkeg: '' };
 
 // Muhasebeci veya yönetici gider gruplarını ekler, düzenler ve kişi başı dönemsel sınır koyar.
 export default function Categories() {
@@ -69,7 +71,7 @@ export default function Categories() {
     if (!active) return;
     const { data } = await supabase
       .from('categories')
-      .select('id, name, expense_account, default_vat_rate, tax_rule, attendees_required, limit_amount, limit_period, active')
+      .select('id, name, expense_account, default_vat_rate, tax_rule, attendees_required, limit_amount, limit_period, kkeg_ratio, active')
       .eq('company_id', active.company_id)
       .order('name');
     setCats((data ?? []) as Cat[]);
@@ -100,6 +102,7 @@ export default function Categories() {
       attendees: k.attendees_required,
       period: k.limit_period,
       amount: k.limit_amount ? amountInput(k.limit_amount) : '',
+      kkeg: k.kkeg_ratio == null ? '' : String(Number(k.kkeg_ratio)),
     });
   }
 
@@ -113,6 +116,8 @@ export default function Categories() {
     }
     const amount = draft.period ? parseAmount(draft.amount) : null;
     if (draft.period && (amount == null || amount <= 0)) return setError('Sınır tutarını yazın ya da “Sınırsız”ı seçin.');
+    const kkeg = draft.kkeg.trim() === '' ? null : Number(draft.kkeg.replace(',', '.'));
+    if (kkeg != null && !(kkeg >= 0 && kkeg <= 100)) return setError('Kabul edilmeyen payı 0 ile 100 arasında yazın.');
 
     const row = {
       name,
@@ -122,6 +127,7 @@ export default function Categories() {
       attendees_required: draft.attendees || draft.rule === 'meal' || draft.rule === 'representation',
       limit_amount: draft.period ? amount : null,
       limit_period: draft.period,
+      kkeg_ratio: kkeg,
     };
     setBusy(true);
     const { error: e } =
@@ -178,6 +184,15 @@ export default function Categories() {
         })}
       </View>
       <Text style={[type.small, { color: c.muted, marginTop: -space.xs }]}>{TAX_RULES.find((r) => r.key === draft.rule)?.hint}</Text>
+      {(draft.rule === 'fuel' || draft.rule === 'car_running' || draft.rule === 'car_rent' || draft.kkeg !== '') && (
+        <Field
+          label="Kanunen kabul edilmeyen pay (%)"
+          value={draft.kkeg}
+          onChangeText={(v) => set({ kkeg: v.replace(/[^0-9,.]/g, '') })}
+          placeholder="Binek araç için 30, değilse boş bırakın"
+          keyboardType="decimal-pad"
+        />
+      )}
 
       <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Varsayılan KDV oranı</Text>
       <View style={styles.chips}>
