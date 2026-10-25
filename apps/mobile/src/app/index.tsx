@@ -12,6 +12,7 @@ import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
 import { accountStatus, daysLeft, type AccountStatus } from '@/lib/billing';
 import { fetchUsage, usageState, type Usage } from '@/lib/limits';
+import { unreadCount } from '@/lib/notifications';
 import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
@@ -30,6 +31,7 @@ export default function Home() {
   const [limits, setLimits] = useState<Usage[]>([]);
   const [sub, setSub] = useState<AccountStatus | null>(null);
   const [waiting, setWaiting] = useState(0);
+  const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,7 @@ export default function Home() {
         .then(setSub)
         .catch(() => setSub(null));
     }
+    unreadCount().then(setUnread).catch(() => setUnread(0));
     fetchUsage(active.company_id, userId)
       .then(setLimits)
       .catch(() => setLimits([]));
@@ -156,6 +159,18 @@ export default function Home() {
               {(active?.roles ?? []).map((r) => ROLE_LABEL[r] ?? r).join(', ')} olarak görüyorsunuz
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push('/notifications')}
+            accessibilityLabel={unread ? `${unread} okunmamış bildirim` : 'Bildirimler'}
+            hitSlop={8}
+            style={[styles.bell, { backgroundColor: unread ? c.stampSoft : c.paper }]}>
+            <Icon name="inbox" size={18} color={unread ? c.stamp : c.muted} />
+            {unread > 0 && (
+              <View style={[styles.badge, { backgroundColor: c.red }]}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{unread > 9 ? '9+' : String(unread)}</Text>
+              </View>
+            )}
+          </Pressable>
         </Pressable>
 
         {platformAdmin && (
@@ -327,6 +342,8 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  bell: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },
   trial: { borderRadius: radius.md, padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   who: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: -space.xs },
