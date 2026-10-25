@@ -82,3 +82,41 @@ export const ROLE_TEXT: Record<string, string> = {
   bureau_owner: 'Büro sahibi',
   bureau_accountant: 'Büro muhasebecisi',
 };
+
+// Tanıtım sitesi sohbetleri (yalnızca platform yöneticisi okuyabilir)
+export type ChatSession = {
+  id: string;
+  started_at: string;
+  last_at: string;
+  page: string | null;
+  message_count: number;
+  contact: string | null;
+  needs_human: boolean;
+  handled: boolean;
+};
+export type ChatMessage = { id: number; role: 'visitor' | 'assistant'; content: string; created_at: string };
+
+export async function chatSessions(): Promise<ChatSession[]> {
+  const { data, error } = await supabase
+    .from('site_chat_sessions')
+    .select('id, started_at, last_at, page, message_count, contact, needs_human, handled')
+    .order('last_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return data as ChatSession[];
+}
+
+export async function chatMessages(sessionId: string): Promise<ChatMessage[]> {
+  const { data, error } = await supabase
+    .from('site_chat_messages')
+    .select('id, role, content, created_at')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data as ChatMessage[];
+}
+
+export async function setChatHandled(sessionId: string, handled: boolean) {
+  const { error } = await supabase.from('site_chat_sessions').update({ handled }).eq('id', sessionId);
+  if (error) throw error;
+}

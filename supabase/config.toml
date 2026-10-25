@@ -423,3 +423,7 @@ verify_jwt = true
 [functions.payments]
 enabled = true
 verify_jwt = false
+
+[functions.site-chat]
+enabled = true
+verify_jwt = false
