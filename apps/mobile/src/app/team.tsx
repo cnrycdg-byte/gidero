@@ -27,6 +27,9 @@ export default function Team() {
   const [plateDraft, setPlateDraft] = useState('');
   const [plateBusy, setPlateBusy] = useState(false);
   const [plateError, setPlateError] = useState<string | null>(null);
+  const [manager, setManager] = useState<string | null>(null); // yeni kişinin yöneticisi; null = ben
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [editManager, setEditManager] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!active) return;
@@ -56,10 +59,16 @@ export default function Team() {
     setInfo(null);
     if (!email.includes('@')) return setError('Kişinin e-postasını yazın.');
     setBusy(true);
-    const { error: e } = await supabase.rpc('add_member', { p_company: active.company_id, p_email: email.trim(), p_roles: roles });
+    const { error: e } = await supabase.rpc('add_member', {
+      p_company: active.company_id,
+      p_email: email.trim(),
+      p_roles: roles,
+      p_manager: manager ?? userId,
+    });
     setBusy(false);
     if (e) return setError(errorText(e));
-    setInfo('Kişi eklendi. Masraflarını siz onaylayacaksınız.');
+    setInfo(`Kişi eklendi. Masraflarını ${manager && manager !== userId ? nameOf(manager) : 'siz'} onaylayacak.`);
+    setManager(null);
     setEmail('');
     setRoles(['employee']);
     load();
@@ -70,6 +79,8 @@ export default function Team() {
   function startEdit(m: Member) {
     setEditing(editing === m.user_id ? null : m.user_id);
     setPlateDraft((m.vehicle_plates ?? []).map(formatPlate).join(', '));
+    setEditRoles(m.roles);
+    setEditManager(m.manager_user_id);
     setPlateError(null);
   }
 
@@ -78,8 +89,19 @@ export default function Team() {
     const parts = plateDraft.split(/[,\n;]+/).map((x) => x.trim()).filter(Boolean);
     const bad = parts.filter((x) => !normalizePlate(x));
     if (bad.length) return setPlateError(`Şu plaka geçersiz: ${bad.join(', ')}. Örnek: 35 ABC 123`);
+    if (editRoles.length === 0) return setPlateError('Kişiye en az bir rol verin.');
     setPlateBusy(true);
     setPlateError(null);
+    const { error: e0 } = await supabase.rpc('set_member', {
+      p_company: active.company_id,
+      p_user: m.user_id,
+      p_roles: editRoles,
+      p_manager: editManager,
+    });
+    if (e0) {
+      setPlateBusy(false);
+      return setPlateError(errorText(e0));
+    }
     const { error: e } = await supabase.rpc('set_member_plates', {
       p_company: active.company_id,
       p_user: m.user_id,
@@ -114,13 +136,28 @@ export default function Team() {
             );
           })}
         </View>
+        {members.length > 0 && (
+          <>
+            <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Masraflarını kim onaylayacak?</Text>
+            <View style={styles.chips}>
+              {members.map((p) => {
+                const on = (manager ?? userId) === p.user_id;
+                return (
+                  <Pressable key={p.user_id} onPress={() => setManager(p.user_id)} style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
+                    <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{p.user_id === userId ? `${p.full_name} (siz)` : p.full_name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
         {error && <Notice tone="bad" text={error} />}
         {info && <Notice tone="ok" text={info} />}
         <Button icon="personAdd" title="Ekle" onPress={add} loading={busy} disabled={roles.length === 0} />
       </View>
 
       <SectionTitle title={`Ekip (${members.length})`} />
-      <Text style={[type.small, { color: c.muted, marginTop: -space.sm }]}>Araç plakası eklemek için kişiye dokunun.</Text>
+      <Text style={[type.small, { color: c.muted, marginTop: -space.sm }]}>Rolünü, yöneticisini ya da araç plakasını değiştirmek için kişiye dokunun.</Text>
       <Group>
         {members.map((m) => (
           <View key={m.user_id}>
@@ -137,6 +174,31 @@ export default function Team() {
             />
             {editing === m.user_id && (
               <View style={[styles.edit, { borderTopColor: c.paperLine }]}>
+                <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Rolleri</Text>
+                <View style={styles.chips}>
+                  {CHOICES.map((r) => {
+                    const on = editRoles.includes(r);
+                    return (
+                      <Pressable
+                        key={r}
+                        onPress={() => setEditRoles(on ? editRoles.filter((x) => x !== r) : [...editRoles, r])}
+                        style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
+                        <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{ROLE_LABEL[r]}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Bağlı olduğu yönetici (masraflarını onaylar)</Text>
+                <View style={styles.chips}>
+                  {[{ user_id: null as string | null, full_name: 'Yok' }, ...members.filter((x) => x.user_id !== m.user_id)].map((p) => {
+                    const on = editManager === p.user_id;
+                    return (
+                      <Pressable key={p.user_id ?? 'none'} onPress={() => setEditManager(p.user_id)} style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
+                        <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{p.full_name}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
                 <Field
                   label="Araç plakaları"
                   value={plateDraft}
