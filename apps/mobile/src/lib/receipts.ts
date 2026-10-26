@@ -43,9 +43,10 @@ export async function uploadReceipt(p: { uri: string; companyId: string; reportI
     .upload(path, base64ToBytes(saved.base64), { contentType: 'image/jpeg', upsert: false });
   if (upErr) throw upErr;
 
+  const payment_method = await lastPaymentMethod(p.companyId, p.userId);
   const { data: exp, error: insErr } = await supabase
     .from('expenses')
-    .insert({ company_id: p.companyId, report_id: p.reportId, created_by: p.userId, total: 0, image_path: path })
+    .insert({ company_id: p.companyId, report_id: p.reportId, created_by: p.userId, total: 0, image_path: path, payment_method })
     .select('id')
     .single();
   if (insErr) {
@@ -53,6 +54,26 @@ export async function uploadReceipt(p: { uri: string; companyId: string; reportI
     throw insErr;
   }
   return exp.id as string;
+}
+
+/** Kişinin bu şirkette en son seçtiği ödeme yolu (şirket kartı kullanan çalışan her fişte yeniden seçmesin) */
+const lastPaymentCache = new Map<string, string>();
+async function lastPaymentMethod(companyId: string, userId: string): Promise<string> {
+  const k = `${companyId}:${userId}`;
+  const hit = lastPaymentCache.get(k);
+  if (hit) return hit;
+  const { data } = await supabase
+    .from('expenses')
+    .select('payment_method')
+    .eq('company_id', companyId)
+    .eq('created_by', userId)
+    .gt('total', 0)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  const m = (data?.[0]?.payment_method as string) ?? 'personal';
+  lastPaymentCache.set(k, m);
+  setTimeout(() => lastPaymentCache.delete(k), 60_000);
+  return m;
 }
 
 /** Sunucudaki fiş okuma fonksiyonunu çağırır. */

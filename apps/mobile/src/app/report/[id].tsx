@@ -14,6 +14,7 @@ import { useQueue } from '@/lib/queue';
 import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+import { PAYMENT_LABEL, paymentSummary } from '@/lib/payment';
 import { sendPending } from '@/lib/notifications';
 import { DOC_TYPE_LABEL, type Expense, type Report } from '@/lib/types';
 
@@ -85,6 +86,7 @@ export default function ReportScreen() {
   const knownIds = new Set(expenses.map((e) => e.id));
   const stillReading = new Set(reading.map((i) => i.expenseId).filter(Boolean) as string[]);
   const warnCount = expenses.reduce((a, e) => a + (e.expense_flags ?? []).filter((f) => f.severity !== 'info').length, 0);
+  const pay = paymentSummary(expenses);
   const zeroTotals = expenses.filter((e) => Number(e.total) === 0 && !stillReading.has(e.id)).length;
   const lastReturn = [...actions].reverse().find((a) => a.action === 'returned');
 
@@ -169,6 +171,16 @@ export default function ReportScreen() {
           <Text style={[type.display, { color: c.ink, marginTop: space.sm }]} adjustsFontSizeToFit numberOfLines={1}>
             {money(report.total)}
           </Text>
+          {pay.personal !== Number(report.total) && Number(report.total) > 0 && (
+            <View style={{ gap: 2, marginTop: space.xs }}>
+              <Text style={[type.small, { color: c.ink, fontWeight: '600' }]}>{`Size ödenecek: ${money(pay.personal)}`}</Text>
+              {(['company_card', 'cash_advance', 'cash'] as const)
+                .filter((k) => pay[k] > 0)
+                .map((k) => (
+                  <Text key={k} style={[type.small, { color: c.muted }]}>{`${PAYMENT_LABEL[k]}: ${money(pay[k])}`}</Text>
+                ))}
+            </View>
+          )}
           <Perforation />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={[type.small, { color: c.muted }]}>
@@ -234,9 +246,9 @@ export default function ReportScreen() {
                       ? 'Tutar, tarih ve KDV dolduruluyor'
                       : noTotal
                         ? 'Tutar okunamadı, dokunup yazın'
-                        : warns.length
-                          ? `${dateText(e.doc_date)}, ${warns.length} uyarı`
-                          : dateText(e.doc_date)
+                        : [dateText(e.doc_date), e.payment_method && e.payment_method !== 'personal' ? PAYMENT_LABEL[e.payment_method] : null, warns.length ? `${warns.length} uyarı` : null]
+                            .filter(Boolean)
+                            .join(', ')
                   }
                   value={isReading ? undefined : noTotal ? '—' : money(e.total)}
                   right={isReading ? <ActivityIndicator color={c.muted} /> : undefined}
