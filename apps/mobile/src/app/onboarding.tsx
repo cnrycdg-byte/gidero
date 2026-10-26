@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -12,7 +13,7 @@ type Kind = 'company' | 'bureau';
 
 export default function Onboarding() {
   const c = useColors();
-  const { reloadMemberships } = useSession();
+  const { reloadMemberships, platformAdmin } = useSession();
   const [kind, setKind] = useState<Kind>('company');
   const [name, setName] = useState('');
   const [vkn, setVkn] = useState('');
@@ -57,6 +58,9 @@ export default function Onboarding() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
+      {platformAdmin && (
+        <Button title="Gidero Yönetim Paneline git" onPress={() => router.push('/admin')} />
+      )}
       <Text style={[type.body, { color: c.muted }]}>Gidero'yu nasıl kullanacaksınız? 14 gün ücretsiz deneyin, kart bilgisi gerekmez.</Text>
 
       <View style={{ gap: space.sm }}>

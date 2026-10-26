@@ -62,6 +62,10 @@ export default function AdminHome() {
     return { paying: paying.length, trial: trial.length, ending: ending.length, expired: expired.length, orders, mrr };
   }, [rows, plans]);
 
+  const ending = rows
+    .filter((r) => r.active && r.ends_at && (daysLeft(r.ends_at) ?? 99) <= 30)
+    .sort((a, b) => Date.parse(a.ends_at!) - Date.parse(b.ends_at!));
+
   const list = rows.filter((r) => {
     const t = q.trim().toLocaleLowerCase('tr-TR');
     if (t && !(`${r.name} ${r.owner_email ?? ''}`.toLocaleLowerCase('tr-TR').includes(t))) return false;
@@ -100,10 +104,35 @@ export default function AdminHome() {
           subtitle={stats.orders ? `${stats.orders} sipariş onay veya ödeme bekliyor` : 'Tüm siparişler ve onaylar'}
           onPress={() => router.push('/admin/orders')}
         />
+        <Row icon="personAdd" title="Yeni müşteri ekle" subtitle="Şirket ya da büro; paket, bitiş tarihi, tahsilat" onPress={() => router.push('/admin/new-customer')} />
+        <Row icon="doc" title="Gelir ve gider" subtitle="Aylık gelir, giderler, kâr, tahsil edilen KDV" onPress={() => router.push('/admin/finance')} />
         <Row icon="receipt" title="Paketler ve fiyatlar" subtitle="Şirket ve büro paketleri, limitler" onPress={() => router.push('/admin/plans')} />
         <Row icon="plus" title="Kampanyalar" subtitle="İndirim kodları, hediye süre" onPress={() => router.push('/admin/campaigns')} />
         <Row icon="send" title="Site sohbetleri" subtitle="Ziyaretçiler ne sordu, ne yanıt verildi" onPress={() => router.push('/admin/chats')} />
       </Group>
+
+      {ending.length > 0 && (
+        <>
+          <SectionTitle title={`30 gün içinde bitecek üyelikler (${ending.length})`} />
+          <Group>
+            {ending.map((r) => {
+              const left = daysLeft(r.ends_at) ?? 0;
+              return (
+                <Row
+                  key={r.account_id}
+                  icon="clock"
+                  iconColor={left <= 7 ? c.red : c.stamp}
+                  iconBg={left <= 7 ? c.redSoft : c.stampSoft}
+                  title={r.name}
+                  subtitle={`${r.status === 'trial' ? 'Deneme' : r.plan_name ?? 'Paket'}, ${dateText(r.ends_at)} bitiyor${r.owner_email ? `, ${r.owner_email}` : ''}`}
+                  value={left <= 0 ? 'Bugün' : `${left} gün`}
+                  onPress={() => router.push({ pathname: '/admin/account/[id]', params: { id: r.account_id } })}
+                />
+              );
+            })}
+          </Group>
+        </>
+      )}
 
       <SectionTitle title={`Müşteriler (${list.length})`} />
       <Field label="Ara" value={q} onChangeText={setQ} placeholder="Unvan veya e-posta" autoCapitalize="none" />

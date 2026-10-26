@@ -120,3 +120,77 @@ export async function setChatHandled(sessionId: string, handled: boolean) {
   const { error } = await supabase.from('site_chat_sessions').update({ handled }).eq('id', sessionId);
   if (error) throw error;
 }
+
+// Panelden müşteri ekleme (sahibi kayıtlı değilse davet bırakılır)
+export async function createCustomer(p: {
+  kind: 'company' | 'bureau';
+  name: string;
+  taxNumber: string;
+  ownerEmail: string;
+  planId: string | null;
+  status: 'trial' | 'active';
+  period: 'month' | 'year' | null;
+  seats: number | null;
+  end: string; // YYYY-MM-DD
+  note: string;
+  paidNet: number | null;
+}): Promise<{ account_id: string; company_id: string | null; invited: boolean }> {
+  const { data, error } = await supabase.rpc('admin_create_customer', {
+    p_kind: p.kind,
+    p_name: p.name,
+    p_tax_number: p.taxNumber,
+    p_owner_email: p.ownerEmail,
+    p_plan: p.planId,
+    p_status: p.status,
+    p_period: p.period,
+    p_seats: p.seats,
+    p_end: p.end,
+    p_note: p.note || null,
+    p_paid_net: p.paidNet,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export type FinanceMonth = { month: string; revenue: number; revenue_vat: number; orders: number; expense: number; expense_vat: number; profit: number };
+export type Finance = { months: FinanceMonth[]; by_category: Record<string, number>; paying_accounts: number; trial_accounts: number };
+
+export async function fetchFinance(from: string, to: string): Promise<Finance> {
+  const { data, error } = await supabase.rpc('admin_finance', { p_from: from, p_to: to });
+  if (error) throw error;
+  const f = data as Finance;
+  return { ...f, months: f.months.map((m) => ({ ...m, revenue: Number(m.revenue), expense: Number(m.expense), profit: Number(m.profit), revenue_vat: Number(m.revenue_vat), expense_vat: Number(m.expense_vat) })) };
+}
+
+export const EXPENSE_CATEGORIES: { key: string; label: string }[] = [
+  { key: 'yapay_zeka', label: 'Yapay zekâ (fiş okuma)' },
+  { key: 'altyapi', label: 'Sunucu ve yazılım' },
+  { key: 'odeme', label: 'Ödeme komisyonu' },
+  { key: 'reklam', label: 'Reklam ve tanıtım' },
+  { key: 'muhasebe_hukuk', label: 'Muhasebe ve hukuk' },
+  { key: 'personel', label: 'Personel' },
+  { key: 'diger', label: 'Diğer' },
+];
+
+export type PlatformExpense = { id: string; spent_on: string; category: string; description: string; amount: number; vat_amount: number };
+
+export async function fetchPlatformExpenses(from: string, to: string): Promise<PlatformExpense[]> {
+  const { data, error } = await supabase
+    .from('platform_expenses')
+    .select('id, spent_on, category, description, amount, vat_amount')
+    .gte('spent_on', from)
+    .lte('spent_on', to)
+    .order('spent_on', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({ ...e, amount: Number(e.amount), vat_amount: Number(e.vat_amount) }));
+}
+
+export async function addPlatformExpense(e: Omit<PlatformExpense, 'id'>) {
+  const { error } = await supabase.from('platform_expenses').insert(e);
+  if (error) throw error;
+}
+
+export async function deletePlatformExpense(id: string) {
+  const { error } = await supabase.from('platform_expenses').delete().eq('id', id);
+  if (error) throw error;
+}
