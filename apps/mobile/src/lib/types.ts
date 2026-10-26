@@ -32,6 +32,7 @@ export type Flag = { id: string; code: string; severity: 'info' | 'warning' | 'c
 
 export type Expense = {
   id: string;
+  payment_method: 'personal' | 'company_card' | 'cash_advance' | 'cash';
   company_id: string;
   report_id: string;
   created_by: string;

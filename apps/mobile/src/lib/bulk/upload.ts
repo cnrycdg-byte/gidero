@@ -150,7 +150,7 @@ export async function ensureReportFor(companyId: string, ownerId: string, creato
 const randomId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 /** Bir kalemi yükler; fotoğraf ve PDF okunur, e-Fatura doğrudan kaydedilir. */
-export async function processItem(it: Item, ctx: { companyId: string; me: string; period: string }): Promise<Partial<Item>> {
+export async function processItem(it: Item, ctx: { companyId: string; me: string; period: string; payment: string }): Promise<Partial<Item>> {
   if (it.status === 'matched' && it.existingId && it.invoice) {
     // Fotoğrafı yüklenmiş fişe fatura bilgisini ekle (rapor düzenlenebiliyorsa)
     const inv = it.invoice;
@@ -173,6 +173,7 @@ export async function processItem(it: Item, ctx: { companyId: string; me: string
     const uri = URL.createObjectURL(it.blob);
     try {
       const id = await uploadReceipt({ uri, companyId: ctx.companyId, reportId, userId: ctx.me });
+      await supabase.from('expenses').update({ payment_method: ctx.payment }).eq('id', id);
       const r = await readReceipt(id);
       return { status: 'done', message: r.error ?? 'Okundu.' };
     } finally {
@@ -186,7 +187,7 @@ export async function processItem(it: Item, ctx: { companyId: string; me: string
     if (upErr) throw upErr;
     const { data: exp, error } = await supabase
       .from('expenses')
-      .insert({ company_id: ctx.companyId, report_id: reportId, created_by: ctx.me, total: 0, image_path: path })
+      .insert({ company_id: ctx.companyId, report_id: reportId, created_by: ctx.me, total: 0, image_path: path, payment_method: ctx.payment })
       .select('id')
       .single();
     if (error) throw error;
@@ -216,6 +217,7 @@ export async function processItem(it: Item, ctx: { companyId: string; me: string
       read_total: inv.total,
       read_source: 'qr',
       description: inv.notes.join(' ').slice(0, 300),
+      payment_method: ctx.payment,
     })
     .select('id')
     .single();

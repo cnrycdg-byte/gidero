@@ -10,6 +10,7 @@ import { radius, space, type, useColors } from '@/constants/theme';
 import { expandFiles, matchExisting, processItem, type Item, type Person } from '@/lib/bulk/upload.ts';
 import { currentPeriod, money } from '@/lib/format';
 import { sendPending } from '@/lib/notifications';
+import { PAYMENT_OPTIONS, type PaymentMethod } from '@/lib/payment';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 
@@ -36,6 +37,7 @@ export default function BulkUpload() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [payment, setPayment] = useState<PaymentMethod>('personal');
   const touched = useRef(new Set<string>());
   const isAccountant = hasRole('accountant');
 
@@ -125,7 +127,7 @@ export default function BulkUpload() {
     setRunning(true);
     setError(null);
     const todo = items.filter((i) => (i.status === 'ready' && i.assignee) || i.status === 'matched');
-    const ctx = { companyId: active.company_id, me: userId, period: currentPeriod().period };
+    const ctx = { companyId: active.company_id, me: userId, period: currentPeriod().period, payment };
     let next = 0;
     const worker = async () => {
       while (next < todo.length) {
@@ -258,6 +260,18 @@ export default function BulkUpload() {
               );
             })}
           </Group>
+          <Text style={[type.bodyStrong, { color: c.ink }]}>Bu dosyaları kim ödedi?</Text>
+          <View style={styles.chips}>
+            {PAYMENT_OPTIONS.map((o) => {
+              const on = o.key === payment;
+              return (
+                <Pressable key={o.key} onPress={() => setPayment(o.key)} style={[styles.chip, { backgroundColor: on ? c.pen : c.paper }]}>
+                  <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{o.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[type.small, { color: c.muted }]}>Farklı ödenen fiş varsa yükledikten sonra fişin içinden değiştirebilirsiniz.</Text>
           {ignored.length > 0 && <Text style={[type.small, { color: c.muted }]}>{`Tanınmayan dosyalar atlandı: ${ignored.slice(0, 5).join(', ')}${ignored.length > 5 ? '…' : ''}`}</Text>}
           <View style={styles.buttons}>
             <Button

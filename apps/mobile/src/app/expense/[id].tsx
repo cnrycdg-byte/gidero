@@ -17,6 +17,7 @@ import { formatPlate, normalizePlate } from '@/lib/plate';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+import { PAYMENT_OPTIONS, type PaymentMethod } from '@/lib/payment';
 import { DOC_TYPE_LABEL, type Category, type Expense, type Flag, type Report } from '@/lib/types';
 
 type LineInput = { rate: string; base: string; vat: string };
@@ -43,6 +44,7 @@ export default function ExpenseScreen() {
   const [attendees, setAttendees] = useState<string[]>([]);
   const [attendeeDraft, setAttendeeDraft] = useState('');
   const [lines, setLines] = useState<LineInput[]>([]);
+  const [payment, setPayment] = useState<PaymentMethod>('personal');
 
   const [usage, setUsage] = useState<Usage[]>([]);
   const [busy, setBusy] = useState(false);
@@ -66,6 +68,7 @@ export default function ExpenseScreen() {
       setCategoryId(e.category_id);
       setDescription(e.description ?? '');
       setAttendees(e.attendees ?? []);
+      setPayment(e.payment_method ?? 'personal');
       setLines(
         (e.expense_vat_lines ?? []).map((l) => ({
           rate: String(Number(l.rate)),
@@ -180,6 +183,7 @@ export default function ExpenseScreen() {
           category_id: categoryId,
           description: description.trim(),
           attendees: people,
+          payment_method: payment,
         })
         .eq('id', exp.id);
       if (e1) throw e1;
@@ -358,6 +362,25 @@ export default function ExpenseScreen() {
             text={limitInfo.text}
           />
         )}
+
+        <SectionTitle title="Kim ödedi?" />
+        <View style={styles.chips}>
+          {PAYMENT_OPTIONS.map((o) => {
+            const on = o.key === payment;
+            return (
+              <Pressable
+                key={o.key}
+                disabled={!editable}
+                onPress={() => setPayment(o.key)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={[styles.chip, { backgroundColor: on ? c.pen : c.paper }]}>
+                <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{o.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={[type.small, { color: c.muted, marginTop: -space.sm }]}>{PAYMENT_OPTIONS.find((o) => o.key === payment)?.hint}</Text>
 
         <SectionTitle title={`Kimlerle yapıldı${category?.attendees_required ? ' (zorunlu)' : ''}`} />
         <View style={[styles.box, { backgroundColor: c.paper }]}>
