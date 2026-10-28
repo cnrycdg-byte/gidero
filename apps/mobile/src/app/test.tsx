@@ -8,40 +8,37 @@ import { Text } from '@/components/text';
 import { Button, Notice, SectionTitle } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { confirm } from '@/lib/confirm';
-import { backHome, fetchPersonas, homeEmail, PERSONAS, preparePersonas, resetDemoData, switchTo, useDemo } from '@/lib/demo';
+import { backHome, fetchDemoPeople, homeEmail, resetDemoData, switchTo, useDemo, type DemoAccount } from '@/lib/demo';
 import { useSession } from '@/lib/session';
 import { errorText } from '@/lib/supabase';
 
 type Step = { who: string; text: string };
 
 const SCENARIO_BURO: Step[] = [
-  { who: 'Siz', text: 'Yönetim > Yeni müşteri ekle: "Muhasebe bürosu", unvan Demo Mali Müşavirlik, 10 haneli bir vergi no, hesap sahibi e-postası olarak Ayşe\'nin e-postası. Ücretsiz deneme seçip açın.' },
-  { who: 'Ayşe', text: 'Müşteri firmalar > Müşteri firma ekle: Örnek Gıda Ltd. ve 10 haneli bir vergi no.' },
-  { who: 'Ayşe', text: 'Aynı ekranda Büro ekibi > Can\'ın e-postasını ekleyin, Örnek Gıda\'ya atayın.' },
-  { who: 'Ayşe', text: 'Örnek Gıda\'ya dokunup firmaya geçin. Ekibi yönet > Burak\'ı "Çalışan" olarak ekleyin.' },
-  { who: 'Ayşe', text: 'İsterseniz Onay şeması ekranında adımları silin: o zaman Burak\'ın raporu onaysız, doğrudan muhasebeye düşer. Adım bırakırsanız firmada yönetici olmadığı için onayı siz verirsiniz.' },
-  { who: 'Burak', text: 'Yeni rapor: "Ekim masrafları". Fiş çekin ya da galeriden seçin, tutarı kontrol edin, raporu gönderin.' },
-  { who: 'Ayşe', text: 'Bildirimlerde ve "Onayınızı bekleyenler"de raporu görün, onaylayın.' },
-  { who: 'Can', text: 'Örnek Gıda\'yı seçin. Muhasebe aktarımı > Excel dökümünü indirin, "Aktarıldı olarak işaretle".' },
+  { who: 'Siz', text: 'Yukarıdaki "Test müşterisi aç" ile Muhasebe bürosu açın. Hesap sahibi için uydurma bir e-posta yazın (ör. ayse@test.gidero.app) ve adını yazın.' },
+  { who: 'Büro sahibi', text: 'Listede büronun altında çıkan kişiyle girin. "Müşteri firma ekle" ile 2 firma ekleyin (paket hakkı kadar).' },
+  { who: 'Büro sahibi', text: 'Bir firmaya dokunup geçin. "Fiş yükle" ile bilgisayardan fiş fotoğrafı, PDF ya da WhatsApp ZIP\'i bırakın; kişi sormaz, firmaya girer.' },
+  { who: 'Büro sahibi', text: 'Okunan tutarları kontrol edin, "Kayda al" deyin. Onay yoktur, doğrudan kayda geçer.' },
+  { who: 'Büro sahibi', text: '"Döküm ve aktarım"dan Excel ya da Luca dosyasını alın, "Aktarıldı" deyin.' },
+  { who: 'Büro sahibi', text: '"Firma değiştir" ile diğer firmaya geçin, aynı işi orada yapın. Firmaların fişleri birbirine karışmamalı.' },
 ];
 
 const SCENARIO_SIRKET: Step[] = [
-  { who: 'Siz', text: 'Yönetim > Yeni müşteri ekle: "Şirket", unvan Demo Lojistik AŞ, 10 haneli bir vergi no, hesap sahibi olarak Mehmet\'in e-postası.' },
-  { who: 'Mehmet', text: 'Ekibi yönet: Emre\'yi "Çalışan + Onaylayıcı", Zeynep\'i "Muhasebeci" olarak ekleyin. Ali ve Elif\'i "Çalışan" olarak ekleyip "Masraflarını kim onaylayacak?" kısmında Emre\'yi seçin.' },
-  { who: 'Mehmet', text: 'Onay şeması: 1. adım "Çalışanın yöneticisi", 2. adım "Şirket yöneticisi" ve tutar sınırı 5.000 TL. Kaydedin.' },
-  { who: 'Ali', text: '5.000 TL altında bir rapor açın, iki fiş ekleyip gönderin. Kime gittiğini rapor ekranında görün.' },
-  { who: 'Emre', text: 'Ali\'nin raporunu açın, bir fiş için gerekçe yazıp iade edin.' },
-  { who: 'Ali', text: 'İade edilen raporu düzeltip yeniden gönderin; Emre bu kez onaylasın.' },
-  { who: 'Elif', text: '5.000 TL üstü bir rapor gönderin. Emre onaylayınca rapor Mehmet\'e gider; Mehmet onaylasın.' },
-  { who: 'Zeynep', text: 'Muhasebe aktarımı: onaylanan raporları Excel ya da Luca dosyası olarak alın. Kendi masrafınızı da girin; o da onaydan geçer, kendinizi onaylayamazsınız.' },
+  { who: 'Siz', text: '"Test müşterisi aç" ile Şirket açın. Yöneticinin adını ve uydurma e-postasını yazın (ör. mehmet@test.gidero.app).' },
+  { who: 'Şirket yöneticisi', text: 'Ekip ekranında kişileri ad soyad ve ünvanla ekleyin: Satış Direktörü, GMY, iki Satış Temsilcisi, Muhasebe Uzmanı (muhasebeci rolü). Test müşterisinde e-posta boş kalabilir.' },
+  { who: 'Şirket yöneticisi', text: 'Onay zinciri ekranında kişileri sürükleyip yöneticisinin altına bırakın: temsilciler → Satış Direktörü → GMY → Genel Müdür. GMY\'yi "son onay" yapın.' },
+  { who: 'Satış temsilcisi', text: 'Fiş ekleyip raporu gönderin. Rapor ekranında kime gittiğini görün.' },
+  { who: 'Satış Direktörü', text: 'Raporu onaylayın (bir kez de gerekçe yazıp iade edip deneyin). Kendi masrafınızı da gönderin: GMY\'ye gitmeli.' },
+  { who: 'GMY', text: 'Son onayı verin. Form muhasebeye düşer, Genel Müdür\'e çıkmaz.' },
+  { who: 'Muhasebe', text: 'Muhasebe masasında formu kontrol edin, Excel\'i alın, "Aktarıldı", sonra "Ödendi" deyin. Form arşive geçer, çalışana "ödendi" bildirimi gider.' },
 ];
 
-// Test sürüşü: deneme kişileri arasında şifresiz geçiş ve adım adım senaryolar
+// Test sürüşü: test müşterilerindeki herkese şifresiz geçiş ve adım adım senaryolar
 export default function TestDrive() {
   const c = useColors();
-  const { userId, platformAdmin, session, memberships, bureaus } = useSession();
+  const { userId, platformAdmin, session } = useSession();
   const demo = useDemo(userId);
-  const [rows, setRows] = useState<{ persona: string; email: string }[]>([]);
+  const [accounts, setAccounts] = useState<DemoAccount[] | null>(null);
   const [home, setHome] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +48,9 @@ export default function TestDrive() {
     setError(null);
     setHome(await homeEmail());
     try {
-      setRows(await fetchPersonas());
+      setAccounts(await fetchDemoPeople());
     } catch (e) {
+      setAccounts([]);
       setError(errorText(e));
     }
   }, []);
@@ -62,10 +60,6 @@ export default function TestDrive() {
       load();
     }, [load]),
   );
-
-  const canUse = platformAdmin || !!demo.persona;
-  const ready = rows.length >= PERSONAS.length;
-  const emailOf = (key: string) => rows.find((r) => r.persona === key)?.email ?? '';
 
   async function run(key: string, f: () => Promise<void>) {
     setBusy(key);
@@ -80,96 +74,94 @@ export default function TestDrive() {
     }
   }
 
-  if (!canUse) {
-    return (
-      <Page>
-        <Notice text="Test sürüşü yalnızca Gidero yöneticisine açıktır." />
-      </Page>
-    );
-  }
-
-  const me = PERSONAS.find((p) => p.key === demo.persona);
+  const isAdminHere = platformAdmin && !demo.me;
 
   return (
     <Page wide>
       <View style={[styles.hero, { backgroundColor: c.deep }]}>
         <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>ŞU AN</Text>
-        <Text style={[type.title, { color: c.onDeep }]}>{me ? `${me.name}, ${me.role}` : `Gidero yöneticisi (${session?.user.email ?? ''})`}</Text>
-        <Text style={[type.small, { color: c.onDeepMuted }]}>
-          Aşağıdan bir kişiye dokunun; şifre sormadan o kişi olarak girersiniz. Her ekranın altındaki şeritten buraya dönebilirsiniz.
+        <Text style={[type.title, { color: c.onDeep }]}>
+          {demo.me ? `${demo.me.full_name}, ${demo.me.label}` : `Gidero yöneticisi (${session?.user.email ?? ''})`}
         </Text>
-        {demo.persona && (
-          <Button
-            variant="light"
-            title={home ? `Kendi hesabıma dön (${home})` : 'Kendi hesabıma dön'}
-            loading={busy === 'home'}
-            onPress={() => run('home', async () => {
-              const ok = await backHome();
-              if (!ok) setInfo('Kayıtlı oturumunuz bulunamadı; e-posta ve şifrenizle yeniden giriş yapın.');
-            })}
-          />
-        )}
+        <Text style={[type.small, { color: c.onDeepMuted }]}>
+          Test müşterisi olarak açtığınız hesaplardaki herkes aşağıda listelenir. Birine dokunun, şifre sormadan onun ekranına geçin. Her ekranın altındaki turuncu şeritten buraya dönersiniz.
+        </Text>
+        <View style={styles.row}>
+          {isAdminHere && (
+            <Button variant="light" icon="plus" title="Test müşterisi aç" onPress={() => router.push({ pathname: '/admin/new-customer', params: { test: '1' } })} />
+          )}
+          {demo.me && (
+            <Button
+              variant="light"
+              title={home ? `Kendi hesabıma dön (${home})` : 'Kendi hesabıma dön'}
+              loading={busy === 'home'}
+              onPress={() =>
+                run('home', async () => {
+                  const ok = await backHome();
+                  if (!ok) setInfo('Kayıtlı oturumunuz bulunamadı; e-posta ve şifrenizle yeniden giriş yapın.');
+                })
+              }
+            />
+          )}
+        </View>
       </View>
 
-      {demo.persona && memberships.length === 0 && bureaus.length === 0 && (
-        <Notice
-          tone="warn"
-          text={`${me?.name ?? 'Bu kişi'} henüz hiçbir şirkete ya da büroya bağlı değil, bu yüzden ekranında yalnızca "Hoş geldiniz" kurulumu var. Önce kendi hesabınıza dönüp senaryonun 1. adımını yapın (müşteriyi açarken bu kişinin e-postasını yazın), sonra bu kişiye geçin.`}
-        />
-      )}
       {error && <Notice tone="bad" text={error} />}
       {info && <Notice tone="ok" text={info} />}
 
-      {!ready && (
-        <View style={{ gap: space.sm }}>
-          <Notice text="Önce deneme kişilerini hazırlayın. 8 kişi açılır; e-posta adresleri sahtedir, kimseye e-posta gitmez." />
-          <Button title="Deneme kişilerini hazırla" loading={busy === 'prepare'} onPress={() => run('prepare', async () => setRows(await preparePersonas()))} />
-        </View>
+      <SectionTitle title="Test müşterileri ve kişileri" />
+      {accounts && accounts.length === 0 && (
+        <Notice text='Henüz test müşterisi yok. "Test müşterisi aç" ile bir muhasebe bürosu ya da şirket açın; içine eklediğiniz herkes burada görünür.' />
       )}
-
-      {(['buro', 'sirket'] as const).map((g) => (
-        <View key={g} style={{ gap: space.sm }}>
-          <SectionTitle title={g === 'buro' ? 'Muhasebe bürosu senaryosu' : 'Şirket senaryosu'} />
+      {(accounts ?? []).map((a) => (
+        <View key={a.account_id} style={[styles.account, { backgroundColor: c.paper }]}>
+          <Text style={[type.small, { color: c.pen, fontWeight: '700' }]}>{a.kind === 'bureau' ? 'MUHASEBE BÜROSU' : 'TEKİL ŞİRKET'}</Text>
+          <Text style={[type.bodyStrong, { color: c.ink, fontSize: 18 }]}>{a.name}</Text>
+          {a.people.length === 0 && (
+            <Text style={[type.small, { color: c.muted }]}>Hesap sahibi henüz açılmadı. Yönetim panelinde müşteriye girip "Giriş bağlantısı" oluşturun.</Text>
+          )}
           <View style={styles.grid}>
-            {PERSONAS.filter((p) => p.group === g).map((p) => {
-              const on = p.key === demo.persona;
+            {a.people.map((p) => {
+              const on = p.user_id === userId;
               return (
-                <View key={p.key} style={[styles.card, { backgroundColor: on ? c.penSoft : c.paper, borderColor: on ? c.pen : 'transparent' }]}>
-                  <Text style={[type.bodyStrong, { color: c.ink }]}>{p.name}</Text>
-                  <Text style={[type.small, { color: c.pen, fontWeight: '600' }]}>{p.role}</Text>
-                  <Text style={[type.small, { color: c.muted }]}>{p.does}</Text>
-                  {emailOf(p.key) ? (
-                    <Text selectable style={[type.small, { color: c.ink }]}>{emailOf(p.key)}</Text>
-                  ) : null}
+                <View key={p.user_id} style={[styles.person, { backgroundColor: on ? c.penSoft : c.canvas, borderColor: on ? c.pen : 'transparent' }]}>
+                  <Text style={[type.bodyStrong, { color: c.ink }]} numberOfLines={1}>{p.full_name}</Text>
+                  <Text style={[type.small, { color: c.pen, fontWeight: '600' }]} numberOfLines={1}>{p.label}</Text>
+                  <Text selectable style={[type.small, { color: c.muted }]} numberOfLines={1}>{p.email}</Text>
                   <Button
                     title={on ? 'Şu an bu kişisiniz' : 'Bu kişiyle gir'}
                     variant={on ? 'secondary' : 'primary'}
-                    disabled={on || !ready}
-                    loading={busy === p.key}
-                    onPress={() => run(p.key, () => switchTo(p.key))}
+                    disabled={on}
+                    loading={busy === p.user_id}
+                    onPress={() => run(p.user_id, () => switchTo(p.user_id))}
                   />
                 </View>
               );
             })}
           </View>
-          <Scenario id={g} steps={g === 'buro' ? SCENARIO_BURO : SCENARIO_SIRKET} />
         </View>
       ))}
 
+      <SectionTitle title="Muhasebe bürosu senaryosu" />
+      <Scenario id="buro2" steps={SCENARIO_BURO} />
+      <SectionTitle title="Tekil şirket senaryosu" />
+      <Scenario id="sirket2" steps={SCENARIO_SIRKET} />
+
       <SectionTitle title="Temizlik" />
       <Text style={[type.small, { color: c.muted }]}>
-        Deneme kişilerinin açtığı şirketler, bürolar, raporlar ve fişler silinir. Gerçek müşterilere ve sizin hesabınıza dokunulmaz. Kişiler kalır, baştan başlayabilirsiniz.
+        Test müşterileri, içlerindeki kişiler, raporlar ve fişler silinir. Gerçek müşterilere ve sizin hesabınıza dokunulmaz.
       </Text>
       <Button
         variant="danger"
         title="Test verilerini sıfırla"
         loading={busy === 'reset'}
         onPress={() =>
-          confirm('Test verileri silinsin mi?', 'Deneme kişilerinin açtığı tüm şirket, büro ve raporlar silinir.', 'Sıfırla', () =>
+          confirm('Test verileri silinsin mi?', 'Tüm test müşterileri ve içindeki kişiler silinir.', 'Sıfırla', () =>
             run('reset', async () => {
               const r = await resetDemoData();
-              setInfo(`${r.accounts} deneme hesabı ve ${r.companies} firma silindi.`);
-              if (demo.persona) router.replace('/test');
+              setInfo(`${r.accounts} test müşterisi, ${r.companies} firma ve ${r.users} kişi silindi.`);
+              if (demo.me) await backHome();
+              else load();
             }),
           )
         }
@@ -218,8 +210,10 @@ function Scenario({ id, steps }: { id: string; steps: Step[] }) {
 
 const styles = StyleSheet.create({
   hero: { borderRadius: radius.lg, padding: space.xl, gap: space.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },
+  account: { borderRadius: radius.lg, padding: space.lg, gap: space.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  card: { flexGrow: 1, flexBasis: 230, borderRadius: radius.lg, padding: space.lg, gap: 4, borderWidth: 2 },
+  person: { flexGrow: 1, flexBasis: 220, borderRadius: radius.lg, padding: space.md, gap: 3, borderWidth: 2 },
   steps: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
   step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   num: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

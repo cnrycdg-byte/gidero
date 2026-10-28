@@ -40,6 +40,8 @@ export default function BulkUpload() {
   const [payment, setPayment] = useState<PaymentMethod>('personal');
   const touched = useRef(new Set<string>());
   const isAccountant = hasRole('accountant');
+  // Büro firması: fişler kişiye değil firmaya girilir, kişi seçimi yok
+  const bureauMode = !!active?.bureau_account_id;
 
   const loadPeople = useCallback(async () => {
     if (!active) return;
@@ -69,6 +71,7 @@ export default function BulkUpload() {
       setInfo(null);
       try {
         const res = await expandFiles(files, people);
+        if (bureauMode && userId) res.items.forEach((i) => { if (!i.assignee) i.assignee = userId; });
         await matchExisting(active.company_id, res.items, people);
         setItems((cur) => [...cur, ...res.items]);
         setIgnored((cur) => [...cur, ...res.ignored]);
@@ -76,7 +79,7 @@ export default function BulkUpload() {
         setError(`Dosyalar açılamadı: ${errorText(e)}`);
       }
     },
-    [active, people],
+    [active, people, bureauMode, userId],
   );
 
   // Sürükle bırak (yalnızca bilgisayarda)
@@ -136,7 +139,7 @@ export default function BulkUpload() {
         try {
           const res = await processItem(it, ctx);
           update(it.key, res);
-          if (it.assignee && it.assignee !== userId) touched.current.add(it.assignee);
+          if (bureauMode || (it.assignee && it.assignee !== userId)) touched.current.add(it.assignee ?? 'firma');
         } catch (e) {
           update(it.key, { status: 'error', message: errorText(e) });
         }
@@ -144,19 +147,15 @@ export default function BulkUpload() {
     };
     await Promise.all([worker(), worker(), worker()]);
     setRunning(false);
-    setInfo('Yükleme bitti. Okunan fişleri raporlarda kontrol edin; başkası adına girdiğiniz raporları aşağıdan kayda alın.');
+    setInfo(bureauMode ? 'Yükleme bitti. Okunan tutarları kontrol edin, sonra aşağıdan kayda alın.' : 'Yükleme bitti. Okunan fişleri raporlarda kontrol edin; başkası adına girdiğiniz raporları aşağıdan kayda alın.');
   }
 
   async function bookReports() {
     if (!active || !userId) return;
     setError(null);
-    const { data } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('company_id', active.company_id)
-      .eq('created_by', userId)
-      .neq('owner_user_id', userId)
-      .in('status', ['draft', 'returned']);
+    let q = supabase.from('reports').select('id').eq('company_id', active.company_id).eq('created_by', userId).in('status', ['draft', 'returned']);
+    q = bureauMode ? q.eq('owner_user_id', userId) : q.neq('owner_user_id', userId);
+    const { data } = await q;
     let ok = 0;
     for (const r of data ?? []) {
       const { error: e } = await supabase.rpc('submit_report', { p_report: r.id });
@@ -201,7 +200,7 @@ export default function BulkUpload() {
       {items.length > 0 && (
         <>
           <SectionTitle title={`${items.length} dosya: ${counts.image} fotoğraf, ${counts.pdf} PDF, ${counts.invoice} e-Fatura`} />
-          {missing > 0 && (
+          {missing > 0 && !bureauMode && (
             <View style={{ gap: space.sm }}>
               <Text style={[type.body, { color: c.ink }]}>{`${missing} dosyanın kime ait olduğu bilinmiyor. Hepsini bir kişiye atayın ya da tek tek seçin:`}</Text>
               <View style={styles.chips}>
@@ -231,7 +230,7 @@ export default function BulkUpload() {
                     </Text>
                     <Text style={[type.small, { color: tone, fontWeight: '600' }]}>{it.message ?? STATUS_LABEL[it.status]}</Text>
                   </View>
-                  {(it.status === 'ready' || it.status === 'error') && (
+                  {(it.status === 'ready' || it.status === 'error') && !bureauMode && (
                     <View style={{ alignItems: 'flex-end', gap: 6 }}>
                       <Pressable onPress={() => setPicking(picking === it.key ? null : it.key)} style={[styles.person, { backgroundColor: who ? c.penSoft : c.stampSoft }]}>
                         <Text style={{ color: who ? c.pen : c.stamp, fontWeight: '600' }}>{who ?? 'Kişi seçin'}</Text>
@@ -285,11 +284,13 @@ export default function BulkUpload() {
           {touched.current.size > 0 && !running && (
             <View style={[styles.card, { backgroundColor: c.paper }]}>
               <Text style={[type.body, { color: c.ink }]}>
-                Başkası adına girdiğiniz fişler, siz kayda alana kadar taslak raporda bekler. Kontrol ettikten sonra onay beklemeden kayda alabilirsiniz.
+                {bureauMode
+                  ? 'Fişler siz kayda alana kadar taslakta bekler. Tutarları kontrol ettikten sonra kayda alın; döküm ve aktarım ekranında görünür.'
+                  : 'Başkası adına girdiğiniz fişler, siz kayda alana kadar taslak raporda bekler. Kontrol ettikten sonra onay beklemeden kayda alabilirsiniz.'}
               </Text>
               <View style={styles.buttons}>
                 <Button title="Raporları kayda al" onPress={bookReports} />
-                <Button title="Muhasebe aktarımına git" variant="secondary" onPress={() => router.push('/export')} />
+                <Button title="Döküm ve aktarım" variant="secondary" onPress={() => router.push('/export')} />
               </View>
             </View>
           )}

@@ -96,7 +96,8 @@ function RootStack() {
         <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
         <Stack.Screen name="export" options={{ title: 'Muhasebe aktarımı' }} />
         <Stack.Screen name="bulk" options={{ title: 'Toplu yükleme' }} />
-        <Stack.Screen name="approval-flow" options={{ title: 'Onay şeması' }} />
+        <Stack.Screen name="approval-flow" options={{ title: 'Onay zinciri' }} />
+        <Stack.Screen name="accounting" options={{ title: 'Muhasebe masası' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />

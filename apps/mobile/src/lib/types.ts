@@ -1,4 +1,4 @@
-export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported';
+export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported' | 'paid';
 
 export type Company = { id: string; legal_name: string; tax_number: string };
 export type Membership = {
@@ -63,6 +63,7 @@ export const STATUS_LABEL: Record<ReportStatus, string> = {
   approved: 'Onaylandı',
   booked: 'Muhasebeleşti',
   exported: 'Aktarıldı',
+  paid: 'Ödendi',
 };
 
 export const DOC_TYPE_LABEL: Record<string, string> = {

@@ -5,58 +5,34 @@ import { Platform } from 'react-native';
 
 import { supabase } from './supabase';
 
-// Test modu: Gidero yöneticisi şifre girmeden deneme kişilerine geçer. Yöneticinin kendi oturumu cihazda saklanır,
-// "Hesabıma dön" ile geri yüklenir. Anahtarlar supabase/functions/_shared/demo/personas.ts ile aynıdır.
+// Test modu: Gidero yöneticisi, "test müşterisi" olarak açtığı hesaplardaki herkese şifre girmeden geçer.
+// Yöneticinin kendi oturumu cihazda saklanır, "Kendi hesabıma dön" ile geri yüklenir.
 
-export type PersonaInfo = { key: string; name: string; role: string; does: string; group: 'buro' | 'sirket' };
+export type DemoPerson = { user_id: string; email: string; full_name: string; label: string; company: string | null };
+export type DemoAccount = { account_id: string; kind: 'bureau' | 'company'; name: string; people: DemoPerson[] };
 
-export const PERSONAS: PersonaInfo[] = [
-  { key: 'buro_sahibi', name: 'Ayşe Demir', role: 'Büro sahibi (mali müşavir)', does: 'Müşteri firma ekler, ekibini atar, raporları kayda alır.', group: 'buro' },
-  { key: 'buro_muhasebeci', name: 'Can Yıldız', role: 'Büro muhasebecisi', does: 'Atandığı firmaların raporlarını görür ve aktarır.', group: 'buro' },
-  { key: 'musteri_calisan', name: 'Burak Öztürk', role: 'Müşteri firmanın çalışanı', does: 'Fiş çeker, raporu büroya gönderir.', group: 'buro' },
-  { key: 'sirket_yonetici', name: 'Mehmet Kaya', role: 'Şirket yöneticisi (patron)', does: 'Ekibi ve onay şemasını kurar, büyük tutarları onaylar.', group: 'sirket' },
-  { key: 'bolge_muduru', name: 'Emre Şahin', role: 'Bölge müdürü (onaylayıcı)', does: 'Ekibinin raporlarını onaylar ya da iade eder.', group: 'sirket' },
-  { key: 'calisan', name: 'Ali Çelik', role: 'Saha çalışanı', does: 'Fiş çeker, raporu onaya gönderir.', group: 'sirket' },
-  { key: 'calisan2', name: 'Elif Koç', role: 'Satış temsilcisi', does: 'İkinci çalışan: farklı yönetici ve tutarla dener.', group: 'sirket' },
-  { key: 'sirket_muhasebeci', name: 'Zeynep Arslan', role: 'Şirket muhasebecisi', does: 'Onaylanan raporları denetler, Excel ve Luca dosyası alır.', group: 'sirket' },
-];
-
-export const personaInfo = (key: string | null | undefined) => PERSONAS.find((p) => p.key === key) ?? null;
-
-const HOME_KEY = 'gidero.test.home'; // yöneticinin oturumu (yenileme anahtarı)
+const HOME_KEY = 'gidero.test.home';
 const listeners = new Set<() => void>();
 const changed = () => listeners.forEach((f) => f());
 
-type DemoRow = { user_id: string; persona: string; email: string; full_name: string };
-
-/** Deneme kişilerini açar (yoksa) ve e-postalarıyla listeler. */
-export async function preparePersonas(): Promise<DemoRow[]> {
-  const { error } = await supabase.functions.invoke('demo-login', { body: { action: 'prepare' } });
-  if (error) throw await functionError(error);
-  return fetchPersonas();
-}
-
-export async function fetchPersonas(): Promise<DemoRow[]> {
-  const { data, error } = await supabase.from('demo_users').select('user_id, persona, email, full_name');
+export async function fetchDemoPeople(): Promise<DemoAccount[]> {
+  const { data, error } = await supabase.rpc('demo_people');
   if (error) throw error;
-  return (data ?? []) as DemoRow[];
+  return (data ?? []) as DemoAccount[];
 }
 
 /** Şifresiz geçiş: sunucu tek kullanımlık anahtar üretir, burada oturuma çevrilir. */
-export async function switchTo(persona: string) {
+export async function switchTo(userId: string) {
   const { data: cur } = await supabase.auth.getSession();
   const home = await AsyncStorage.getItem(HOME_KEY).catch(() => null);
   if (!home && cur.session) {
     // İlk geçiş: yöneticinin oturumu saklanır (yalnızca bu cihazda)
-    const isDemo = await supabase.from('demo_users').select('user_id').eq('user_id', cur.session.user.id).maybeSingle();
-    if (!isDemo.data) {
-      await AsyncStorage.setItem(
-        HOME_KEY,
-        JSON.stringify({ access_token: cur.session.access_token, refresh_token: cur.session.refresh_token, email: cur.session.user.email }),
-      );
-    }
+    await AsyncStorage.setItem(
+      HOME_KEY,
+      JSON.stringify({ access_token: cur.session.access_token, refresh_token: cur.session.refresh_token, email: cur.session.user.email }),
+    );
   }
-  const { data, error } = await supabase.functions.invoke('demo-login', { body: { action: 'login', persona } });
+  const { data, error } = await supabase.functions.invoke('demo-login', { body: { action: 'login', user_id: userId } });
   if (error) throw await functionError(error);
   const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: (data as { token_hash: string }).token_hash, type: 'magiclink' });
   if (e2) throw e2;
@@ -64,7 +40,7 @@ export async function switchTo(persona: string) {
   goHome();
 }
 
-/** Kişi değişince o kişinin ana ekranı açılır (şirketi yoksa kurulum, büroysa müşteri firmalar) */
+/** Kişi değişince o kişinin ana ekranı açılır */
 function goHome() {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.location.assign('/');
@@ -107,15 +83,19 @@ export async function homeEmail(): Promise<string | null> {
   }
 }
 
-export async function resetDemoData(): Promise<{ accounts: number; companies: number }> {
-  const { data, error } = await supabase.rpc('demo_reset');
-  if (error) throw error;
-  return data as { accounts: number; companies: number };
+export async function resetDemoData(): Promise<{ accounts: number; companies: number; users: number }> {
+  const { data, error } = await supabase.functions.invoke('demo-login', { body: { action: 'reset' } });
+  if (error) throw await functionError(error);
+  return data as { accounts: number; companies: number; users: number };
 }
 
-/** Şu anki kullanıcı bir deneme kişisi mi; test modu açık mı (yönetici oturumu saklı) */
+/** Test modu açık mı (yönetici oturumu saklı ya da şu anki kişi bir test kişisi) ve şu anki kişi kim */
 export function useDemo(userId: string | null) {
-  const [state, setState] = useState<{ persona: string | null; testMode: boolean }>({ persona: null, testMode: false });
+  const [state, setState] = useState<{ me: DemoPerson | null; account: string | null; testMode: boolean }>({
+    me: null,
+    account: null,
+    testMode: false,
+  });
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const f = () => setTick((t) => t + 1);
@@ -127,13 +107,22 @@ export function useDemo(userId: string | null) {
   useEffect(() => {
     let live = true;
     (async () => {
-      if (!userId) return live && setState({ persona: null, testMode: false });
-      const [home, row] = await Promise.all([
-        AsyncStorage.getItem(HOME_KEY).catch(() => null),
-        supabase.from('demo_users').select('persona').eq('user_id', userId).maybeSingle(),
-      ]);
-      const persona = (row.data as { persona: string } | null)?.persona ?? null;
-      if (live) setState({ persona, testMode: !!home || !!persona });
+      if (!userId) return live && setState({ me: null, account: null, testMode: false });
+      const home = await AsyncStorage.getItem(HOME_KEY).catch(() => null);
+      let me: DemoPerson | null = null;
+      let account: string | null = null;
+      if (home) {
+        const list = await fetchDemoPeople().catch(() => [] as DemoAccount[]);
+        for (const a of list) {
+          const p = a.people.find((x) => x.user_id === userId);
+          if (p) {
+            me = p;
+            account = a.name;
+            break;
+          }
+        }
+      }
+      if (live) setState({ me, account, testMode: !!home });
     })();
     return () => {
       live = false;
@@ -142,7 +131,7 @@ export function useDemo(userId: string | null) {
   return state;
 }
 
-async function functionError(e: unknown): Promise<Error> {
+export async function functionError(e: unknown): Promise<Error> {
   const ctx = (e as { context?: Response }).context;
   if (ctx && typeof ctx.json === 'function') {
     try {
@@ -152,5 +141,5 @@ async function functionError(e: unknown): Promise<Error> {
       /* gövde okunamadı */
     }
   }
-  return new Error('Test sunucusuna ulaşılamadı. İnternet bağlantınızı kontrol edin.');
+  return new Error('Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.');
 }

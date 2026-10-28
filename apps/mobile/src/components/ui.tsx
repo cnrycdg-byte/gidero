@@ -128,6 +128,7 @@ export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor
 
 export function statusColors(c: Palette, s: ReportStatus) {
   if (s === 'approved' || s === 'booked' || s === 'exported') return { fg: c.stamp, bg: c.stampSoft };
+  if (s === 'paid') return { fg: c.pen, bg: c.penSoft };
   if (s === 'pending') return { fg: c.pen, bg: c.penSoft };
   if (s === 'returned') return { fg: c.red, bg: c.redSoft };
   return { fg: c.muted, bg: c.canvas };

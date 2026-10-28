@@ -2,6 +2,7 @@ import { Redirect, router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { BureauHome } from '@/components/bureau-home';
 import { Icon } from '@/components/icon';
 import { LimitBars } from '@/components/limit-bars';
 import { Logo } from '@/components/logo';
@@ -27,6 +28,8 @@ const landedOnAdmin = { done: false };
 export default function Index() {
   const { active, bureaus } = useSession();
   if (!active) return <Redirect href={bureaus.length ? '/clients' : '/onboarding'} />;
+  // Büro personeli müşteri firmasında: büro ekranı (fiş yükle, kayda al, döküm)
+  if (active.bureau_account_id && !active.roles.includes('employee')) return <BureauHome />;
   return <Home />;
 }
 
@@ -339,7 +342,10 @@ function Home() {
             {hasRole('admin') || hasRole('accountant') ? (
               <Row icon="receipt" title="Gider grupları ve sınırlar" subtitle="Kişi başı aylık, 3 aylık, 6 aylık, yıllık sınır" onPress={() => router.push('/categories')} />
             ) : null}
-            {hasRole('admin') || hasRole('accountant') ? (
+            {hasRole('accountant') ? (
+              <Row icon="inbox" title="Muhasebe masası" subtitle="Onaylanan formlar, aktarım, ödendi, arşiv" onPress={() => router.push('/accounting')} />
+            ) : null}
+            {hasRole('admin') && !hasRole('accountant') ? (
               <Row icon="inbox" title="Muhasebe aktarımı" subtitle="Excel döküm, Luca ve Logo dosyası" onPress={() => router.push('/export')} />
             ) : null}
             {hasRole('accountant') ? (
@@ -349,7 +355,7 @@ function Home() {
               <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini ve araçlarını belirleyin" onPress={() => router.push('/team')} />
             ) : null}
             {hasRole('admin') ? (
-              <Row icon="checkCircle" title="Onay şeması" subtitle="Raporu sırayla kimler onaylayacak, hangi tutarda" onPress={() => router.push('/approval-flow')} />
+              <Row icon="checkCircle" title="Onay zinciri" subtitle="Kim kimin altında, zincir kimde biter: sürükle bırak" onPress={() => router.push('/approval-flow')} />
             ) : null}
           </Group>
         )}

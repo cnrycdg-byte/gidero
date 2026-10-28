@@ -1,84 +1,56 @@
-// demo-login: test modunda şifre girmeden deneme kişisine geçiş.
+// demo-login: test müşterilerindeki kişilere şifresiz geçiş ve test verilerini sıfırlama.
 //
 // POST (Authorization: Bearer <oturum>)
-//   { action: 'prepare' }            → { personas: [{ key, name, email }] }   (tüm deneme kişilerini açar)
-//   { action: 'login', persona }     → { token_hash, email, name }             (istemci verifyOtp ile oturum açar)
-// Yalnızca Gidero yöneticisi ve deneme kişileri çağırabilir. Deneme kişileri yalnızca diğer deneme kişilerine
-// geçebilir; gerçek bir kullanıcının oturumu bu fonksiyonla asla üretilmez.
+//   { action: 'login', user_id } → { token_hash }   (istemci verifyOtp ile oturum açar)
+//   { action: 'reset' }          → { accounts, companies, users }
+// Yalnızca Gidero yöneticisi ve test kişileri çağırabilir; hedef kişi yalnızca test müşterilerine bağlı olmalıdır.
+// Gerçek bir kullanıcının oturumu bu fonksiyonla asla üretilmez.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import { findPersona, PERSONAS, type Persona } from '../_shared/demo/personas.ts';
+import { clients, cors, json } from '../_shared/auth/clients.ts';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, 'content-type': 'application/json' } });
+type Person = { user_id: string };
+type Account = { people: Person[] };
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json(405, { error: 'Yalnızca POST' });
-
-  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  const { data: me, error: meErr } = await db.auth.getUser(jwt);
-  if (meErr || !me?.user) return json(401, { error: 'Oturum bulunamadı. Yeniden giriş yapın.' });
-  const caller = me.user.id;
-  const [{ data: admin }, { data: demo }] = await Promise.all([
-    db.from('platform_admins').select('user_id').eq('user_id', caller).maybeSingle(),
-    db.from('demo_users').select('user_id').eq('user_id', caller).maybeSingle(),
-  ]);
-  if (!admin && !demo) return json(403, { error: 'Test modu yalnızca Gidero yöneticisine açıktır.' });
-
-  let body: { action?: string; persona?: string } = {};
+  const { admin, asCaller } = clients(req);
+  let b: { action?: string; user_id?: string } = {};
   try {
-    body = await req.json();
+    b = await req.json();
   } catch {
     return json(400, { error: 'İstek okunamadı.' });
   }
 
-  // Kişiyi açar (yoksa) ve tek kullanımlık giriş anahtarı üretir. E-posta gönderilmez.
-  async function ensure(p: Persona) {
-    const { data: row } = await db.from('demo_users').select('user_id').eq('persona', p.key).maybeSingle();
-    if (!row) {
-      await db.auth.admin.createUser({
-        email: p.email,
-        email_confirm: true,
-        password: `${crypto.randomUUID()}Aa1!`,
-        user_metadata: { full_name: p.name },
-      }); // zaten varsa hata verir; aşağıdaki bağlantı üretimi kişiyi yine bulur
-    }
-    const { data: link, error } = await db.auth.admin.generateLink({ type: 'magiclink', email: p.email });
-    if (error || !link?.user) throw new Error(error?.message ?? 'Giriş bağlantısı üretilemedi');
-    if (!row) {
-      const { error: e1 } = await db
-        .from('demo_users')
-        .upsert({ user_id: link.user.id, persona: p.key, email: p.email, full_name: p.name }, { onConflict: 'user_id' });
-      if (e1) throw new Error(e1.message);
-      await db.from('profiles').upsert({ id: link.user.id, full_name: p.name }, { onConflict: 'id' });
-    }
-    return link.properties.hashed_token;
-  }
-
   try {
-    if (body.action === 'prepare') {
-      for (const p of PERSONAS) await ensure(p);
-      return json(200, { personas: PERSONAS });
+    if (b.action === 'login') {
+      // Yetki ve hedef kontrolü veritabanında: listede olmayan kişiye geçilemez
+      const { data, error } = await asCaller.rpc('demo_people');
+      if (error) return json(403, { error: 'Test modu yalnızca Gidero yöneticisine açıktır.' });
+      const ids = new Set(((data ?? []) as Account[]).flatMap((a) => a.people.map((p) => p.user_id)));
+      if (!b.user_id || !ids.has(b.user_id)) return json(400, { error: 'Bu kişi bir test müşterisinde değil.' });
+      const { data: u, error: ue } = await admin.auth.admin.getUserById(b.user_id);
+      if (ue || !u?.user?.email) return json(400, { error: 'Kişi bulunamadı.' });
+      const { data: link, error: le } = await admin.auth.admin.generateLink({ type: 'magiclink', email: u.user.email });
+      if (le || !link) throw new Error(le?.message ?? 'Bağlantı üretilemedi');
+      return json(200, { token_hash: link.properties.hashed_token });
     }
-    if (body.action === 'login') {
-      const p = findPersona(body.persona);
-      if (!p) return json(400, { error: 'Bu deneme kişisi yok.' });
-      const token_hash = await ensure(p);
-      return json(200, { token_hash, email: p.email, name: p.name });
+
+    if (b.action === 'reset') {
+      const { data, error } = await asCaller.rpc('demo_reset');
+      if (error) return json(403, { error: error.message });
+      const r = data as { accounts: number; companies: number; user_ids: string[] };
+      let users = 0;
+      for (const id of r.user_ids ?? []) {
+        const { error: de } = await admin.auth.admin.deleteUser(id);
+        if (!de) users++;
+      }
+      return json(200, { accounts: r.accounts, companies: r.companies, users });
     }
+
     return json(400, { error: 'Bilinmeyen işlem.' });
   } catch (e) {
     console.error('demo-login', e);
-    return json(500, { error: 'Deneme kişisine geçilemedi. Biraz sonra tekrar deneyin.' });
+    return json(500, { error: 'İşlem tamamlanamadı. Biraz sonra tekrar deneyin.' });
   }
 });

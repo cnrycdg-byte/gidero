@@ -20,17 +20,27 @@ type Ctx = {
   hasRole: (role: string) => boolean;
   /** Şifre yenileme bağlantısıyla gelindi: yeni şifre istenir */
   recovery: boolean;
+  /** Davet bağlantısıyla ilk giriş */
+  invite: boolean;
   finishRecovery: () => void;
   /** Bağlantı geçersiz ya da süresi dolmuşsa giriş ekranında gösterilir */
   authNotice: string | null;
 };
 
 /** Web'de e-posta bağlantısından dönüşte adres çubuğundaki oturum bilgisini okur ve adresten siler. */
-async function consumeAuthRedirect(): Promise<{ recovery: boolean; notice: string | null }> {
+async function consumeAuthRedirect(): Promise<{ recovery: boolean; notice: string | null; invite?: boolean }> {
   if (typeof window === 'undefined' || !window.location) return { recovery: false, notice: null };
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const query = new URLSearchParams(window.location.search);
   const clean = () => window.history?.replaceState?.(null, '', window.location.pathname);
+  // Davet bağlantısı (yöneticinin WhatsApp'tan yolladığı): kişi şifresini belirler
+  const davet = query.get('davet');
+  if (davet) {
+    clean();
+    const { error } = await supabase.auth.verifyOtp({ token_hash: davet, type: 'recovery' });
+    if (error) return { recovery: false, notice: 'Davet bağlantısının süresi dolmuş ya da kullanılmış. Yöneticinizden yeni bağlantı isteyin.' };
+    return { recovery: true, notice: null, invite: true };
+  }
   const err = hash.get('error_description') || query.get('error_description');
   if (err) {
     clean();
@@ -75,12 +85,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [membershipsReady, setMembershipsReady] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(false);
+  const [invite, setInvite] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const r = await consumeAuthRedirect().catch(() => ({ recovery: false, notice: null }));
       setRecovery(r.recovery);
+      setInvite(!!(r as { invite?: boolean }).invite);
       setAuthNotice(r.notice);
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
@@ -161,10 +173,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       reloadMemberships,
       hasRole: (role) => !!active?.roles.includes(role),
       recovery,
+      invite,
       finishRecovery: () => setRecovery(false),
       authNotice,
     }),
-    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, authNotice],
+    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

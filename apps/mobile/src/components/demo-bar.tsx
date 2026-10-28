@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
 import { space } from '@/constants/theme';
-import { personaInfo, useDemo } from '@/lib/demo';
+import { useDemo } from '@/lib/demo';
 import { useSession } from '@/lib/session';
 
 /** Test modunda her ekranın altında: kim olarak görüldüğü ve kişi değiştirme */
@@ -13,12 +13,12 @@ export function DemoBar() {
   const demo = useDemo(userId);
   const insets = useSafeAreaInsets();
   if (!demo.testMode) return null;
-  const p = personaInfo(demo.persona);
+  const who = demo.me
+    ? `${demo.me.full_name}, ${demo.me.label}${demo.account ? ` (${demo.account})` : ''}`
+    : `Gidero yöneticisi (${session?.user.email ?? ''})`;
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <Text style={styles.text} numberOfLines={1}>
-        {p ? `Test modu: ${p.name}, ${p.role}` : `Test modu: Gidero yöneticisi (${session?.user.email ?? ''})`}
-      </Text>
+      <Text style={styles.text} numberOfLines={1}>{`Test modu: ${who}`}</Text>
       <Pressable onPress={() => router.push('/test')} hitSlop={8} style={styles.btn}>
         <Text style={styles.btnText}>Kişi değiştir</Text>
       </Pressable>

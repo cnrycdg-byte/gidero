@@ -32,7 +32,7 @@ const ACTION_LABEL: Record<string, string> = {
 export default function ReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColors();
-  const { userId, hasRole } = useSession();
+  const { userId, hasRole, active } = useSession();
   const queue = useQueue();
   const [report, setReport] = useState<Report | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -101,7 +101,7 @@ export default function ReportScreen() {
   function confirmSubmit() {
     if (reading.length) return setError('Fişlerin okunması bitsin, sonra gönderin.');
     if (zeroTotals > 0) return setError(`${zeroTotals} fişin tutarı yok. Fişe dokunup tutarı yazın.`);
-    const proxy = !!report && report.owner_user_id !== userId;
+    const proxy = !!report && (report.owner_user_id !== userId || !!active?.bureau_account_id);
     confirm(proxy ? 'Rapor kayda alınsın mı?' : 'Onaya gönderilsin mi?', `${expenses.length} fiş, toplam ${money(report?.total)}`, proxy ? 'Kayda al' : 'Gönder', submit, false);
   }
 
@@ -290,7 +290,7 @@ export default function ReportScreen() {
             style={{ flex: 1 }}
           />
           {expenses.length > 0 && (
-            <Button icon="send" title={isOwner ? 'Onaya gönder' : 'Kayda al'} onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
+            <Button icon="send" title={isOwner && !active?.bureau_account_id ? 'Onaya gönder' : 'Kayda al'} onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
           )}
         </SafeAreaView>
       )}
