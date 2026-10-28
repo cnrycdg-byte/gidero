@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { supabase } from './supabase';
 
@@ -59,6 +61,20 @@ export async function switchTo(persona: string) {
   const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: (data as { token_hash: string }).token_hash, type: 'magiclink' });
   if (e2) throw e2;
   changed();
+  goHome();
+}
+
+/** Kişi değişince o kişinin ana ekranı açılır (şirketi yoksa kurulum, büroysa müşteri firmalar) */
+function goHome() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.location.assign('/');
+    return;
+  }
+  try {
+    router.dismissAll();
+  } catch {
+    /* yığın zaten başta */
+  }
 }
 
 /** Yöneticinin kendi hesabına döner. Saklı oturum geçersizse çıkış yapılır. */
@@ -77,6 +93,7 @@ export async function backHome(): Promise<boolean> {
   }
   if (!ok) await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
   changed();
+  if (ok) goHome();
   return ok;
 }
 
