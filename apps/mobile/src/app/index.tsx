@@ -21,9 +21,18 @@ import { ROLE_LABEL, type Report } from '@/lib/types';
 
 type CategorySum = { name: string; total: number };
 
+const landedOnAdmin = { done: false };
+
 export default function Home() {
   const c = useColors();
   const { userId, active, hasRole, session, memberships, bureaus, platformAdmin } = useSession();
+  // Gidero yöneticisi girişte doğrudan yönetim paneline gider (oturum başına bir kez)
+  useEffect(() => {
+    if (platformAdmin && !landedOnAdmin.done) {
+      landedOnAdmin.done = true;
+      router.push('/admin');
+    }
+  }, [platformAdmin]);
   const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
