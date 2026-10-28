@@ -1,4 +1,4 @@
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { Redirect, router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -23,7 +23,14 @@ type CategorySum = { name: string; total: number };
 
 const landedOnAdmin = { done: false };
 
-export default function Home() {
+// Ana adres her oturumda vardır: şirketi olmayan kişi büro ekranına ya da kuruluma yönlendirilir
+export default function Index() {
+  const { active, bureaus } = useSession();
+  if (!active) return <Redirect href={bureaus.length ? '/clients' : '/onboarding'} />;
+  return <Home />;
+}
+
+function Home() {
   const c = useColors();
   const { userId, active, hasRole, session, memberships, bureaus, platformAdmin } = useSession();
   // Gidero yöneticisi girişte doğrudan yönetim paneline gider (oturum başına bir kez)
