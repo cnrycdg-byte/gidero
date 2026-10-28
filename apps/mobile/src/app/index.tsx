@@ -327,6 +327,9 @@ export default function Home() {
             {hasRole('admin') ? (
               <Row icon="team" title="Ekibi yönet" subtitle="Çalışan ekleyin, rollerini ve araçlarını belirleyin" onPress={() => router.push('/team')} />
             ) : null}
+            {hasRole('admin') ? (
+              <Row icon="checkCircle" title="Onay şeması" subtitle="Raporu sırayla kimler onaylayacak, hangi tutarda" onPress={() => router.push('/approval-flow')} />
+            ) : null}
           </Group>
         )}
       </ScrollView>

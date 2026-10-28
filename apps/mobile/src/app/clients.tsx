@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
@@ -9,6 +9,8 @@ import { radius, space, type, useColors } from '@/constants/theme';
 import { accountStatus, type AccountStatus } from '@/lib/billing';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
+
+type Staff = { user_id: string; role: 'owner' | 'accountant'; email: string; full_name: string; companies: string[] };
 
 // Muhasebe bürosu: müşteri firmalar (paket hakkı kadar firma eklenir)
 export default function Clients() {
@@ -22,11 +24,37 @@ export default function Clients() {
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [team, setTeam] = useState<Staff[]>([]);
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffBusy, setStaffBusy] = useState(false);
+  const [staffError, setStaffError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!bureau) return;
     setStatus(await accountStatus(bureau.account_id).catch(() => null));
+    const { data } = await supabase.rpc('bureau_team', { p_account: bureau.account_id });
+    setTeam((data ?? []) as Staff[]);
   }, [bureau]);
+
+  async function addStaff() {
+    if (!bureau) return;
+    setStaffError(null);
+    if (!staffEmail.includes('@')) return setStaffError('Muhasebecinin e-postasını yazın.');
+    setStaffBusy(true);
+    const { error: e } = await supabase.rpc('bureau_add_staff', { p_account: bureau.account_id, p_email: staffEmail.trim() });
+    setStaffBusy(false);
+    if (e) return setStaffError(errorText(e));
+    setStaffEmail('');
+    load();
+  }
+
+  async function toggleAssign(user: string, company: string, on: boolean) {
+    if (!bureau) return;
+    setStaffError(null);
+    const { error: e } = await supabase.rpc('bureau_assign', { p_account: bureau.account_id, p_user: user, p_company: company, p_assigned: on });
+    if (e) return setStaffError(errorText(e));
+    load();
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -123,6 +151,41 @@ export default function Clients() {
             />
           ))}
         </Group>
+      )}
+
+      <SectionTitle title="Büro ekibi" />
+      <Text style={[type.small, { color: c.muted }]}>
+        Muhasebecinizi ekleyin ve baktığı firmaları seçin. Muhasebeci yalnızca atandığı firmaları görür; siz hepsini görürsünüz.
+      </Text>
+      {team.map((m) => (
+        <View key={m.user_id} style={{ backgroundColor: c.paper, borderRadius: radius.lg, padding: space.lg, gap: space.sm }}>
+          <Text style={[type.bodyStrong, { color: c.ink }]}>{m.full_name}</Text>
+          <Text style={[type.small, { color: c.muted }]}>{`${m.role === 'owner' ? 'Büro sahibi, tüm firmalar' : 'Muhasebeci'} · ${m.email}`}</Text>
+          {m.role !== 'owner' && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+              {firms.map((f) => {
+                const on = m.companies.includes(f.company_id);
+                return (
+                  <Pressable
+                    key={f.company_id}
+                    disabled={!isOwner}
+                    onPress={() => toggleAssign(m.user_id, f.company_id, !on)}
+                    style={{ borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: on ? c.pen : c.canvas }}>
+                    <Text style={{ color: on ? c.onPen : c.ink }}>{f.companies.legal_name}</Text>
+                  </Pressable>
+                );
+              })}
+              {firms.length === 0 && <Text style={[type.small, { color: c.muted }]}>Önce müşteri firma ekleyin.</Text>}
+            </View>
+          )}
+        </View>
+      ))}
+      {isOwner && (
+        <View style={{ backgroundColor: c.paper, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
+          <Field label="Muhasebecinin e-postası" value={staffEmail} onChangeText={setStaffEmail} autoCapitalize="none" keyboardType="email-address" hint="Kişi Gidero'ya kayıtlı olmalı." />
+          {staffError && <Notice tone="bad" text={staffError} />}
+          <Button variant="secondary" icon="personAdd" title="Büroya muhasebeci ekle" onPress={addStaff} loading={staffBusy} />
+        </View>
       )}
     </ScrollView>
   );
