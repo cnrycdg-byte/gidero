@@ -13,12 +13,16 @@ jobs:
       REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       APP_URL: https://gidero.expo.app
     steps:
-      - name: Mevcut ayarlar
+      - name: Ayarları uygula ve doğrula
         run: |
-          curl -sS -f -H "Authorization: Bearer $TOKEN" "https://api.supabase.com/v1/projects/$REF/config/auth" \
-            | jq '{site_url, uri_allow_list, mailer_autoconfirm, smtp_host: (.smtp_host != null and .smtp_host != ""), rate_limit_email_sent}'
-      - name: Uygulama adresini ayarla
-        run: |
+          set -u
+          [ -n "$TOKEN" ] || { echo "::error::SUPABASE_ACCESS_TOKEN tanımlı değil"; exit 1; }
+          [ -n "$REF" ] || { echo "::error::SUPABASE_PROJECT_REF tanımlı değil"; exit 1; }
+          api="https://api.supabase.com/v1/projects/$REF/config/auth"
+          before=$(curl -sS -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" "$api")
+          echo "::notice title=Önce::HTTP $(echo "$before" | tail -1) $(echo "$before" | head -n -1 | jq -c '{site_url, uri_allow_list, smtp: ((.smtp_host // "") != ""), rate_limit_email_sent}' 2>/dev/null || echo "$before" | head -c 300)"
           body=$(jq -n --arg u "$APP_URL" '{site_url: $u, uri_allow_list: ($u + "/**")}')
-          curl -sS -f -X PATCH -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" \
-            "https://api.supabase.com/v1/projects/$REF/config/auth" -d "$body" | jq '{site_url, uri_allow_list}'
+          after=$(curl -sS -w '\n%{http_code}' -X PATCH -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" "$api" -d "$body")
+          code=$(echo "$after" | tail -1)
+          echo "::notice title=Sonra::HTTP $code $(echo "$after" | head -n -1 | jq -c '{site_url, uri_allow_list}' 2>/dev/null || echo "$after" | head -c 300)"
+          [ "$code" = "200" ] || exit 1
