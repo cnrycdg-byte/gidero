@@ -109,6 +109,7 @@ export default function AdminHome() {
         <Row icon="receipt" title="Paketler ve fiyatlar" subtitle="Şirket ve büro paketleri, limitler" onPress={() => router.push('/admin/plans')} />
         <Row icon="plus" title="Kampanyalar" subtitle="İndirim kodları, hediye süre" onPress={() => router.push('/admin/campaigns')} />
         <Row icon="send" title="Site sohbetleri" subtitle="Ziyaretçiler ne sordu, ne yanıt verildi" onPress={() => router.push('/admin/chats')} />
+        <Row icon="team" title="Test sürüşü" subtitle="Şifresiz kişi değiştirerek her rolü deneyin" onPress={() => router.push('/test')} />
       </Group>
 
       {ending.length > 0 && (

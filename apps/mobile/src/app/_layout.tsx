@@ -9,8 +9,9 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 
+import { DemoBar } from '@/components/demo-bar';
 import { Loading } from '@/components/ui';
 import { fonts, useColors } from '@/constants/theme';
 import { QueueProvider } from '@/lib/queue';
@@ -61,6 +62,7 @@ function RootStack() {
   const hasBureau = bureaus.length > 0;
 
   return (
+    <View style={{ flex: 1 }}>
     <Stack
       screenOptions={{
         headerBackButtonDisplayMode: 'minimal',
@@ -90,6 +92,7 @@ function RootStack() {
         <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
         <Stack.Screen name="export" options={{ title: 'Muhasebe aktarımı' }} />
         <Stack.Screen name="bulk" options={{ title: 'Toplu yükleme' }} />
+        <Stack.Screen name="approval-flow" options={{ title: 'Onay şeması' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />
@@ -107,6 +110,11 @@ function RootStack() {
         <Stack.Screen name="admin/new-customer" options={{ title: 'Yeni müşteri' }} />
         <Stack.Screen name="admin/finance" options={{ title: 'Gelir ve gider' }} />
       </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
+      </Stack.Protected>
     </Stack>
+    {signedIn && <DemoBar />}
+    </View>
   );
 }

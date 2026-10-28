@@ -61,6 +61,9 @@ export default function Onboarding() {
       {platformAdmin && (
         <Button title="Gidero Yönetim Paneline git" onPress={() => router.push('/admin')} />
       )}
+      {platformAdmin && (
+        <Button variant="secondary" title="Test sürüşü" onPress={() => router.push('/test')} />
+      )}
       <Text style={[type.body, { color: c.muted }]}>Gidero'yu nasıl kullanacaksınız? 14 gün ücretsiz deneyin, kart bilgisi gerekmez.</Text>
 
       <View style={{ gap: space.sm }}>
