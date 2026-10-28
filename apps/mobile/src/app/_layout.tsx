@@ -79,11 +79,13 @@ function RootStack() {
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="index" options={{ title: '' }} />
+      </Stack.Protected>
       <Stack.Protected guard={signedIn && !hasCompany && !hasBureau}>
         <Stack.Screen name="onboarding" options={{ title: 'Hoş geldiniz', headerLargeTitle: true }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>
-        <Stack.Screen name="index" options={{ title: '' }} />
         <Stack.Screen name="camera" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="new-report" options={{ title: 'Yeni rapor', presentation: 'modal' }} />
         <Stack.Screen name="report/[id]" options={{ title: '' }} />
