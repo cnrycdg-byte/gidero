@@ -1,0 +1,24 @@
+name: Giriş ayarlarını uygula
+
+# Supabase Auth: e-posta bağlantılarının (doğrulama, şifre yenileme) uygulamaya dönmesi için adres ayarları.
+# Elle çalıştırılır. Gerekli gizli ayarlar: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF
+on:
+  workflow_dispatch:
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    env:
+      TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      APP_URL: https://gidero.expo.app
+    steps:
+      - name: Mevcut ayarlar
+        run: |
+          curl -sS -f -H "Authorization: Bearer $TOKEN" "https://api.supabase.com/v1/projects/$REF/config/auth" \
+            | jq '{site_url, uri_allow_list, mailer_autoconfirm, smtp_host: (.smtp_host != null and .smtp_host != ""), rate_limit_email_sent}'
+      - name: Uygulama adresini ayarla
+        run: |
+          body=$(jq -n --arg u "$APP_URL" '{site_url: $u, uri_allow_list: ($u + "/**")}')
+          curl -sS -f -X PATCH -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" \
+            "https://api.supabase.com/v1/projects/$REF/config/auth" -d "$body" | jq '{site_url, uri_allow_list}'
