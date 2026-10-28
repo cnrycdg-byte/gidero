@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { useColorScheme, View } from 'react-native';
 
 import { DemoBar } from '@/components/demo-bar';
+import { NewPassword } from '@/components/new-password';
 import { Loading } from '@/components/ui';
 import { fonts, useColors } from '@/constants/theme';
 import { QueueProvider } from '@/lib/queue';
@@ -49,13 +50,14 @@ export default function RootLayout() {
 }
 
 function RootStack() {
-  const { ready, session, active, bureaus, platformAdmin, userId } = useSession();
+  const { ready, session, active, bureaus, platformAdmin, userId, recovery } = useSession();
   const c = useColors();
   useEffect(() => {
     if (userId) registerPush(userId);
   }, [userId]);
   useEffect(() => listenForTaps(), []);
   if (!ready) return <Loading />;
+  if (recovery && session) return <NewPassword />;
 
   const signedIn = !!session;
   const hasCompany = !!active;

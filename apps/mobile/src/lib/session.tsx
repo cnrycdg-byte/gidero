@@ -18,7 +18,40 @@ type Ctx = {
   setActiveCompany: (id: string) => void;
   reloadMemberships: () => Promise<void>;
   hasRole: (role: string) => boolean;
+  /** Şifre yenileme bağlantısıyla gelindi: yeni şifre istenir */
+  recovery: boolean;
+  finishRecovery: () => void;
+  /** Bağlantı geçersiz ya da süresi dolmuşsa giriş ekranında gösterilir */
+  authNotice: string | null;
 };
+
+/** Web'de e-posta bağlantısından dönüşte adres çubuğundaki oturum bilgisini okur ve adresten siler. */
+async function consumeAuthRedirect(): Promise<{ recovery: boolean; notice: string | null }> {
+  if (typeof window === 'undefined' || !window.location) return { recovery: false, notice: null };
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const query = new URLSearchParams(window.location.search);
+  const clean = () => window.history?.replaceState?.(null, '', window.location.pathname);
+  const err = hash.get('error_description') || query.get('error_description');
+  if (err) {
+    clean();
+    return { recovery: false, notice: 'Bağlantının süresi dolmuş ya da daha önce kullanılmış. "Şifremi unuttum" ile yeni bağlantı isteyin.' };
+  }
+  const access = hash.get('access_token');
+  const refresh = hash.get('refresh_token');
+  if (access && refresh) {
+    clean();
+    const { error } = await supabase.auth.setSession({ access_token: access, refresh_token: refresh });
+    if (error) return { recovery: false, notice: 'Bağlantı geçersiz. "Şifremi unuttum" ile yeni bağlantı isteyin.' };
+    return { recovery: hash.get('type') === 'recovery', notice: null };
+  }
+  const code = query.get('code');
+  if (code) {
+    clean();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) return { recovery: false, notice: 'Bağlantı geçersiz. "Şifremi unuttum" ile yeni bağlantı isteyin.' };
+  }
+  return { recovery: false, notice: null };
+}
 
 const SessionContext = createContext<Ctx | null>(null);
 
@@ -41,13 +74,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [platformAdmin, setPlatformAdmin] = useState(false);
   const [membershipsReady, setMembershipsReady] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [recovery, setRecovery] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      const r = await consumeAuthRedirect().catch(() => ({ recovery: false, notice: null }));
+      setRecovery(r.recovery);
+      setAuthNotice(r.notice);
+      const { data } = await supabase.auth.getSession();
       setSession(data.session);
       setAuthReady(true);
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      setSession(s);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -118,8 +160,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setActiveCompany: setActiveId,
       reloadMemberships,
       hasRole: (role) => !!active?.roles.includes(role),
+      recovery,
+      finishRecovery: () => setRecovery(false),
+      authNotice,
     }),
-    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships],
+    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, authNotice],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

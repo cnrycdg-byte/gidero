@@ -32,6 +32,8 @@ export function errorText(e: unknown): string {
   if (/Email not confirmed/i.test(msg)) return 'E-postanızı doğrulayın: gelen kutunuzdaki bağlantıya dokunun.';
   if (/User already registered/i.test(msg)) return 'Bu e-postayla zaten hesap var. Giriş yapın.';
   if (/Password should be at least/i.test(msg)) return 'Şifre en az 6 karakter olmalı.';
+  if (/only request this after|For security purposes/i.test(msg)) return 'Az önce bağlantı gönderildi. Bir dakika bekleyip tekrar deneyin.';
+  if (/should be different from the old/i.test(msg)) return 'Yeni şifre eskisinden farklı olmalı.';
   if (/rate limit/i.test(msg)) return 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar deneyin.';
   if (/Network request failed|Failed to fetch/i.test(msg)) return 'İnternet bağlantısı yok. Bağlantınızı kontrol edip tekrar deneyin.';
   if (/row-level security|permission denied/i.test(msg)) return 'Bu işlem için yetkiniz yok.';
