@@ -39,7 +39,7 @@ const SCENARIO_SIRKET: Step[] = [
 // Test sürüşü: deneme kişileri arasında şifresiz geçiş ve adım adım senaryolar
 export default function TestDrive() {
   const c = useColors();
-  const { userId, platformAdmin, session } = useSession();
+  const { userId, platformAdmin, session, memberships, bureaus } = useSession();
   const demo = useDemo(userId);
   const [rows, setRows] = useState<{ persona: string; email: string }[]>([]);
   const [home, setHome] = useState<string | null>(null);
@@ -111,6 +111,12 @@ export default function TestDrive() {
         )}
       </View>
 
+      {demo.persona && memberships.length === 0 && bureaus.length === 0 && (
+        <Notice
+          tone="warn"
+          text={`${me?.name ?? 'Bu kişi'} henüz hiçbir şirkete ya da büroya bağlı değil, bu yüzden ekranında yalnızca "Hoş geldiniz" kurulumu var. Önce kendi hesabınıza dönüp senaryonun 1. adımını yapın (müşteriyi açarken bu kişinin e-postasını yazın), sonra bu kişiye geçin.`}
+        />
+      )}
       {error && <Notice tone="bad" text={error} />}
       {info && <Notice tone="ok" text={info} />}
 
