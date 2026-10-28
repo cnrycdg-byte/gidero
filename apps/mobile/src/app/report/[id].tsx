@@ -1,6 +1,6 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
 import { useQueue } from '@/lib/queue';
 import { pickFromLibrary } from '@/lib/receipts';
+import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { PAYMENT_LABEL, paymentSummary } from '@/lib/payment';
@@ -39,6 +40,7 @@ export default function ReportScreen() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<null | 'submit' | 'approve' | 'return'>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
   const load = useCallback(async () => {
@@ -99,10 +101,8 @@ export default function ReportScreen() {
   function confirmSubmit() {
     if (reading.length) return setError('Fişlerin okunması bitsin, sonra gönderin.');
     if (zeroTotals > 0) return setError(`${zeroTotals} fişin tutarı yok. Fişe dokunup tutarı yazın.`);
-    Alert.alert('Onaya gönderilsin mi?', `${expenses.length} fiş, toplam ${money(report?.total)}`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Gönder', onPress: submit },
-    ]);
+    const proxy = !!report && report.owner_user_id !== userId;
+    confirm(proxy ? 'Rapor kayda alınsın mı?' : 'Onaya gönderilsin mi?', `${expenses.length} fiş, toplam ${money(report?.total)}`, proxy ? 'Kayda al' : 'Gönder', submit, false);
   }
 
   async function submit() {
@@ -112,7 +112,7 @@ export default function ReportScreen() {
     setBusy(null);
     if (e) return setError(errorText(e));
     sendPending();
-    Alert.alert(data === 'approved' ? 'Rapor onaylandı' : 'Rapor onaya gönderildi');
+    setNotice(data === 'approved' ? 'Rapor onaylandı ve muhasebeye düştü.' : 'Rapor onaya gönderildi.');
     load();
   }
 
@@ -140,20 +140,13 @@ export default function ReportScreen() {
   }
 
   function remove() {
-    Alert.alert('Rapor silinsin mi?', 'Taslak rapor ve içindeki fişler silinir.', [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          const paths = expenses.map((e) => e.image_path).filter((p): p is string => !!p);
-          if (paths.length) await supabase.storage.from('receipts').remove(paths);
-          const { error: e } = await supabase.from('reports').delete().eq('id', id);
-          if (e) return setError(errorText(e));
-          router.back();
-        },
-      },
-    ]);
+    confirm('Rapor silinsin mi?', 'Taslak rapor ve içindeki fişler silinir.', 'Sil', async () => {
+      const paths = expenses.map((e) => e.image_path).filter((p): p is string => !!p);
+      if (paths.length) await supabase.storage.from('receipts').remove(paths);
+      const { error: e } = await supabase.from('reports').delete().eq('id', id);
+      if (e) return setError(errorText(e));
+      router.back();
+    });
   }
 
   return (
@@ -199,6 +192,7 @@ export default function ReportScreen() {
 
         {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />}
         {error && <Notice tone="bad" text={error} />}
+        {notice && <Notice tone="ok" text={notice} />}
 
         <SectionTitle
           title="Fişler"
@@ -296,7 +290,7 @@ export default function ReportScreen() {
             style={{ flex: 1 }}
           />
           {expenses.length > 0 && (
-            <Button icon="send" title="Onaya gönder" onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
+            <Button icon="send" title={isOwner ? 'Onaya gönder' : 'Kayda al'} onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
           )}
         </SafeAreaView>
       )}

@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { rememberContacts } from '@/lib/contacts';
 import { PERIOD_LABEL, fetchUsage, rangeText, usageState, type Usage } from '@/lib/limits';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { receiptUrl, recheckExpense } from '@/lib/receipts';
+import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { PAYMENT_OPTIONS, type PaymentMethod } from '@/lib/payment';
@@ -205,19 +206,12 @@ export default function ExpenseScreen() {
 
   function remove() {
     if (!exp) return;
-    Alert.alert('Fiş silinsin mi?', 'Bu fiş rapordan çıkarılır.', [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          if (exp.image_path) await supabase.storage.from('receipts').remove([exp.image_path]);
-          const { error: e } = await supabase.from('expenses').delete().eq('id', exp.id);
-          if (e) return setError(errorText(e));
-          router.back();
-        },
-      },
-    ]);
+    confirm('Fiş silinsin mi?', 'Bu fiş rapordan çıkarılır.', 'Sil', async () => {
+      if (exp.image_path) await supabase.storage.from('receipts').remove([exp.image_path]);
+      const { error: e } = await supabase.from('expenses').delete().eq('id', exp.id);
+      if (e) return setError(errorText(e));
+      router.back();
+    });
   }
 
   const readDiffers =

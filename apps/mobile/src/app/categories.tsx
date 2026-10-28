@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
@@ -8,6 +8,7 @@ import { Button, Field, Group, Notice, Row, SectionTitle } from '@/components/ui
 import { radius, space, type, useColors } from '@/constants/theme';
 import { amountInput, money, parseAmount } from '@/lib/format';
 import { PERIOD_LABEL, type LimitPeriod } from '@/lib/limits';
+import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 
@@ -150,13 +151,11 @@ export default function Categories() {
       load();
     };
     if (!k.active) return go();
-    Alert.alert(
+    confirm(
       `${k.name} kullanımdan kaldırılsın mı?`,
       'Yeni fişlerde seçilemez. Eski fişler ve raporlar etkilenmez; istediğinizde geri açabilirsiniz.',
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Kaldır', style: 'destructive', onPress: go },
-      ],
+      'Kaldır',
+      go,
     );
   }
 

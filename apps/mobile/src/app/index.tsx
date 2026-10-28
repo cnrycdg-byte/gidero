@@ -120,6 +120,11 @@ function Home() {
       setError('Aboneliğin süresi doldu; yeni fiş girilemiyor. Ayarlar > Abonelik ve ödeme bölümünden paketi yenileyin.');
       return;
     }
+    if (!active.roles.includes('employee') && active.roles.includes('accountant')) {
+      // Büro muhasebecisi firmanın çalışanı değildir: önce kimin adına gireceğini seçer
+      router.push('/new-report');
+      return;
+    }
     setOpening(source);
     try {
       const reportId = await ensureMonthReport(active.company_id, userId);
