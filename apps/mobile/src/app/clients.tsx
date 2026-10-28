@@ -133,7 +133,7 @@ export default function Clients() {
         <Empty
           icon="doc"
           title="Henüz müşteri firma yok"
-          text="Firma ekleyin; sonra firmanın fişlerini siz girebilir ya da firmadaki bir kişiyi Ekip ekranından ekleyip fişleri ona girdirebilirsiniz."
+          text="Firma ekleyin, sonra firmaya dokunun: WhatsApp'tan gelen fişleri o firmaya yükler, kayda alır ve dökümünü alırsınız. Firmalara giriş açılmaz; girişleri büro yapar."
         />
       ) : (
         <Group>

@@ -33,7 +33,7 @@ jobs:
           deno-version: v2.x
       - name: Tip kontrolü
         working-directory: supabase/functions
-        run: deno check read-receipt/index.ts payments/index.ts site-chat/index.ts notify/index.ts demo-login/index.ts
+        run: deno check read-receipt/index.ts payments/index.ts site-chat/index.ts notify/index.ts demo-login/index.ts people/index.ts
 
   deploy:
     needs: test
@@ -57,11 +57,11 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         with:
           version: 2.122.0
-      - name: Fonksiyonları kur (read-receipt, payments, site-chat, notify, demo-login)
+      - name: Fonksiyonları kur (read-receipt, payments, site-chat, notify, demo-login, people)
         if: steps.check.outputs.ready == 'true'
         run: |
           set +e
-          for fn in read-receipt payments site-chat notify demo-login; do
+          for fn in read-receipt payments site-chat notify demo-login people; do
             out=$(supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --use-api 2>&1); code=$?
             echo "$out"
             if [ $code -ne 0 ]; then

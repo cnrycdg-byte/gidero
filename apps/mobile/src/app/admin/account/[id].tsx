@@ -2,6 +2,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { InviteLink } from '@/components/invite-link';
 import { Page } from '@/components/page';
 import { Text } from '@/components/text';
 import { Button, Field, Group, Notice, Row, SectionTitle, Slip } from '@/components/ui';
@@ -10,6 +11,7 @@ import { adminAccounts, adminPeople, ROLE_TEXT, type AdminAccount, type Person }
 import { daysLeft, fetchPlans, ORDER_STATUS, STATUS_TEXT, type Order, type Plan } from '@/lib/billing';
 import { dateInput, dateText, money, parseDate } from '@/lib/format';
 import { confirm } from '@/lib/confirm';
+import { ownerLink } from '@/lib/people';
 import { errorText, supabase } from '@/lib/supabase';
 
 type Status = 'trial' | 'active' | 'canceled' | 'expired';
@@ -22,6 +24,8 @@ const addDays = (n: number) => {
 // Müşteri detayı: abonelik (elle paket verme, deneme uzatma), firmalar ve kişiler, siparişler
 export default function AdminAccountScreen() {
   const { id, created } = useLocalSearchParams<{ id: string; created?: string }>();
+  const [link, setLink] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
   const c = useColors();
   const [acc, setAcc] = useState<AdminAccount | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
@@ -121,10 +125,29 @@ export default function AdminAccountScreen() {
 
   return (
     <Page wide>
-      {created === 'invited' && (
-        <Notice tone="info" text="Müşteri açıldı. Hesap sahibi bu e-postayla Gidero'ya kaydolduğunda hesap kendiliğinden ona bağlanacak." />
+      {created && <Notice tone="ok" text="Müşteri açıldı. Aşağıdan hesap sahibine giriş bağlantısı oluşturup WhatsApp'tan gönderin." />}
+      {link ? (
+        <InviteLink link={link} name={acc.owner_email ?? 'Hesap sahibi'} onClose={() => setLink(null)} />
+      ) : (
+        <Button
+          variant="secondary"
+          title="Hesap sahibine giriş bağlantısı oluştur"
+          loading={linkBusy}
+          onPress={async () => {
+            setLinkBusy(true);
+            setError(null);
+            try {
+              const r = await ownerLink(String(id));
+              if (r.link) setLink(r.link);
+              else setInfo(r.note ?? 'Hesap sahibi kendi şifresiyle girer.');
+            } catch (e) {
+              setError(errorText(e));
+            } finally {
+              setLinkBusy(false);
+            }
+          }}
+        />
       )}
-      {created === 'linked' && <Notice tone="ok" text="Müşteri açıldı ve hesap sahibine bağlandı." />}
       <Stack.Screen options={{ title: acc.name }} />
       <Slip tone="deep">
         <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>

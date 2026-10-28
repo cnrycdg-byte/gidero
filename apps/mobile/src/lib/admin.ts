@@ -134,7 +134,8 @@ export async function createCustomer(p: {
   end: string; // YYYY-MM-DD
   note: string;
   paidNet: number | null;
-}): Promise<{ account_id: string; company_id: string | null; invited: boolean }> {
+  demo?: boolean;
+}): Promise<{ account_id: string; company_id: string | null; invited: boolean; owner_email: string }> {
   const { data, error } = await supabase.rpc('admin_create_customer', {
     p_kind: p.kind,
     p_name: p.name,
@@ -147,6 +148,7 @@ export async function createCustomer(p: {
     p_end: p.end,
     p_note: p.note || null,
     p_paid_net: p.paidNet,
+    p_demo: !!p.demo,
   });
   if (error) throw error;
   return data;

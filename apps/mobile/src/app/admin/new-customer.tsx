@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { Text } from '@/components/text';
 import { Button, Field, Notice } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { createCustomer } from '@/lib/admin';
+import { ownerLink } from '@/lib/people';
 import { fetchPlans, type Plan } from '@/lib/billing';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
 import { errorText } from '@/lib/supabase';
@@ -16,6 +17,9 @@ const addDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString
 // Gidero yöneticisi: telefonla ya da yüz yüze satılan müşteriyi panelden açar
 export default function NewCustomer() {
   const c = useColors();
+  const params = useLocalSearchParams<{ test?: string }>();
+  const [demo, setDemo] = useState(params.test === '1');
+  const [ownerName, setOwnerName] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [kind, setKind] = useState<'company' | 'bureau'>('bureau');
   const [name, setName] = useState('');
@@ -55,7 +59,8 @@ export default function NewCustomer() {
     setError(null);
     const e = parseDate(end);
     if (!e) return setError('Bitiş tarihini GG.AA.YYYY biçiminde yazın.');
-    if (status === 'active' && !planId) return setError('Ücretli müşteri için paket seçin.');
+    if (status === 'active' && !planId && !demo) return setError('Ücretli müşteri için paket seçin.');
+    if (demo && ownerName.trim().length < 2) return setError('Test kişisinin adını soyadını yazın.');
     setBusy(true);
     try {
       const r = await createCustomer({
@@ -64,13 +69,21 @@ export default function NewCustomer() {
         taxNumber: vkn,
         ownerEmail: email.trim(),
         planId,
-        status,
-        period: status === 'active' ? period : null,
+        status: demo ? 'trial' : status,
+        demo,
+        period: status === 'active' && !demo ? period : null,
         seats: kind === 'company' && planId ? Number(seats) || null : null,
         end: e,
         note: note.trim(),
-        paidNet: status === 'active' && paid.trim() ? parseAmount(paid) : null,
+        paidNet: status === 'active' && paid.trim() && !demo ? parseAmount(paid) : null,
       });
+      if (demo) {
+        // Test müşterisinin sahibi hemen açılır; test ekranından ona geçilir
+        await ownerLink(r.account_id, ownerName.trim());
+        router.replace('/test');
+        return;
+      }
+      if (ownerName.trim()) await ownerLink(r.account_id, ownerName.trim()).catch(() => null);
       router.replace({ pathname: '/admin/account/[id]', params: { id: r.account_id, created: r.invited ? 'invited' : 'linked' } });
     } catch (err) {
       setError(errorText(err));
@@ -88,6 +101,21 @@ export default function NewCustomer() {
         Satışı siz yaptıysanız müşteriyi buradan açın. Hesap sahibi Gidero'ya kayıtlıysa hesap hemen bağlanır; değilse o e-postayla kaydolduğunda kendiliğinden bağlanır.
       </Text>
 
+      <View style={styles.chips}>
+        <Pressable onPress={() => setDemo(false)} style={chip(!demo)}>
+          <Text style={chipText(!demo)}>Gerçek müşteri</Text>
+        </Pressable>
+        <Pressable onPress={() => setDemo(true)} style={chip(demo)}>
+          <Text style={chipText(demo)}>Test müşterisi</Text>
+        </Pressable>
+      </View>
+      {demo && (
+        <Notice
+          tone="warn"
+          text="Test müşterisi gelir-gidere işlenmez. İçindeki herkese Test sürüşü ekranından şifresiz geçebilirsiniz; işiniz bitince oradan tek tuşla silersiniz."
+        />
+      )}
+
       <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Müşteri türü</Text>
       <View style={styles.chips}>
         <Pressable onPress={() => { setKind('bureau'); setPlanId(null); }} style={chip(kind === 'bureau')}>
@@ -100,10 +128,24 @@ export default function NewCustomer() {
 
       <Field label={kind === 'bureau' ? 'Büronun unvanı' : 'Şirketin unvanı'} value={name} onChangeText={setName} />
       <Field label="Vergi numarası ya da TC kimlik no" value={vkn} onChangeText={(v) => setVkn(v.replace(/\D/g, '').slice(0, 11))} keyboardType="number-pad" />
-      <Field label="Hesap sahibinin e-postası" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" hint={kind === 'bureau' ? 'Büro sahibi olur.' : 'Şirketin yöneticisi ve muhasebecisi olur; ekibini kendisi ekler.'} />
+      <Field label="Hesap sahibinin adı soyadı" value={ownerName} onChangeText={setOwnerName} placeholder={kind === 'bureau' ? 'Örnek: Ayşe Demir' : 'Örnek: Mehmet Kaya'} />
+      <Field
+        label="Hesap sahibinin e-postası"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        hint={
+          demo
+            ? 'Uydurma bir e-posta yazın (ör. ayse@test.gidero.app); kimseye e-posta gitmez.'
+            : kind === 'bureau'
+              ? 'Büro sahibi olur. Açtıktan sonra müşteri sayfasından giriş bağlantısı oluşturup WhatsApp\'tan gönderebilirsiniz.'
+              : 'Şirketin yöneticisi ve muhasebecisi olur; ekibini kendisi ekler.'
+        }
+      />
 
-      <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Durum</Text>
-      <View style={styles.chips}>
+      {!demo && <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Durum</Text>}
+      <View style={[styles.chips, demo && { display: 'none' }]}>
         <Pressable onPress={() => pickStatus('trial')} style={chip(status === 'trial')}>
           <Text style={chipText(status === 'trial')}>Ücretsiz deneme</Text>
         </Pressable>
@@ -121,7 +163,7 @@ export default function NewCustomer() {
         ))}
       </View>
 
-      {status === 'active' && (
+      {status === 'active' && !demo && (
         <>
           <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Ödeme dönemi</Text>
           <View style={styles.chips}>
@@ -139,7 +181,7 @@ export default function NewCustomer() {
       <Field label="Üyelik bitiş tarihi" value={end} onChangeText={setEnd} placeholder="GG.AA.YYYY" />
       <Field label="Not (isteğe bağlı)" value={note} onChangeText={setNote} placeholder="Örnek: Havale ile ödedi, fatura kesildi" />
 
-      {price != null && (
+      {price != null && !demo && (
         <View style={[styles.sum, { backgroundColor: c.paper }]}>
           <Text style={[type.small, { color: c.muted }]}>Liste fiyatıyla dönem tutarı (KDV hariç)</Text>
           <Text style={[type.title, { color: c.ink }]}>{money(price)}</Text>
@@ -148,7 +190,7 @@ export default function NewCustomer() {
           </Pressable>
         </View>
       )}
-      {status === 'active' && (
+      {status === 'active' && !demo && (
         <Field
           label="Tahsil edilen tutar (KDV hariç)"
           value={paid}
@@ -160,7 +202,7 @@ export default function NewCustomer() {
       )}
 
       {error && <Notice tone="bad" text={error} />}
-      <Button title="Müşteriyi aç" onPress={save} loading={busy} disabled={!name.trim() || vkn.length < 10 || !email.includes('@')} />
+      <Button title={demo ? 'Test müşterisini aç' : 'Müşteriyi aç'} onPress={save} loading={busy} disabled={!name.trim() || vkn.length < 10 || !email.includes('@')} />
     </Page>
   );
 }

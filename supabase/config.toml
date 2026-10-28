@@ -435,3 +435,7 @@ verify_jwt = true
 [functions.demo-login]
 enabled = true
 verify_jwt = true
+
+[functions.people]
+enabled = true
+verify_jwt = true

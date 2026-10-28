@@ -12,7 +12,7 @@ import { errorText, supabase } from '@/lib/supabase';
 /** Şifre yenileme bağlantısından gelen kişi yeni şifresini yazar; sonra uygulamaya girer. */
 export function NewPassword() {
   const c = useColors();
-  const { session, finishRecovery } = useSession();
+  const { session, finishRecovery, invite } = useSession();
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,13 +36,14 @@ export function NewPassword() {
           <Slip tone="deep">
             <Logo size={40} color="#FFFFFF" />
           </Slip>
-          <Text style={[type.title, { color: c.ink }]}>Yeni şifrenizi belirleyin</Text>
+          <Text style={[type.title, { color: c.ink }]}>{invite ? "Gidero'ya hoş geldiniz" : 'Yeni şifrenizi belirleyin'}</Text>
+          {invite && <Text style={[type.body, { color: c.muted }]}>Bundan sonra bu e-posta ve belirleyeceğiniz şifreyle girersiniz.</Text>}
           <Text style={[type.body, { color: c.muted }]}>{session?.user.email ?? ''}</Text>
           <View style={{ gap: space.lg }}>
             <Field label="Yeni şifre" value={p1} onChangeText={setP1} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint="En az 6 karakter." autoFocus />
             <Field label="Yeni şifre (tekrar)" value={p2} onChangeText={setP2} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
             {error && <Notice tone="bad" text={error} />}
-            <Button size="large" title="Şifreyi kaydet ve gir" onPress={save} loading={busy} />
+            <Button size="large" title={invite ? 'Şifremi belirle ve gir' : 'Şifreyi kaydet ve gir'} onPress={save} loading={busy} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
