@@ -1,0 +1,132 @@
+<div class="gains" data-tabs>
+  <div class="gtabs" role="tablist" aria-label="Gidero'nun faydaları">
+    <button role="tab" id="g-t-vergi" aria-controls="g-p-vergi" aria-selected="true"><b>Vergi</b><span>Sorun, fiş daha çalışanın elindeyken görünür</span></button>
+    <button role="tab" id="g-t-kacak" aria-controls="g-p-kacak" aria-selected="false" tabindex="-1"><b>Kaçak</b><span>Aynı fiş iki kez, başka aracın yakıtı giremez</span></button>
+    <button role="tab" id="g-t-zaman" aria-controls="g-p-zaman" aria-selected="false" tabindex="-1"><b>Zaman</b><span>Ay sonunda Excel doldurmak yok</span></button>
+    <button role="tab" id="g-t-sinir" aria-controls="g-p-sinir" aria-selected="false" tabindex="-1"><b>Harcama sınırları</b><span>Kim, hangi grupta, ne kadar harcadı</span></button>
+    <button role="tab" id="g-t-muh" aria-controls="g-p-muh" aria-selected="false" tabindex="-1"><b>Muhasebe</b><span>Her fiş hesap koduyla, yevmiyesi hazır gelir</span></button>
+    <button role="tab" id="g-t-arsiv" aria-controls="g-p-arsiv" aria-selected="false" tabindex="-1"><b>Arşiv ve çıktı</b><span>Fişler kaybolmaz, dosyaya az kâğıtla girer</span></button>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-vergi" aria-labelledby="g-t-vergi">
+    <div class="gtext">
+      <h3>Vergi sorunu, fiş daha çalışanın elindeyken görünür</h3>
+      <dl>
+        <dt>Fatura gereken yerde fatura</dt><dd>2026'da 12.000 TL'yi aşan harcamada fiş yetmez. Gidero çalışana faturayı o an istemesini söyler.</dd>
+        <dt>Şirket adına kesilmiş mi</dt><dd>Faturadaki vergi numarası şirketinizle eşleşmezse uyarır; bilgi fişinde e-Arşiv faturasının onayını ister.</dd>
+        <dt>İndirilemeyecek KDV</dt><dd>Binek araçta kabul edilmeyen payı, alkolü ve süresi geçmiş KDV'yi ayrı satıra yazar.</dd>
+      </dl>
+      <p class="gnote">Dayanak: VUK 232, KDVK 29, GVK 40/1-5. Tutarlar her yıl güncellenir; son karar muhasebecinizindir.</p>
+    </div>
+    <div class="gvis">
+      <div class="rcpt" style="transform:rotate(-2deg)">
+        <div class="c"><b>BAUHAUS ÇİĞLİ</b><br>İZMİR</div><hr>
+        <div class="r"><span>Matkap seti</span><span>9.800,00</span></div>
+        <div class="r"><span>Vida, dübel</span><span>4.600,00</span></div><hr>
+        <div class="r"><b>TOPLAM</b><b>14.400,00</b></div>
+      </div>
+      <div class="warnline" style="margin-top:14px">Bu fiş 12.000 TL'yi aşıyor. Bu tutarda şirket adına fatura alınması gerekir.</div>
+    </div>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-kacak" aria-labelledby="g-t-kacak" hidden>
+    <div class="gtext">
+      <h3>Aynı fiş iki kez, başka aracın yakıtı hiç giremez</h3>
+      <dl>
+        <dt>Mükerrer fiş</dt><dd>Aynı fotoğraf, aynı ETTN ya da aynı satıcı ve fiş numarası ikinci kez gelirse yakalanır; kişiler arasında bile.</dd>
+        <dt>Plaka kontrolü</dt><dd>Akaryakıt fişindeki plaka, çalışanın kartındaki araçlarla karşılaştırılır.</dd>
+        <dt>Kendi masrafını onaylama yok</dt><dd>Kimse kendi raporunu onaylayamaz, kendi ödemesini işaretleyemez. Her değişiklik kim ve ne zaman bilgisiyle saklanır.</dd>
+      </dl>
+    </div>
+    <div class="gvis stack">
+      <div class="card"><div class="kv"><b>Shell Bornova</b><b>₺1.200,00</b></div><div class="flag w" style="margin-top:6px">Bu belge daha önce başka bir masrafta kaydedilmiş görünüyor. Mükerrer kaydı kontrol edin.</div></div>
+      <div class="card"><div class="kv"><b>Opet Karşıyaka</b><span class="plate">35 KL 908</span></div><div class="flag w" style="margin-top:6px">Fişteki plaka Veli Mahmut'un araçlarıyla eşleşmiyor: 35 ABC 123.</div></div>
+      <div class="card"><div class="kv"><b>Zeynep Arslan, Muhasebe</b><span class="muted">Kendi raporu</span></div><div class="flag" style="margin-top:6px">Bu rapor Burak Su'nun onayına gitti; muhasebeci kendi masrafını onaylayamaz.</div></div>
+    </div>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-zaman" aria-labelledby="g-t-zaman" hidden>
+    <div class="gtext">
+      <h3>Ay sonunda Excel doldurmak yok</h3>
+      <dl>
+        <dt>Harcadığınız yerde çekin</dt><dd>Kâğıt kaybolsa da fişin görüntüsü kayıtta kalır. Tek fotoğrafta birden çok fiş ayrı ayrı okunur.</dd>
+        <dt>Rapor kendiliğinden oluşur</dt><dd>Fişler ayın raporuna düşer; toplam ve gider grupları hazırdır.</dd>
+        <dt>Onay tek ekranda</dt><dd>Yönetici fotoğraflara tek tek bakmadan özeti görür, telefondan onaylar. Rapor kimde bekliyorsa herkes görür.</dd>
+      </dl>
+    </div>
+    <div class="gvis">
+      <table class="vs">
+        <thead><tr><th></th><th>Excel ve zarfla</th><th>Gidero ile</th></tr></thead>
+        <tbody>
+          <tr><td>Fiş toplama</td><td>Ay sonunda cüzdan ve araç boşaltılır</td><td>Harcandığı anda fotoğraf</td></tr>
+          <tr><td>Bilgileri yazma</td><td>Tutar, tarih, KDV tek tek</td><td>Okunur, çalışan kontrol eder</td></tr>
+          <tr><td>Onay</td><td>Islak imza, masada bekleyen dosya</td><td>Telefondan, sırası belli</td></tr>
+          <tr><td>Muhasebe</td><td>Yeniden yazılır</td><td>Excel, Logo ya da Luca dosyası</td></tr>
+          <tr><td>Ödeme</td><td>"IBAN'ın neydi?"</td><td>Tek dokunuşla kopyala, öde</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-sinir" aria-labelledby="g-t-sinir" hidden>
+    <div class="gtext">
+      <h3>Kim, hangi gider grubunda, ne kadar harcadı</h3>
+      <dl>
+        <dt>Sınırı şirket koyar</dt><dd>Her gider grubuna kişi başı aylık, 3 aylık, 6 aylık ya da yıllık sınır.</dd>
+        <dt>Herkes kendi payını görür</dt><dd>Çalışan kendini, yönetici ekibini, muhasebe herkesi görür.</dd>
+        <dt>Aşım gizlenmez</dt><dd>Sınırı aşan fiş, raporda onaylayıcının önüne işaretli gelir.</dd>
+      </dl>
+    </div>
+    <div class="gvis">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:8px">Yemek, aylık kişi başı ₺4.000</div>
+        <div class="kv"><span>Veli Mahmut</span><b>₺3.680</b></div><div class="gbar"><i style="--w:.92;background:var(--warn)"></i></div>
+        <div class="kv" style="margin-top:10px"><span>Elif Koç</span><b>₺1.620</b></div><div class="gbar"><i style="--w:.405"></i></div>
+        <div class="kv" style="margin-top:10px"><span>Okan Er</span><b style="color:var(--red)">₺4.450</b></div><div class="gbar"><i style="--w:1;background:var(--red)"></i></div>
+        <div class="flag w" style="margin-top:10px">Okan Er yemekte aylık sınırı ₺450 aştı. Onaylayıcı bu aşımı görecek.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-muh" aria-labelledby="g-t-muh" hidden>
+    <div class="gtext">
+      <h3>Her fiş, hesap koduyla gelir</h3>
+      <dl>
+        <dt>Yevmiye kaydı hazır</dt><dd>Gider, KDV ve karşı hesap satırları Tekdüzen Hesap Planı'na göre ayrılır; borç ve alacak eşittir.</dd>
+        <dt>Programınıza aktarın</dt><dd>Excel dökümü her programa girer. Logo ve Luca biçimleri pilot bürolarla doğrulanıyor.</dd>
+        <dt>Kim ödedi, doğru hesaba</dt><dd>Çalışanın cebinden çıkanı personele borçlara, şirket kartını karta, avansı avansa yazar.</dd>
+      </dl>
+    </div>
+    <div class="gvis">
+      <div class="card">
+        <table class="jr">
+          <tr><td style="color:var(--faint)">Hesap</td><td style="color:var(--faint)">Borç</td><td style="color:var(--faint)">Alacak</td></tr>
+          <tr><td>770.01 Genel yönetim, yemek</td><td>1.000,00</td><td></td></tr>
+          <tr><td>191.10 İndirilecek KDV %10</td><td>100,00</td><td></td></tr>
+          <tr><td>770.03 Akaryakıt</td><td>375,00</td><td></td></tr>
+          <tr><td>191.20 İndirilecek KDV %20</td><td>75,00</td><td></td></tr>
+          <tr><td>335 Personele borçlar</td><td></td><td>1.550,00</td></tr>
+        </table>
+      </div>
+      <div class="files" style="margin-top:12px"><span>Excel</span><span class="hl">Logo</span><span>Luca</span></div>
+    </div>
+  </div>
+
+  <div class="gpanel" role="tabpanel" id="g-p-arsiv" aria-labelledby="g-t-arsiv" hidden>
+    <div class="gtext">
+      <h3>Kâğıt fiş kaybolsa da kayıt kalır, dosyaya az kâğıtla girer</h3>
+      <dl>
+        <dt>Rapor ve fişler tek PDF'te</dt><dd>Rapor özeti, onay geçmişi ve fişlerin görüntüleri numaralı olarak yazdırılır ya da PDF olarak iner.</dd>
+        <dt>Bir A4'e olabildiğince çok fiş</dt><dd>Görseller sayfaya sıkıştırılarak dizilir: sıkı yerleşimde bir sayfaya 8-12 yazar kasa fişi. Soluk fişler ve faturalar için büyük yerleşim.</dd>
+        <dt>Verinizi her an indirin</dt><dd>Bütün raporlar, fişler ve görseller tek ZIP dosyası. Abonelik bitse de 10 gün indirebilirsiniz.</dd>
+      </dl>
+    </div>
+    <div class="gvis">
+      <div class="a4" aria-hidden="true">
+        <div class="a4h">Ekim masrafları, fiş görselleri 1/2</div>
+        <div class="a4g"><div><i style="height:46%"></i><i style="height:30%"></i><i style="height:20%"></i></div><div><i style="height:34%"></i><i style="height:38%"></i><i style="height:24%"></i></div><div><i style="height:28%"></i><i style="height:22%"></i><i style="height:44%"></i></div><div><i style="height:40%"></i><i style="height:26%"></i><i style="height:18%"></i></div></div>
+      </div>
+      <p class="gnote" style="text-align:center">12 fiş, özetle birlikte 3 sayfa</p>
+    </div>
+  </div>
+</div>
