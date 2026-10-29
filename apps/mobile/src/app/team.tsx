@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -35,7 +35,8 @@ export default function Team() {
   const [plateDraft, setPlateDraft] = useState('');
   const [plateBusy, setPlateBusy] = useState(false);
   const [plateError, setPlateError] = useState<string | null>(null);
-  const [manager, setManager] = useState<string | null>(null); // yeni kişinin yöneticisi; null = ben
+  const params = useLocalSearchParams<{ manager?: string }>();
+  const [manager, setManager] = useState<string | null>(params.manager ?? null); // yeni kişinin yöneticisi; null = ben
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editManager, setEditManager] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
