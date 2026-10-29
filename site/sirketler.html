@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Şirketler için | Gidero</title>
+<meta name="description" content="Onay zincirinizi organizasyon şemasında çizin. Çalışan fişi çeker, onaylayıcı tek ekranda onaylar, muhasebe aktarır, ödeme yetkilisi IBAN'a öder.">
+<meta property="og:title" content="Şirketler için | Gidero">
+<meta property="og:description" content="Onay zincirinizi organizasyon şemasında çizin. Çalışan fişi çeker, onaylayıcı tek ekranda onaylar, muhasebe aktarır, ödeme yetkilisi IBAN'a öder.">
+<meta property="og:image" content="media/gidero-demo-poster.jpg">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span>gidero</a>
+  <nav class="nav-links" aria-label="Ana menü"><a href="sirketler.html">Şirketler için</a><a href="burolar.html">Muhasebe büroları için</a><a href="index.html#guvenlik">Güvenlik</a><a href="index.html#sss">Sorular</a></nav>
+  <a class="btn btn-primary" href="https://gidero.expo.app">Giriş yap</a>
+</div></header>
+<main>
+<section class="intro">
+  <div class="wrap">
+    <div>
+      <p class="crumb"><a href="index.html">Ana sayfa</a> / Şirketler için</p>
+      <h1>Onay zincirinizi siz çizin, masraflar kendiliğinden aksın.</h1>
+      <p class="lead">Her şirketin onay süreci farklı. Gidero'da direktörlüklerinizi, müdürlerinizi ve son onayın kimde olduğunu şemada çizersiniz; her rapor o yoldan yürür, kimin elinde olduğu her an görünür.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="https://gidero.expo.app">14 gün ücretsiz deneyin</a>
+        <a class="btn btn-ghost" href="#sema" style="color:#fff">Onay şemasını deneyin</a>
+      </div>
+    </div>
+    <div class="phones">
+      <div class="phone"><img src="img/screens/tel-onay-ozet.webp" alt="Onaylayıcının rapor özeti: gider grupları, fişler, kimlerle, alkol ve uyarılar" width="420" height="900"></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="sema">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Onay şeması</div>
+      <h2>Bir kişiye dokunun, raporunun yolunu görün</h2>
+      <p class="lead">Rapor alttan yukarı onaylanır ve "son onay" kişisinde biter; sonra muhasebeye ve ödemeye geçer. Şemayı uygulamada sürükle bırakla siz kurarsınız; buradaki örnek şirkette deneyin.</p>
+    </div>
+    <div class="org">
+      <div class="tree" id="tree" aria-label="Örnek organizasyon şeması"></div>
+      <aside class="org-side" aria-live="polite">
+        <h3 id="who">Veli Mahmut'un raporu</h3>
+        <p class="muted" id="whoSub" style="margin:0">Satış Temsilcisi, Ege bölgesi</p>
+        <ol class="route" id="route"></ol>
+        <label class="toggle"><input type="checkbox" id="gm"> Satışta son onay Genel Müdür'de olsun</label>
+        <p class="muted" style="font-size:14px;margin-top:12px">Onaylayıcılar da masraf girer; onların raporu kendi üstlerine gider. Kimse kendi raporunu onaylayamaz.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="sec paper">
+  <div class="wrap grid2">
+    <div>
+      <div class="kicker">Çalışan</div>
+      <h2>Fişi olduğu yerde bitirir</h2>
+      <ol class="steps">
+        <li><div><b>Rapor açar</b><span>"İzmir fuarı" gibi bir başlık yazar; oluşturma tarihini ve onaylayacak kişileri görür.</span></div></li>
+        <li><div><b>Fişleri çeker ya da galeriden ekler</b><span>Gidero tutarı, tarihi, satıcıyı ve KDV'yi okur; e-Arşiv karekodunu çözer.</span></div></li>
+        <li><div><b>Her fişi kontrol eder</b><span>Okunamayan alanlar turuncudur. Fotoğraf yanında büyük durur; "Doğru, sıradaki fiş" ile hızla ilerler.</span></div></li>
+        <li><div><b>Gönderir, takip eder</b><span>Raporun kimde beklediğini görür; ödendiğinde bildirim alır.</span></div></li>
+      </ol>
+    </div>
+    <div class="shot"><img src="img/screens/fis-kontrol.webp" alt="Fiş kontrol ekranı: solda form, okunamayan alanlar turuncu; sağda fiş fotoğrafı" loading="lazy" width="1400" height="900"></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap grid2">
+    <div class="phones">
+      <div class="phone"><img src="img/screens/tel-rapor-akis.webp" alt="Rapor ekranında adım adım onay akışı" loading="lazy" width="420" height="900"></div>
+    </div>
+    <div>
+      <div class="kicker">Onaylayıcı</div>
+      <h2>Fotoğraf değil, özet</h2>
+      <p class="lead">Onaylayıcı raporu açtığında bütün fişleri tek ekranda görür: gider grubu toplamları, her fişin tarihi, satıcısı, tutarı, KDV'si, kimlerle yapıldığı, açıklaması ve vergi uyarıları.</p>
+      <p class="muted">Onaylar ya da nedenini yazarak iade eder. Rapor bir üst onaylayıcıya geçer; kimin onayladığı, ne zaman ve hangi notla, akış şemasında herkese görünür.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec deep">
+  <div class="wrap grid2">
+    <div>
+      <div class="kicker">Muhasebe ve ödeme</div>
+      <h2>Onaydan sonra kimse kovalamaz</h2>
+      <ol class="steps">
+        <li><div><b>Muhasebe masası</b><span>Onaylanan raporlar düşer: kontrol, Excel/Logo/Luca aktarımı, ödeme, arşiv.</span></div></li>
+        <li><div><b>Finans: ödeme sorumlusuna aktar</b><span>Ödeme yetkilisi muhasebeci de olabilir, başka biri de. Kişi eklerken "ödeme yetkilisi" rolünü verirsiniz.</span></div></li>
+        <li><div><b>Tek tıkla kopyala, öde</b><span>Çalışana ödenecek tutar (şirket kartıyla ödenenler ve reddedilen alkol hariç), IBAN, hesap sahibi ve açıklama hazır.</span></div></li>
+        <li><div><b>Ödeme yapıldı</b><span>Rapor arşive kalkar, çalışana "masrafınız ödendi" bildirimi gider.</span></div></li>
+      </ol>
+    </div>
+    <div class="shot"><img src="img/screens/odemeler.webp" alt="Ödemeler ekranı: kişi, ödenecek tutar, kopyalanabilir IBAN ve Ödeme yapıldı düğmesi" loading="lazy" width="1400" height="900"></div>
+  </div>
+</section>
+
+<section class="sec paper">
+  <div class="wrap">
+    <div class="sec-head"><div class="kicker">Kurallar sizin</div><h2>Şirketinize göre ayarlanır</h2></div>
+    <div class="grid3">
+      <div class="feat"><h3>Gider grupları ve sınırlar</h3><p>Yemek, akaryakıt, konaklama; hesap kodlarıyla. Kişi başı aylık, 3 aylık ya da yıllık sınır koyun; aşım anında görünür.</p></div>
+      <div class="feat"><h3>Vergi uyarıları</h3><p>Fatura sınırı, mükerrer fiş, şirket adına kesilmemiş belge, binek araç kısıtı, geçersiz KDV oranı: her fişte 29 kontrol.</p></div>
+      <div class="feat"><h3>Alkollü içki kuralı</h3><p>Ödenmez, ödenir ama vergiden düşülmez (KKEG) ya da normal gider: siz seçersiniz, muhasebe fiş bazında değiştirebilir.</p></div>
+      <div class="feat"><h3>Araç ve plaka</h3><p>Çalışanın kartına araçlarını girin; akaryakıt fişindeki plaka eşleşmezse uyarı çıkar.</p></div>
+      <div class="feat"><h3>Logonuz ve renkleriniz</h3><p>Şirketinize giren herkes uygulamayı kendi kurumsal renklerinizle görür.</p></div>
+      <div class="feat"><h3>IBAN gizliliği</h3><p>Banka bilgisini yalnızca kişinin kendisi, muhasebe ve ödeme yetkilisi görür.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="fiyat">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Fiyat</div>
+      <h2>Tek paket, kişi sayısı arttıkça ucuzlar</h2>
+      <p class="lead">Yalnızca masraf giren çalışanlar sayılır; onaylayıcı, muhasebeci ve ödeme yetkilisi ücretsizdir. Yıllık tek ödemede kişi başı fiyat daha da düşer.</p>
+    </div>
+    <div class="pricing" data-pricing="company"></div>
+  </div>
+</section>
+
+<section class="sec paper">
+  <div class="wrap">
+    <div class="sec-head"><div class="kicker">Sorular</div><h2>Şirketlerin sorduğu</h2></div>
+    <div class="faq">
+      <details><summary>Onay zincirini kim kurar?</summary><p>Şirket yöneticisi. Kişileri ekler, ünvanlarını ve kime bağlı olduklarını şemada sürükleyerek belirler, son onayın kimde olduğunu işaretler.</p></details>
+      <details><summary>Bir yönetici ayrılırsa raporlar takılır mı?</summary><p>Hayır. Kişiyi ekipten çıkardığınızda ona bağlı kişiler onun yöneticisine bağlanır ve bekleyen raporlar yeni onaylayıcıya geçer.</p></details>
+      <details><summary>Muhasebe dışarıda, bir büroda. Olur mu?</summary><p>Olur. Büronuzdaki muhasebeciyi şirketinize "muhasebeci" rolüyle eklersiniz; onaylanan raporlar onun masasına düşer.</p></details>
+      <details><summary>Çalışanın IBAN'ını kim görür?</summary><p>Kişinin kendisi, muhasebeci ve ödeme yetkilisi. Şirket yöneticisi IBAN'ın kayıtlı olduğunu görür ama kendisini göremez.</p></details>
+      <details><summary>Şirket kartıyla yapılan harcamalar ne olur?</summary><p>Çalışan fişte "kim ödedi" seçer. Şirket kartı, avans ya da kasa ile ödenenler çalışana ödenmez; muhasebede doğru hesaba yazılır.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="cta">
+      <div><h2>Onay şemanızı 10 dakikada kurun</h2><p>14 gün ücretsiz. İlk raporu bugün onaylatın.</p></div>
+      <a class="btn btn-light" href="https://gidero.expo.app">Hemen başlayın</a>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="color:#fff"><span class="brand-mark" aria-hidden="true"></span>gidero</a>
+        <p style="margin-top:12px">Fişi çek, onaya gönder, muhasebeye aktar, öde. Şirketler ve muhasebe büroları için masraf yönetimi.</p>
+        <p class="legal-id"><span data-company="unvan">[Şirket unvanı]</span><br>Adres: <span data-company="adres">[Açık adres]</span><br>Vergi dairesi / no: <span data-company="vkn">[Vergi dairesi – VKN]</span><br>MERSİS: <span data-company="mersis">[MERSİS no]</span><br>E-posta: <a href="mailto:destek@gidero.tr">destek@gidero.tr</a> · Telefon: <span data-company="tel">[Telefon]</span></p>
+      </div>
+      <div><h4>Ürün</h4><ul><li><a href="sirketler.html">Şirketler için</a></li><li><a href="burolar.html">Muhasebe büroları için</a></li><li><a href="sirketler.html#fiyat">Şirket fiyatları</a></li><li><a href="burolar.html#fiyat">Büro fiyatları</a></li><li><a href="index.html#guvenlik">Güvenlik</a></li><li><a href="index.html#sss">Sık sorulanlar</a></li></ul></div>
+      <div><h4>Kurumsal</h4><ul><li><a href="hakkimizda.html">Hakkımızda</a></li><li><a href="iletisim.html">İletişim</a></li><li><a href="https://gidero.expo.app">Giriş yap</a></li></ul></div>
+      <div><h4>Sözleşmeler</h4><ul><li><a href="kullanim-kosullari.html">Kullanım koşulları</a></li><li><a href="mesafeli-satis.html">Mesafeli satış sözleşmesi</a></li><li><a href="on-bilgilendirme.html">Ön bilgilendirme formu</a></li><li><a href="iptal-iade.html">İptal, iade ve cayma</a></li><li><a href="gizlilik.html">Gizlilik politikası</a></li><li><a href="kvkk.html">KVKK aydınlatma metni</a></li><li><a href="cerez.html">Çerez politikası</a></li></ul></div>
+    </div>
+    <div class="pay-band"><span>Ödemeler iyzico güvencesiyle alınır; kart bilgileriniz bize ulaşmaz.</span><span class="chip">iyzico</span><span class="chip">VISA</span><span class="chip">Mastercard</span><span class="chip">TROY</span></div>
+    <p class="legal-id" style="margin-top:16px">© 2026 Gidero. Fiyatlara KDV dahil değildir.</p>
+  </div>
+</footer>
+<button class="chat-open" id="chat-open" type="button" aria-controls="chat" aria-expanded="false">Soru sorun</button>
+<section class="chat" id="chat" role="dialog" aria-label="Gidero'ya soru sorun" hidden>
+  <div class="chat-h">
+    <div><b>Gidero'ya sorun</b><span>Genellikle birkaç saniyede yanıt verir</span></div>
+    <button class="chat-x" id="chat-close" type="button" aria-label="Sohbeti kapat">×</button>
+  </div>
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <div class="msg bot">Merhaba, Gidero hakkında ne merak ediyorsunuz? Fiyatlar, deneme ya da muhasebe büroları için kullanım hakkında sorabilirsiniz.</div>
+  </div>
+  <div class="chat-sugg" id="chat-sugg">
+    <button type="button">Büro için fiyat nasıl hesaplanıyor?</button>
+    <button type="button">Fiş okunamazsa ne olur?</button>
+    <button type="button">Demo görmek istiyorum</button>
+  </div>
+  <form class="chat-f" id="chat-form">
+    <input id="chat-in" maxlength="600" autocomplete="off" placeholder="Sorunuzu yazın" aria-label="Sorunuz">
+    <button type="submit">Gönder</button>
+  </form>
+  <p class="chat-note">Yazdıklarınız size yanıt vermek ve geri dönmek için kaydedilir. <a href="kvkk.html">Aydınlatma metni</a></p>
+</section>
+<script src="assets/pricing.js"></script>
+<script>
+// Örnek şirketin onay şeması: kişiye dokununca raporunun yolu çizilir
+(function () {
+  var P = {
+    gm: { n: 'Mehmet Kaya', t: 'Genel Müdür', up: null },
+    sd: { n: 'Selin Er', t: 'Satış Direktörü', up: 'gm', final: true },
+    fd: { n: 'Burak Su', t: 'Finans Direktörü', up: 'gm', final: true },
+    od: { n: 'Ayla Tan', t: 'Operasyon Direktörü', up: 'gm', final: true },
+    bm: { n: 'Ali Çelik', t: 'Bölge Müdürü, Ege', up: 'sd' },
+    bm2: { n: 'Emre Şahin', t: 'Bölge Müdürü, Marmara', up: 'sd' },
+    v: { n: 'Veli Mahmut', t: 'Satış Temsilcisi', up: 'bm' },
+    e: { n: 'Elif Koç', t: 'Satış Temsilcisi', up: 'bm' },
+    o: { n: 'Okan Er', t: 'Satış Temsilcisi', up: 'bm2' },
+    z: { n: 'Zeynep Arslan', t: 'Muhasebe Uzmanı', up: 'fd', acc: true },
+    h: { n: 'Hakan Öz', t: 'Depo Sorumlusu', up: 'od' }
+  };
+  var kids = function (id) { return Object.keys(P).filter(function (k) { return P[k].up === id; }); };
+  var sel = 'v', gmFinal = false;
+  function isFinal(id) { return id === 'gm' || (P[id].final && !(gmFinal && id === 'sd')); }
+  function node(id) {
+    var p = P[id], badge = isFinal(id) ? '<span class="badge">Son onay</span>' : p.acc ? '<span class="badge" style="background:#E6F1EE;color:#0B6E5F">Muhasebe</span>' : '';
+    var k = kids(id);
+    return '<li><button type="button" class="node" data-id="' + id + '"><b>' + p.n + '</b><small>' + p.t + '</small>' + badge + '</button>' + (k.length ? '<ul>' + k.map(node).join('') + '</ul>' : '') + '</li>';
+  }
+  function route(id) {
+    var steps = [], cur = P[id].up;
+    while (cur) { steps.push(cur); if (isFinal(cur)) break; cur = P[cur].up; }
+    if (!steps.length && id !== 'gm') steps.push('gm');
+    return steps;
+  }
+  function draw() {
+    document.getElementById('tree').innerHTML = '<ul>' + node('gm') + '</ul>';
+    var r = route(sel);
+    document.querySelectorAll('.node').forEach(function (b) {
+      var id = b.getAttribute('data-id');
+      b.classList.toggle('on', id === sel);
+      b.classList.toggle('path', r.indexOf(id) >= 0);
+      b.classList.toggle('final', isFinal(id));
+      b.addEventListener('click', function () { sel = id; draw(); });
+    });
+    var p = P[sel];
+    document.getElementById('who').textContent = p.n + "'in raporu";
+    document.getElementById('whoSub').textContent = p.t;
+    var html = '<li class="done"><b>' + p.n + '</b><small>Raporu açar, fişleri kontrol edip gönderir</small></li>';
+    if (sel === 'gm') html += '<li><b>Şirket yöneticisi ya da muhasebe</b><small>En üstteki kişinin raporunu başka bir yönetici onaylar</small></li>';
+    r.forEach(function (id, i) {
+      html += '<li><b>' + P[id].n + '</b><small>' + P[id].t + (isFinal(id) ? ': son onay' : ': onaylar, bir üste gönderir') + '</small></li>';
+    });
+    html += '<li><b>Muhasebe</b><small>Kontrol eder, Excel/Logo/Luca dosyasını alır, ödemeye aktarır</small></li>';
+    html += '<li><b>Ödeme yetkilisi</b><small>IBAN\'a öder; ' + p.n.split(' ')[0] + ' bildirim alır</small></li>';
+    document.getElementById('route').innerHTML = html;
+  }
+  document.getElementById('gm').addEventListener('change', function (e) { gmFinal = e.target.checked; draw(); });
+  draw();
+})();
+</script>
+<script src="assets/chat.js"></script>
+</body>
+</html>

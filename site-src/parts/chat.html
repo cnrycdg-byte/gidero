@@ -1,0 +1,20 @@
+<button class="chat-open" id="chat-open" type="button" aria-controls="chat" aria-expanded="false">Soru sorun</button>
+<section class="chat" id="chat" role="dialog" aria-label="Gidero'ya soru sorun" hidden>
+  <div class="chat-h">
+    <div><b>Gidero'ya sorun</b><span>Genellikle birkaç saniyede yanıt verir</span></div>
+    <button class="chat-x" id="chat-close" type="button" aria-label="Sohbeti kapat">×</button>
+  </div>
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <div class="msg bot">Merhaba, Gidero hakkında ne merak ediyorsunuz? Fiyatlar, deneme ya da muhasebe büroları için kullanım hakkında sorabilirsiniz.</div>
+  </div>
+  <div class="chat-sugg" id="chat-sugg">
+    <button type="button">Büro için fiyat nasıl hesaplanıyor?</button>
+    <button type="button">Fiş okunamazsa ne olur?</button>
+    <button type="button">Demo görmek istiyorum</button>
+  </div>
+  <form class="chat-f" id="chat-form">
+    <input id="chat-in" maxlength="600" autocomplete="off" placeholder="Sorunuzu yazın" aria-label="Sorunuz">
+    <button type="submit">Gönder</button>
+  </form>
+  <p class="chat-note">Yazdıklarınız size yanıt vermek ve geri dönmek için kaydedilir. <a href="kvkk.html">Aydınlatma metni</a></p>
+</section>
