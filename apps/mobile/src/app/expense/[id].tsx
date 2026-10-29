@@ -28,7 +28,8 @@ const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 export default function ExpenseScreen() {
   const { id, readError } = useLocalSearchParams<{ id: string; readError?: string }>();
   const c = useColors();
-  const { userId, hasRole } = useSession();
+  const { userId, hasRole, active } = useSession();
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [exp, setExp] = useState<Expense | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -95,7 +96,7 @@ export default function ExpenseScreen() {
       setCategories((cats.data ?? []) as Category[]);
       if (e.image_path) setImage(await receiptUrl(e.image_path));
     })();
-  }, [id]);
+  }, [id, reloadKey]);
 
   if (!exp) {
     return (
@@ -129,7 +130,7 @@ export default function ExpenseScreen() {
   })();
   const showPlate =
     exp.doc_type === 'akaryakit_okc' || !!exp.plate || ['fuel', 'car_running'].includes(category?.tax_rule ?? '');
-  const flags: Flag[] = exp.expense_flags ?? [];
+  const flags: Flag[] = (exp.expense_flags ?? []).filter((f) => f.code !== 'alcohol' && f.code !== 'alcohol_decided');
   const order = { critical: 0, warning: 1, info: 2 } as const;
   flags.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -244,6 +245,19 @@ export default function ExpenseScreen() {
                 ? 'Bilgiler faturadaki karekoddan okundu.'
                 : 'Bilgiler fotoğraftan okundu. Tutarı ve tarihi fişle karşılaştırın.'
             }
+          />
+        ) : null}
+
+        {exp.alcohol_present ? (
+          <AlcoholCard
+            expense={exp}
+            canDecide={
+              hasRole('accountant') &&
+              !!report &&
+              !['exported', 'paid'].includes(report.status) &&
+              (report.owner_user_id !== userId || !!active?.bureau_account_id)
+            }
+            onDecided={() => setReloadKey((k) => k + 1)}
           />
         ) : null}
 
@@ -431,3 +445,56 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
+
+/** Fişte alkollü içki: tutar, kalemler ve muhasebe kararı (onayla: gider yazılır; reddet: ödenmez) */
+function AlcoholCard({ expense, canDecide, onDecided }: { expense: Expense; canDecide: boolean; onDecided: () => void }) {
+  const c = useColors();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const amount = Number(expense.alcohol_amount ?? 0);
+  const decision = expense.alcohol_decision ?? null;
+  const tone = decision === 'accepted' ? c.pen : decision === 'rejected' ? c.red : c.amber;
+  const status =
+    decision === 'accepted'
+      ? 'Muhasebe onayladı: gider yazılır.'
+      : decision === 'rejected'
+        ? `Muhasebe reddetti: ${money(amount)} ödenmez ve gider yazılmaz.`
+        : 'Muhasebe kararı bekleniyor. Karar verilmeden rapor aktarılamaz.';
+
+  async function decide(d: 'accepted' | 'rejected') {
+    if (d === 'rejected') {
+      return confirm('Alkolü reddet', `${money(amount)} gider yazılmayacak ve çalışana ödenmeyecek. Devam edilsin mi?`, 'Reddet', () => send(d));
+    }
+    send(d);
+  }
+
+  async function send(d: 'accepted' | 'rejected') {
+    setBusy(true);
+    setError(null);
+    const { error: e } = await supabase.rpc('decide_alcohol', { p_expense: expense.id, p_decision: d });
+    setBusy(false);
+    if (e) return setError(errorText(e));
+    onDecided();
+  }
+
+  return (
+    <View style={[styles.flag, { backgroundColor: c.paper, borderLeftColor: tone, gap: space.sm }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon name="warning" size={13} color={tone} />
+        <Text style={[type.small, { color: tone, fontWeight: '700' }]}>Alkollü içki</Text>
+        <Text style={[type.bodyStrong, { color: c.ink, marginLeft: 'auto' }]}>{amount > 0 ? money(amount) : 'Tutar okunamadı'}</Text>
+      </View>
+      {expense.alcohol_items?.length ? (
+        <Text style={[type.body, { color: c.ink }]}>{expense.alcohol_items.join(', ')}</Text>
+      ) : null}
+      <Text style={[type.small, { color: c.muted }]}>{status}</Text>
+      {error ? <Notice tone="bad" text={error} /> : null}
+      {canDecide ? (
+        <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+          <Button title={decision === 'accepted' ? 'Onaylandı' : 'Onayla'} onPress={() => decide('accepted')} disabled={busy || decision === 'accepted'} />
+          <Button title={decision === 'rejected' ? 'Reddedildi' : 'Reddet'} variant="danger" onPress={() => decide('rejected')} disabled={busy || decision === 'rejected'} />
+        </View>
+      ) : null}
+    </View>
+  );
+}

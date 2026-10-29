@@ -178,14 +178,15 @@ export default function ExportScreen() {
         <Group>
           {reports.map((r) => {
             const on = selected.has(r.id);
-            const flags = r.expenses.reduce((a, e) => a + e.flag_codes.length, 0);
+            const alcohol = r.expenses.filter((e) => e.flag_codes.includes('alcohol')).length;
+            const flags = r.expenses.reduce((a, e) => a + e.flag_codes.filter((f) => f !== 'alcohol').length, 0);
             return (
               <Row
                 key={r.id}
                 icon={on ? 'checkCircle' : 'doc'}
                 iconColor={on ? c.pen : c.faint}
                 title={`${r.owner_name}, ${r.title}`}
-                subtitle={`${r.expenses.length} fiş${flags ? `, ${flags} uyarı` : ''}${r.approved_at ? `, onay ${dateText(r.approved_at)}` : ''}`}
+                subtitle={`${r.expenses.length} fiş${flags ? `, ${flags} uyarı` : ''}${alcohol ? `, ${alcohol} fişte alkol kararı bekliyor` : ''}${r.approved_at ? `, onay ${dateText(r.approved_at)}` : ''}`}
                 value={money(r.total)}
                 onPress={() => toggle(r.id)}
                 chevron={false}

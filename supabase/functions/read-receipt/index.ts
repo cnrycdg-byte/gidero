@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   const { data: exp, error: expErr } = await user
     .from("expenses")
     .select(
-      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total",
+      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total, alcohol_present, alcohol_amount, alcohol_items, alcohol_decision",
     )
     .eq("id", body.expense_id)
     .maybeSingle();
@@ -122,6 +122,13 @@ Deno.serve(async (req) => {
     read_total: f.total,
     read_source: qr?.total != null ? "qr" : "ai",
     image_sha256: sha,
+    // Alkol: yeniden okunursa önceki muhasebe kararı sıfırlanır
+    alcohol_amount: f.alcohol?.present ? (f.alcohol.amount ?? null) : null,
+    alcohol_items: f.alcohol?.present ? f.alcohol.items.slice(0, 20) : [],
+    alcohol_present: !!f.alcohol?.present,
+    alcohol_decision: null,
+    alcohol_decided_by: null,
+    alcohol_decided_at: null,
     ...(enteredTotal === null && f.total != null ? { total: f.total } : {}),
   }).eq("id", exp.id);
   if (upErr) {
@@ -169,6 +176,10 @@ async function recheck(admin: SupabaseClient<any, any, any>, exp: Row): Promise<
     vat_lines: (lines ?? []).map((l: Row) => ({ rate: Number(l.rate), base: Number(l.base), vat: Number(l.vat) })),
     other_taxes: [],
     confidence: { total: 1, date: 1, doc_no: 1, vat: 1 },
+    // Muhasebe karar verdiyse alkol uyarısı kalkar
+    alcohol: exp.alcohol_present && !exp.alcohol_decision
+      ? { present: true, amount: exp.alcohol_amount == null ? null : Number(exp.alcohol_amount), items: exp.alcohol_items ?? [] }
+      : undefined,
   };
   const flags = await evaluate(admin, exp, f, exp.image_sha256, exp.read_total == null ? null : Number(exp.read_total));
   await replaceFlags(admin, exp, flags);

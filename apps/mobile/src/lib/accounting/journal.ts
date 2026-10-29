@@ -20,6 +20,9 @@ export type ExpenseInput = {
   vat_lines: VatLine[];
   flag_codes: string[];
   flag_messages: string[];
+  /** Muhasebe reddettiyse alkol tutarı gider yazılmaz ve çalışana ödenmez */
+  alcohol_amount?: number | null;
+  alcohol_decision?: 'accepted' | 'rejected' | null;
 };
 
 export type ReportInput = {
@@ -120,7 +123,11 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
   const credits = new Map<string, number>(); // hesap → kuruş
 
   for (const e of report.expenses) {
-    const total = kurus(e.total);
+    const paid = kurus(e.total);
+    // Reddedilen alkol: gider ve KDV'den orantılı düşülür
+    const rejected = e.alcohol_decision === 'rejected' ? Math.min(Math.max(kurus(e.alcohol_amount ?? 0), 0), paid) : 0;
+    const total = paid - rejected;
+    const scale = (k: number) => (paid > 0 && rejected > 0 ? Math.round((k * total) / paid) : k);
     const doc = {
       doc_type: eDefterDocType(e.doc_type),
       doc_no: e.doc_no ?? '',
@@ -139,7 +146,14 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
     const ratio = wholeKkeg ? 100 : (e.category?.kkeg_ratio ?? 0);
 
     // KDV satırları: indirilebiliyorsa 191'e, indirilemiyorsa gidere eklenir
-    const vatLines = e.vat_lines.map((v) => ({ rate: v.rate, vat: kurus(v.vat) }));
+    const vatLines = e.vat_lines.map((v) => ({ rate: v.rate, vat: scale(kurus(v.vat)) }));
+    if (rejected > 0) {
+      warnings.push(
+        e.payment_method === 'personal'
+          ? `${what}: reddedilen alkol (${tl(rejected).toFixed(2)} TL) gider yazılmadı ve çalışana ödenmez.`
+          : `${what}: reddedilen alkol (${tl(rejected).toFixed(2)} TL) gider yazılmadı; çalışandan alacak olarak kaydedildi.`,
+      );
+    }
     const vatSum = vatLines.reduce((a, v) => a + v.vat, 0);
     let base = total - vatSum; // matrah; konaklama vergisi ve yuvarlama farkı da gidere kalır
     if (base < 0) {
@@ -183,7 +197,15 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
       }
     }
     const pay = paymentAccount(e.payment_method, report, c);
-    credits.set(pay, (credits.get(pay) ?? 0) + total);
+    if (e.payment_method === 'personal') {
+      credits.set(pay, (credits.get(pay) ?? 0) + total);
+    } else {
+      credits.set(pay, (credits.get(pay) ?? 0) + paid);
+      if (rejected > 0) {
+        const personnel = report.owner_personnel_account || c.account_personnel;
+        lines.push({ account_code: personnel, debit: tl(rejected), credit: 0, description: `${desc} (reddedilen alkol, çalışandan alınacak)`, ...doc });
+      }
+    }
   }
 
   const date = report.approved_at?.slice(0, 10) || lastDayOfPeriod(report.period) || new Date().toISOString().slice(0, 10);

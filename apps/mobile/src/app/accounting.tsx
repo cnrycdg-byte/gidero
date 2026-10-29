@@ -19,7 +19,7 @@ const TABS: { key: Tab; label: string; statuses: string[] }[] = [
   { key: 'pay', label: 'Ödeme bekleyen', statuses: ['exported'] },
   { key: 'archive', label: 'Arşiv (ödendi)', statuses: ['paid'] },
 ];
-type R = { id: string; title: string; total: number; owner_user_id: string; approved_at: string | null; paid_at: string | null; paid_note: string | null; owner: string };
+type R = { id: string; title: string; total: number; owner_user_id: string; approved_at: string | null; paid_at: string | null; paid_note: string | null; owner: string; alcohol: number };
 
 // Muhasebe masası: onaylanan formlar düşer → kontrol ve Excel/Luca aktarımı → ödendi → arşiv
 export default function AccountingDesk() {
@@ -53,7 +53,17 @@ export default function AccountingDesk() {
       const owners = [...new Set((data ?? []).map((r) => r.owner_user_id))];
       const { data: ps } = owners.length ? await supabase.from('profiles').select('id, full_name').in('id', owners) : { data: [] };
       const names = new Map(((ps ?? []) as { id: string; full_name: string }[]).map((p) => [p.id, p.full_name]));
-      setRows((data ?? []).map((r) => ({ ...r, total: Number(r.total), owner: names.get(r.owner_user_id) || 'Çalışan' })) as R[]);
+      // Alkol kararı bekleyen fişler (karar verilmeden aktarılamaz, ödenemez)
+      const ids = (data ?? []).map((r) => r.id);
+      const { data: alc } =
+        ids.length && tab !== 'archive'
+          ? await supabase.from('expenses').select('report_id').in('report_id', ids).eq('alcohol_present', true).is('alcohol_decision', null)
+          : { data: [] };
+      const pending = new Map<string, number>();
+      for (const a of (alc ?? []) as { report_id: string }[]) pending.set(a.report_id, (pending.get(a.report_id) ?? 0) + 1);
+      setRows(
+        (data ?? []).map((r) => ({ ...r, total: Number(r.total), owner: names.get(r.owner_user_id) || 'Çalışan', alcohol: pending.get(r.id) ?? 0 })) as R[],
+      );
       setSelected(new Set());
       const all = await Promise.all(
         TABS.map((t) =>
@@ -162,7 +172,7 @@ export default function AccountingDesk() {
               subtitle={
                 tab === 'archive'
                   ? `Ödendi ${dateText(r.paid_at)}${r.paid_note ? `, ${r.paid_note}` : ''}`
-                  : `Onay ${dateText(r.approved_at)}`
+                  : `Onay ${dateText(r.approved_at)}${r.alcohol ? `, ${r.alcohol} fişte alkol kararı bekliyor` : ''}`
               }
               value={money(r.total)}
               right={

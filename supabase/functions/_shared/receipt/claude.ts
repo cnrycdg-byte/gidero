@@ -16,7 +16,7 @@ export const RECEIPT_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["readable", "doc_type", "seller_name", "seller_vkn", "buyer_name", "buyer_vkn", "date", "time",
-    "doc_no", "ettn", "z_no", "plate", "currency", "total", "vat_lines", "other_taxes", "confidence"],
+    "doc_no", "ettn", "z_no", "plate", "currency", "total", "vat_lines", "other_taxes", "confidence", "alcohol"],
   properties: {
     readable: { type: "boolean" },
     doc_type: {
@@ -50,6 +50,14 @@ export const RECEIPT_SCHEMA = {
         properties: { type: { type: "string", enum: ["konaklama", "otv", "diger"] }, amount: { type: "number" } },
       },
     },
+    alcohol: {
+      type: "object", additionalProperties: false, required: ["present", "amount", "items"],
+      properties: {
+        present: { type: "boolean" },
+        amount: nullable("number"),
+        items: { type: "array", items: { type: "string" } },
+      },
+    },
     confidence: {
       type: "object", additionalProperties: false, required: ["total", "date", "doc_no", "vat"],
       properties: {
@@ -77,6 +85,7 @@ Alanlar:
 - date: YYYY-MM-DD; time: HH:MM.
 - seller_vkn / buyer_vkn: yalnızca rakamlar (10 haneli VKN veya 11 haneli TCKN).
 - plate: akaryakıt fişinde araç plakası (genellikle "PLAKA" satırında). Türk plakası biçiminde, boşluksuz büyük harf (ör. 35ABC123). Emin değilsen null.
+- alcohol: fişte alkollü içki satırı var mı. Bira, şarap, rakı, viski, votka, cin, likör, tekila, kokteyl, şampanya ve bunların markaları (Efes, Tuborg, Bomonti, Yeni Rakı, Tekirdağ, Kavaklıdere, Sevilen, Chivas, Jack Daniel's, Absolut, Smirnoff vb.) alkollüdür. Alkolsüz bira, meyve suyu, soda, ayran, kahve ve çay alkollü değildir. present=true ise amount bu satırların KDV dahil toplamı, items satırların kısa adları (ör. "Efes 50 cl x2"). Satır tutarları okunamıyorsa amount=null. Alkol yoksa present=false, amount=null, items=[].
 - confidence: her alan için 0 ile 1 arasında ne kadar emin olduğun.
 
 Okunamayan alanı tahmin etme; null bırak ve güveni düşük ver. Görüntü bir harcama belgesi değilse readable=false.`;

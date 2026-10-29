@@ -13,8 +13,24 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = Object.fromEntries(
 ) as Record<PaymentMethod, string>;
 
 /** Rapor özetinde: çalışana ödenecek tutar ve diğer ödeme yollarının toplamları */
-export function paymentSummary(expenses: { total: number | string; payment_method: PaymentMethod }[]) {
+export function paymentSummary(
+  expenses: { total: number | string; payment_method: PaymentMethod; alcohol_amount?: number | string | null; alcohol_decision?: string | null }[],
+) {
   const by: Record<PaymentMethod, number> = { personal: 0, company_card: 0, cash_advance: 0, cash: 0 };
-  for (const e of expenses) by[e.payment_method ?? 'personal'] += Number(e.total) || 0;
+  for (const e of expenses) {
+    const total = Number(e.total) || 0;
+    // Muhasebenin reddettiği alkol tutarı çalışana ödenmez
+    const cut = e.alcohol_decision === 'rejected' ? Math.min(Number(e.alcohol_amount) || 0, total) : 0;
+    const m = e.payment_method ?? 'personal';
+    by[m] += m === 'personal' ? Math.round((total - cut) * 100) / 100 : total;
+  }
   return by;
+}
+
+/** Reddedilen alkol toplamı (rapor özetinde ayrı satır olarak gösterilir) */
+export function rejectedAlcohol(expenses: { total: number | string; alcohol_amount?: number | string | null; alcohol_decision?: string | null }[]) {
+  return expenses.reduce(
+    (a, e) => a + (e.alcohol_decision === 'rejected' ? Math.min(Number(e.alcohol_amount) || 0, Number(e.total) || 0) : 0),
+    0,
+  );
 }
