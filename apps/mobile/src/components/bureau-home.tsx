@@ -75,7 +75,7 @@ export function BureauHome() {
       <View style={[styles.hero, { backgroundColor: c.deep }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>ŞU AN ÇALIŞTIĞINIZ FİRMA</Text>
+            <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>Şu an çalıştığınız firma</Text>
             <Text style={{ fontFamily: fonts.displayHeavy, fontSize: 28, color: c.onDeep }} numberOfLines={1}>
               {active.companies.legal_name}
             </Text>

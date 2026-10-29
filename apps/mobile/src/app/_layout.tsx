@@ -16,6 +16,8 @@ import { NewPassword } from '@/components/new-password';
 import { Loading } from '@/components/ui';
 import { fonts, loadThemePref, useColors, useScheme } from '@/constants/theme';
 import { ProfileButton } from '@/components/profile-button';
+import { Sidebar } from '@/components/sidebar';
+import { useWide } from '@/lib/layout';
 import { QueueProvider } from '@/lib/queue';
 import { listenForTaps, registerPush } from '@/lib/notifications';
 import { SessionProvider, useSession } from '@/lib/session';
@@ -24,6 +26,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const scheme = useScheme();
+  const palette = useColors();
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navTheme = { ...base, colors: { ...base.colors, background: palette.canvas, card: palette.canvas } };
   useEffect(() => {
     loadThemePref();
   }, []);
@@ -42,7 +47,7 @@ export default function RootLayout() {
   if (!fontsReady) return null;
 
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navTheme}>
       <SessionProvider>
         <QueueProvider>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
@@ -57,6 +62,7 @@ function RootStack() {
   const { ready, session, active, bureaus, platformAdmin, userId, recovery } = useSession();
   const mustChange = session?.user.user_metadata?.must_change_password === true || session?.user.user_metadata?.must_change_password === 'true';
   const c = useColors();
+  const wide = useWide();
   useEffect(() => {
     if (userId) registerPush(userId);
   }, [userId]);
@@ -68,7 +74,11 @@ function RootStack() {
   const hasCompany = !!active;
   const hasBureau = bureaus.length > 0;
 
+  // Bilgisayarda: solda menü, sağda içerik (çok geniş ekranda içerik makul genişlikte kalır)
+  const withRail = wide && signedIn && !mustChange;
   return (
+    <View style={{ flex: 1, flexDirection: withRail ? 'row' : 'column', backgroundColor: c.canvas }}>
+    {withRail && <Sidebar />}
     <View style={{ flex: 1 }}>
     <Stack
       screenOptions={{
@@ -76,11 +86,11 @@ function RootStack() {
         headerTintColor: c.pen,
         headerTitleStyle: { color: c.ink, fontFamily: fonts.display, fontSize: 18 },
         headerLargeTitleStyle: { color: c.ink, fontFamily: fonts.displayHeavy },
-        contentStyle: { backgroundColor: c.canvas },
+        contentStyle: withRail ? { backgroundColor: c.canvas, maxWidth: 1180, width: '100%' } : { backgroundColor: c.canvas },
         headerShadowVisible: false,
         headerLargeTitleShadowVisible: false,
         headerStyle: { backgroundColor: c.canvas },
-        headerRight: signedIn ? () => <ProfileButton /> : undefined,
+        headerRight: signedIn && !withRail ? () => <ProfileButton /> : undefined,
       }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -128,6 +138,7 @@ function RootStack() {
       </Stack.Protected>
     </Stack>
     {signedIn && <DemoBar />}
+    </View>
     </View>
   );
 }

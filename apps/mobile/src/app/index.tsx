@@ -4,6 +4,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-n
 
 import { BureauHome } from '@/components/bureau-home';
 import { ProfileButton } from '@/components/profile-button';
+import { useWide } from '@/lib/layout';
 import { Icon } from '@/components/icon';
 import { LimitBars } from '@/components/limit-bars';
 import { Logo } from '@/components/logo';
@@ -35,6 +36,7 @@ export default function Index() {
 }
 
 function Home() {
+  const wide = useWide();
   const c = useColors();
   const { userId, active, hasRole, session, memberships, bureaus, platformAdmin } = useSession();
   // Gidero yöneticisi girişte doğrudan yönetim paneline gider (oturum başına bir kez)
@@ -156,9 +158,9 @@ function Home() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <Logo size={26} color={c.ink} />,
+          headerTitle: wide ? 'Raporlarım' : () => <Logo size={26} color={c.ink} />,
           headerTitleAlign: 'left',
-          headerRight: () => <ProfileButton />,
+          headerRight: wide ? undefined : () => <ProfileButton />,
         }}
       />
       <ScrollView
@@ -238,7 +240,7 @@ function Home() {
             <Stat value={pendingCount} label="onayda" />
           </View>
           <Perforation color="rgba(255,255,255,0.18)" />
-          <View style={{ gap: space.sm, marginTop: space.xs }}>
+          <View style={{ gap: space.sm, marginTop: space.xs, flexDirection: wide ? 'row' : 'column' }}>
             <Button size="large" variant="light" icon="camera" title="Fiş çek" onPress={() => capture('camera')} loading={opening === 'camera'} />
             <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
           </View>
@@ -333,7 +335,8 @@ function Home() {
           </Group>
         )}
 
-        {(hasRole('admin') || hasRole('accountant') || hasRole('approver')) && (
+        {/* Bilgisayarda bu kısayollar soldaki menüde */}
+        {!wide && (hasRole('admin') || hasRole('accountant') || hasRole('approver')) && (
           <Group>
             <Row icon="warning" title="Ekibin sınır durumu" subtitle="Kim hangi gider grubunda sınırı aştı" onPress={() => router.push('/limits')} />
             {hasRole('admin') || hasRole('accountant') ? (
