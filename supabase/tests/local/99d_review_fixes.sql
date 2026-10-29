@@ -94,3 +94,19 @@ select public.submit_report('50000000-0000-0000-0000-00000000adf6');
 reset role;
 select test.ok(not (select '00000000-0000-0000-0000-000000000ae2'::uuid = any (current_approver_ids) from public.reports where id = '50000000-0000-0000-0000-00000000adf6'), 'Ayrılan yöneticiye onay gitmez');
 select test.ok(cardinality((select current_approver_ids from public.reports where id = '50000000-0000-0000-0000-00000000adf6')) > 0, 'Rapor başka bir onaylayıcıya gider');
+
+-- Büro ekibi daveti: yalnızca büro sahibi, yalnızca bu büroya bağlı ve şifresiz muhasebeciye
+reset role;
+insert into auth.users (id, email, encrypted_password) values ('00000000-0000-0000-0000-00000000adf7', 'yeni.muhasebeci@buro.test', null);
+insert into public.bureau_staff (account_id, user_id, role) values ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf7', 'accountant');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1"}', false);
+set role authenticated;
+select test.ok(public.can_issue_bureau_invite('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf7'), 'Büro sahibi yeni muhasebecisine bağlantı verir');
+select test.ok(not public.can_issue_bureau_invite('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000c1'), 'Büro sahibine bağlantı verilmez');
+select test.ok((select bool_or(not (x ->> 'activated')::boolean) from jsonb_array_elements(public.bureau_team('10000000-0000-0000-0000-00000000000c')) x), 'Ekip listesi davet bekleyeni gösterir');
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c2"}', false);
+set role authenticated;
+select test.ok(not public.can_issue_bureau_invite('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf7'), 'Büro muhasebecisi bağlantı veremez');
+select test.ok(not public.can_manage_bureau('10000000-0000-0000-0000-00000000000c'), 'Büro muhasebecisi büroyu yönetemez');
+reset role;
