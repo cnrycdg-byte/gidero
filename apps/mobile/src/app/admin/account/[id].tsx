@@ -126,7 +126,7 @@ export default function AdminAccountScreen() {
   return (
     <Page wide>
       {created && <Notice tone="ok" text="Müşteri açıldı. Aşağıdan hesap sahibine giriş bağlantısı oluşturup WhatsApp'tan gönderin." />}
-      {brand === 'failed' && <Notice tone="warn" text="Logo ve renkler kaydedilemedi. Firmanın yanındaki 'Logo ve renkler' düğmesinden tekrar ekleyin." />}
+      {brand === 'failed' && <Notice tone="warn" text="Logo ve renkler kaydedilemedi. Firmanın yanındaki 'Firma ayarları' düğmesinden tekrar ekleyin." />}
       {link ? (
         <InviteLink link={link} name={acc.owner_email ?? "Hesap sahibi"} email={acc.owner_email ?? undefined} onClose={() => setLink(null)} />
       ) : (
@@ -257,9 +257,10 @@ export default function AdminAccountScreen() {
             </Text>
             {list[0]?.company_id ? (
               <Button
-                title="Logo ve renkler"
+                title="Firma ayarları"
                 variant="secondary"
-                onPress={() => router.push({ pathname: '/brand', params: { company: list[0].company_id! } })}
+                icon="settings"
+                onPress={() => router.push({ pathname: '/admin/company/[id]', params: { id: list[0].company_id! } })}
               />
             ) : null}
           </View>
