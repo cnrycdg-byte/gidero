@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Page } from '@/components/page';
@@ -10,6 +10,7 @@ import { createCustomer } from '@/lib/admin';
 import { BrandPicker, type BrandDraft } from '@/components/brand-picker';
 import { uploadLogo } from '@/lib/brand';
 import { normalizeHex } from '@/lib/brand/colors';
+import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
 import { ownerLink } from '@/lib/people';
 import { fetchPlans, type Plan } from '@/lib/billing';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
@@ -35,6 +36,10 @@ export default function NewCustomer() {
   const [end, setEnd] = useState(dateInput(addDays(14)));
   const [note, setNote] = useState('');
   const [paid, setPaid] = useState('');
+  const [bands, setBands] = useState<Band[]>([]);
+  useEffect(() => {
+    fetchBands().then(setBands).catch(() => setBands([]));
+  }, []);
   const [brand, setBrand] = useState<BrandDraft>({ primary: '', accent: '', logoUri: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +55,9 @@ export default function NewCustomer() {
   const price = useMemo(() => {
     if (!plan || status !== 'active') return null;
     const unit = period === 'year' ? plan.price_yearly_monthly : plan.price_monthly;
-    const qty = plan.unit === 'user' ? Math.max(Number(seats) || 0, plan.min_seats) : 1;
-    return unit * qty * (period === 'year' ? 12 : 1);
-  }, [plan, status, period, seats]);
+    const qty = plan.unit === 'user' || plan.unit === 'company' ? Math.max(Number(seats) || 0, plan.min_seats) : 1;
+    return unitPrice(unit, bands.filter((b) => b.plan_id === plan.id), qty) * qty * (period === 'year' ? 12 : 1);
+  }, [plan, status, period, seats, bands]);
 
   function pickStatus(s: 'trial' | 'active') {
     setStatus(s);
@@ -78,7 +83,7 @@ export default function NewCustomer() {
         status: demo ? 'trial' : status,
         demo,
         period: status === 'active' && !demo ? period : null,
-        seats: kind === 'company' && planId ? Number(seats) || null : null,
+        seats: planId && (plan?.unit === 'user' || plan?.unit === 'company') ? Number(seats) || null : null,
         end: e,
         note: note.trim(),
         paidNet: status === 'active' && paid.trim() && !demo ? parseAmount(paid) : null,
@@ -196,6 +201,9 @@ export default function NewCustomer() {
             ))}
           </View>
         </>
+      )}
+      {plan?.unit === 'company' && (
+        <Field label={`Müşteri firma sayısı (en az ${plan.min_seats})`} value={seats} onChangeText={(v) => setSeats(v.replace(/\D/g, ''))} keyboardType="number-pad" />
       )}
       {kind === 'company' && plan?.unit === 'user' && (
         <Field label={`Çalışan sayısı (en az ${plan.min_seats})`} value={seats} onChangeText={(v) => setSeats(v.replace(/\D/g, ''))} keyboardType="number-pad" />
