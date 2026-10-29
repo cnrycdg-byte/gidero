@@ -1,0 +1,97 @@
+<div class="flow" data-flow aria-label="Çalışanın fişleri bilgisayardan toplu yüklemesi">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Bir ayın fişlerini tek seferde seçer</b><small>Telefondaki ya da bilgisayardaki fotoğraflardan 20'ye kadar fiş.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Gidero hepsini birlikte okur</b><small>Tutar, tarih, satıcı, KDV; okunamayan alan turuncu işaretlenir.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Fotoğraf yanında, form solunda</b><small>Fişe bakıp eksik alanı yazar, "Doğru, sıradaki fiş" ile geçer.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Raporu onaya gönderir</b><small>Bütün fişler kontrol edilince rapor onaylayıcıya düşer.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene appsc" data-dur="4600"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">Onaylayacak: Ali Çelik, sonra Selin Er</div>
+        <div class="card" style="text-align:center;color:var(--muted);padding:26px 12px">Bu raporda henüz fiş yok. Fiş çekin ya da fotoğraflardan seçin.</div>
+        <div class="row2"><div class="abtn alt">Fiş çek</div><div class="abtn" data-press="900">Fotoğraflardan ekle</div></div>
+        <div class="dlg" data-at="1300">
+          <b>Fişleri seçin</b>
+          <div class="grid">
+            <div class="ft"><i></i>IMG_2041.jpg<span class="ck" data-at="1600"></span></div>
+            <div class="ft"><i></i>IMG_2042.jpg<span class="ck" data-at="1750"></span></div>
+            <div class="ft"><i></i>IMG_2047.jpg<span class="ck" data-at="1900"></span></div>
+            <div class="ft"><i></i>IMG_2050.jpg<span class="ck" data-at="2050"></span></div>
+            <div class="ft"><i></i>IMG_2053.jpg<span class="ck" data-at="2200"></span></div>
+            <div class="ft"><i></i>IMG_2058.jpg<span class="ck" data-at="2350"></span></div>
+            <div class="ft"><i></i>IMG_2061.jpg<span class="ck" data-at="2500"></span></div>
+            <div class="ft"><i></i>IMG_2064.jpg<span class="ck" data-at="2650"></span></div>
+          </div>
+          <div class="foot2"><span class="muted" data-at="2800">8 fotoğraf seçildi</span><div class="abtn" style="padding:7px 16px" data-press="3600">Ekle</div></div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4800"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">8 fiş okunuyor</div>
+        <div class="rows">
+          <div class="rw" data-at="200"><span>Körfez Balık Lokantası</span><span>1.100,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="450"><span>Opet Karşıyaka</span><span>450,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="700"><span>Hilton Garden Inn</span><span>3.200,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="950"><span>İzmir Taksi</span><span>280,00</span><span class="flag w">Tarih okunamadı</span></div>
+          <div class="rw" data-at="1200"><span>Kordon Otopark</span><span>60,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="1450"><span>Simit Sarayı</span><span>85,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="1700"><span>Kırtasiye</span><span>&nbsp;</span><span class="flag w">Tutar okunamadı</span></div>
+          <div class="rw" data-at="1950"><span>Shell Bornova</span><span>1.200,00</span><span class="flag ok">Okundu</span></div>
+        </div>
+        <div class="warnline" data-at="2700">8 fiş okundu. 2 fişte turuncu alanı fişe bakıp yazın.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5600"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <div class="kv"><h4>Fişi kontrol edin</h4><span class="muted">4 / 8</span></div>
+        <div class="split">
+          <div>
+            <div class="fl"><label>Satıcı</label><div class="v">İzmir Taksi</div></div>
+            <div class="fl"><label>Toplam tutar (₺)</label><div class="v">280,00</div></div>
+            <div class="fl miss" data-fix="1300" data-fixtext="26.10.2026"><label>Tarih</label><div class="v">Okunamadı, fişe bakıp yazın</div></div>
+            <div class="fl"><label>Gider grubu</label><div class="v">Ulaşım ve seyahat</div></div>
+            <div class="okline" data-at="3000" style="margin-top:8px">Kontrol edildi</div>
+          </div>
+          <div class="photo">
+            <div class="rcpt" style="width:170px">
+              <div class="c"><b>İZMİR TAKSİ</b><br>Plaka 35 T 4182</div>
+              <hr>
+              <div class="r"><span>26.10.26</span><span>18:05</span></div>
+              <div class="r"><span>Alsancak-Fuar</span><span>14 km</span></div>
+              <hr>
+              <div class="r"><b>TOPLAM</b><b>280,00</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="row2" style="justify-content:flex-end"><div class="abtn alt">Önceki</div><div class="abtn" data-press="3600">Doğru, sıradaki fiş</div></div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4400"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">8 fiş, 8'i kontrol edildi</div>
+        <div class="card"><div class="tot">₺6.455,00</div>
+          <div class="kv" style="margin-top:8px"><span>Konaklama</span><b>₺3.200,00</b></div>
+          <div class="kv"><span>Akaryakıt</span><b>₺1.650,00</b></div>
+          <div class="kv"><span>Müşteri ağırlama</span><b>₺1.100,00</b></div>
+          <div class="kv"><span>Ulaşım, otopark, diğer</span><b>₺505,00</b></div>
+        </div>
+        <div class="chain"><span>Ali Çelik</span><em>sonra</em><span>Selin Er, son onay</span></div>
+        <div class="abtn" data-press="1500" style="align-self:flex-end;padding:8px 18px">Onaya gönder</div>
+        <div class="toast" data-at="1900" style="left:auto;right:18px;width:300px">Rapor Ali Çelik'e gönderildi</div>
+      </div>
+    </div></div>
+  </div></div>
+</div>

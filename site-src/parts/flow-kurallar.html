@@ -1,0 +1,78 @@
+<div class="flow" data-flow aria-label="Şirket ayarları: logo ve renkler, gider grupları ve sınırlar, alkol kuralı, araç ve plaka">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Logonuz ve renkleriniz</b><small>Şirketinize giren herkes uygulamayı kendi renklerinizle görür.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Gider grupları ve sınırlar</b><small>Hesap koduyla; kişi başı aylık, 3 aylık ya da yıllık sınır.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Alkollü içki kuralı</b><small>Ödenmez, KKEG ya da normal gider; muhasebe fiş bazında değiştirebilir.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Araç ve plaka</b><small>Akaryakıt fişindeki plaka çalışanın aracıyla eşleşmezse uyarı çıkar.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene appsc" data-dur="5600"><div class="app">
+      <div class="side">
+        <div class="lg">gidero</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it on">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div>
+        <div class="side alt" data-at="2600" style="padding:14px 10px;display:flex;flex-direction:column;gap:2px"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it on">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      </div>
+      <div class="main">
+        <h4>Logo ve renkler</h4>
+        <div class="logo-box"><div class="ph">Logo yok<b data-at="700">EGE<br>GIDA</b></div><div><div class="abtn alt" style="padding:6px 12px" data-press="400">Logo yükle</div><div class="muted" style="font-size:.75rem;margin-top:4px">PNG, JPG ya da WEBP; en fazla 1 MB</div></div></div>
+        <div class="fl"><label>Ana renk</label></div>
+        <div class="sw"><i style="background:#0B6E5F"><span data-out="1500"></span></i><i style="background:#1E3A8A"><span data-at="1500"></span></i><i style="background:#9F1239"></i><i style="background:#B45309"></i><i style="background:#334155"></i><span class="hexv" data-at="1500">#1E3A8A, logodan alındı</span></div>
+        <div class="prev"><b style="font-size:.75rem;color:var(--muted)">Çalışanlarınız böyle görecek</b><div class="kv"><span>Ekim masrafları</span><span class="flag ok">Onaylandı</span></div><div style="height:26px"></div><div class="pb">Fiş çek</div><div class="pb alt" data-at="2600">Fiş çek</div></div>
+        <div class="abtn" data-press="3600" style="align-self:flex-start;padding:7px 18px">Kaydet</div>
+        <div class="toast" data-at="3900" style="left:auto;right:18px;width:330px">Kaydedildi. Şirketinize giren herkes bu renkleri görür.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5800"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it">Logo ve renkler</div><div class="it on">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Gider grupları</h4>
+        <table class="ctab">
+          <tr class="sel"><td>Yemek</td><td>770.01</td><td data-at="2900">Aylık ₺4.000</td></tr>
+          <tr><td>Akaryakıt</td><td>770.03</td><td>Aylık ₺6.000</td></tr>
+          <tr><td>Konaklama</td><td>770.05</td><td>Sınırsız</td></tr>
+          <tr><td>Temsil ve ağırlama</td><td>760.02</td><td>3 aylık ₺15.000</td></tr>
+        </table>
+        <div class="card">
+          <div class="fl"><label>Yemek için sınır dönemi</label></div>
+          <div class="chips" style="margin-top:4px"><span>Sınırsız</span><span class="on">Aylık</span><span>3 aylık</span><span>Yıllık</span></div>
+          <div class="fl" style="margin-top:8px"><label>Aylık kişi başı sınır (₺)</label><div class="v" data-type="4.000" data-at="900"></div></div>
+        </div>
+        <div class="warnline" data-at="3700">Veli Mahmut bu ay yemekte sınırın %92'sine geldi.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4800"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it">Logo ve renkler</div><div class="it on">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Alkollü içki kuralı</h4><div class="sub">Fişte alkol satırı olduğunda ne olsun?</div>
+        <div class="opts">
+          <div class="opt"><span class="rd"><i data-at="1300"></i></span><div><b>Ödenir, KKEG yazılır</b><small>Çalışan parasını alır; tutar vergiden düşülmez, KDV indirilmez.</small></div><span class="hl" data-at="1300"></span></div>
+          <div class="opt"><span class="rd"></span><div><b>Ödenmez</b><small>Alkol tutarı çalışana ödenmez; fişin yemek kısmı normal işlenir.</small></div></div>
+          <div class="opt"><span class="rd"></span><div><b>Ödenir, normal gider yazılır</b><small>İş amaçlı ağırlamalar için.</small></div></div>
+          <div class="opt"><span class="rd"><i data-out="1300"></i></span><div><b>Muhasebe her fişte karar verir</b><small>Karar verilene kadar rapor aktarılamaz.</small></div><span class="hl" data-out="1300"></span></div>
+        </div>
+        <div class="okline" data-at="2400">Bundan sonra gelen fişlerde alkol satırları bu kurala göre ayrılır.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5400"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it on">Ekip</div><div class="it">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Veli Mahmut</h4><div class="sub">Satış Temsilcisi, Ali Çelik'e bağlı</div>
+        <div class="card">
+          <div class="fl"><label>Araçları</label></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="plate" data-type="35 ABC 123" data-at="500"></span><span class="muted" style="font-size:.75rem" data-at="1500">Şirket aracı, binek</span></div>
+        </div>
+        <div class="card" data-at="2300">
+          <div class="kv"><b>Opet Karşıyaka, 27.10</b><b>₺1.200,00</b></div>
+          <div class="kv"><span>Fişteki plaka</span><span class="plate">35 KL 908</span></div>
+        </div>
+        <div class="warnline" data-at="3000">Fişteki plaka Veli Mahmut'un araçlarıyla eşleşmiyor. Onaylayıcı ve muhasebe bu uyarıyı görür.</div>
+      </div>
+    </div></div>
+  </div></div>
+</div>
