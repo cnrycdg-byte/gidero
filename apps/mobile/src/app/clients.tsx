@@ -308,7 +308,7 @@ export default function Clients() {
                       <Button variant="secondary" title="Şifresini ben belirleyeyim" onPress={() => setTempFor(tempFor === m.user_id ? null : m.user_id)} />
                     </>
                   )}
-                  <Button
+                  {m.user_id !== userId && <Button
                     variant="danger"
                     title="Büro ekibinden çıkar"
                     onPress={() =>
@@ -318,7 +318,7 @@ export default function Clients() {
                         load();
                       })
                     }
-                  />
+                  />}
                 </View>
               )}
               {tempFor === m.user_id && (

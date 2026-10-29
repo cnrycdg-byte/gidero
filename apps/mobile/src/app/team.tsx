@@ -219,10 +219,7 @@ export default function Team() {
           name={members.find((x) => x.user_id === tempFor)?.full_name ?? invite?.name ?? 'Kişi'}
           userId={tempFor}
           companyId={active.company_id}
-          onDone={() => {
-            setInvite(null);
-            load();
-          }}
+          onDone={load}
         />
       )}
 

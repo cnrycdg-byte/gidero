@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
         ? await asCaller.rpc('can_issue_bureau_invite', { p_account: b.account_id, p_user: b.user_id })
         : await asCaller.rpc('can_issue_invite', { p_company: b.company_id, p_user: b.user_id });
       if (may !== true) {
-        return json(400, { error: 'Bu kişinin şifresini belirleyemezsiniz: hesabını kullanmaya başlamış. Şifresini unuttuysa giriş ekranındaki "Şifremi unuttum"u kullansın.' });
+        return json(403, { error: 'Bu kişinin şifresini belirleyemezsiniz. Hesabını kullanmaya başladıysa şifresini unuttuğunda giriş ekranındaki "Şifremi unuttum"u kullansın.' });
       }
       const { data: u, error } = await admin.auth.admin.getUserById(String(b.user_id));
       if (error || !u?.user) return json(400, { error: 'Kişi bulunamadı.' });

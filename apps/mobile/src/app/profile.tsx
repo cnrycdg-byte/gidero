@@ -84,18 +84,21 @@ export default function Profile() {
       if (e0) throw new Error('Mevcut şifreniz yanlış.');
       const { error: e } = await supabase.auth.updateUser({ password: p1 });
       if (e) throw e;
+      // Diğer cihazlardaki oturumlar kapanır (şifre başkasındaysa artık kullanamaz)
+      await supabase.auth.signOut({ scope: 'others' }).catch(() => null);
       setCurrent('');
       setP1('');
       setP2('');
       setSection(null);
-      return 'Şifreniz değiştirildi.';
+      return 'Şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.';
     });
 
   const changeEmail = () =>
     run('email', async () => {
       const v = newEmail.trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) throw new Error('Geçerli bir e-posta yazın.');
-      const { error: e } = await supabase.auth.updateUser({ email: v });
+      const redirect = typeof window !== 'undefined' && window.location ? `${window.location.origin}/` : 'https://gidero.expo.app/';
+      const { error: e } = await supabase.auth.updateUser({ email: v }, { emailRedirectTo: redirect });
       if (e) throw e;
       setNewEmail('');
       setSection(null);

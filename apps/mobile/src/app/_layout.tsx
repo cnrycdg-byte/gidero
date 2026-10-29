@@ -109,8 +109,7 @@ function RootStack() {
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />
         <Stack.Screen name="subscription" options={{ title: 'Abonelik' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
-        <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
-        <Stack.Screen name="profile" options={{ title: 'Hesabım', headerRight: () => null }} />
+
       </Stack.Protected>
       <Stack.Protected guard={signedIn && platformAdmin}>
         <Stack.Screen name="admin/index" options={{ title: 'Gidero Yönetim', headerLargeTitle: true }} />
@@ -124,6 +123,8 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
+        <Stack.Screen name="profile" options={{ title: 'Hesabım', headerRight: () => null }} />
+        <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
       </Stack.Protected>
     </Stack>
     {signedIn && <DemoBar />}
