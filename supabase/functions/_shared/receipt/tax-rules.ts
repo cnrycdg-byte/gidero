@@ -68,7 +68,9 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
   }
 
   // 6. Yazar kasa fişinde KDV indirimi kapsamı
-  if (f.doc_type === "okc_fis" && (rule === "meal" || rule === "representation" || rule === "accommodation")) {
+  // Varsayılan: yazar kasa fişi kabul edilir (flexible). Yalnızca şirket "temkinli" seçtiyse uyarılır.
+  if (ctx.company.okc_vat_policy === "cautious" && f.doc_type === "okc_fis" &&
+    (rule === "meal" || rule === "representation" || rule === "accommodation")) {
     add("okc_vat_not_deductible", "warning",
       "Yemek ve konaklamada yazar kasa fişindeki KDV indirilemez. KDV'nin indirilmesi için şirket adına fatura isteyin.",
       "KDVK 29, 34; KDV GUT");

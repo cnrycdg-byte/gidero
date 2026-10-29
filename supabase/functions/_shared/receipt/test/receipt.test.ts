@@ -100,7 +100,9 @@ test("akaryakıt pompa fişi fatura sınırına takılmaz, plakasız ise uyarı"
 
 test("yemek yazar kasa fişiyle: KDV indirilemez, katılımcı zorunlu", () => {
   const c = codes(ctx({ fields: base({ doc_type: "okc_fis", buyer_vkn: null }), category: { tax_rule: "meal", attendees_required: false } }));
-  assert.ok(c.includes("okc_vat_not_deductible"));
+  assert.ok(c.includes("okc_vat_not_deductible"), "temkinli şirkette uyarı çıkar");
+  const flex = codes({ ...ctx({ fields: base({ doc_type: "okc_fis", buyer_vkn: null }), category: { tax_rule: "meal", attendees_required: false } }), company: { car_kkeg_vat_deductible: false, okc_vat_policy: "flexible" } });
+  assert.ok(!flex.includes("okc_vat_not_deductible"), "varsayılanda yazar kasa fişi kabul edilir");
   assert.ok(c.includes("attendees_missing"));
 });
 
