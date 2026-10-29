@@ -35,7 +35,7 @@ jobs:
       - name: Tip kontrolü
         run: npx tsc --noEmit
       - name: Birim testleri
-        run: node --test src/lib/accounting/test/*.test.ts src/lib/bulk/test/*.test.ts src/lib/orgchart/test/*.test.ts src/lib/brand/test/*.test.ts src/lib/print/test/*.test.ts
+        run: node --test src/lib/accounting/test/*.test.ts src/lib/bulk/test/*.test.ts src/lib/orgchart/test/*.test.ts src/lib/brand/test/*.test.ts src/lib/print/test/*.test.ts src/lib/pricing/test/*.test.ts
 
   publish:
     needs: check
