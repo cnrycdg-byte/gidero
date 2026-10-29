@@ -1,10 +1,12 @@
 import { router, usePathname, type Href } from 'expo-router';
+import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
 import { Logo } from '@/components/logo';
 import { Text } from '@/components/text';
 import { fonts, radius, space, useColors, useScheme } from '@/constants/theme';
+import { logoUrl } from '@/lib/brand';
 import { useSession } from '@/lib/session';
 
 type Item = { href: string; label: string; icon: IconName };
@@ -34,7 +36,12 @@ export function Sidebar() {
     if (hasRole('accountant')) main.push({ href: '/bulk', label: 'Toplu yükleme', icon: 'gallery' });
     groups.push({ items: main });
     const admin: Item[] = [];
-    if (hasRole('admin')) admin.push({ href: '/team', label: 'Ekip', icon: 'team' }, { href: '/approval-flow', label: 'Onay zinciri', icon: 'checkCircle' });
+    if (hasRole('admin'))
+      admin.push(
+        { href: '/team', label: 'Ekip', icon: 'team' },
+        { href: '/approval-flow', label: 'Onay zinciri', icon: 'checkCircle' },
+        { href: '/brand', label: 'Logo ve renkler', icon: 'settings' },
+      );
     if (hasRole('admin') || hasRole('accountant')) admin.push({ href: '/categories', label: 'Gider grupları', icon: 'receipt' });
     if (hasRole('admin') || hasRole('accountant') || hasRole('approver')) admin.push({ href: '/limits', label: 'Sınır durumu', icon: 'warning' });
     if (admin.length) groups.push({ title: 'Şirket', items: admin });
@@ -49,7 +56,9 @@ export function Sidebar() {
       ],
     });
 
-  const bg = scheme === 'dark' ? '#0C1A17' : c.deep;
+  const branded = !!active?.companies.brand_primary;
+  const bg = scheme === 'dark' && !branded ? '#0C1A17' : c.deep;
+  const logo = logoUrl(active?.companies.logo_path);
   const name = String(session?.user.user_metadata?.full_name || session?.user.email || '');
   const isOn = (h: string) => (h === '/' ? path === '/' : path === h || path.startsWith(`${h}/`));
 
@@ -63,6 +72,11 @@ export function Sidebar() {
           <Pressable
             onPress={() => router.push(bureaus.length ? '/clients' : '/settings')}
             style={({ pressed }) => [styles.firm, { backgroundColor: pressed ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.08)' }]}>
+            {logo ? (
+              <View style={styles.firmLogo}>
+                <Image source={{ uri: logo }} style={{ width: '100%', height: '100%' }} contentFit="contain" />
+              </View>
+            ) : null}
             <Text style={styles.firmLabel}>{bureauFirm ? 'Çalıştığınız firma' : bureaus.length && !active ? 'Büro' : 'Şirket'}</Text>
             <Text style={styles.firmName} numberOfLines={2}>
               {active?.companies.legal_name ?? bureaus[0]?.name}
@@ -84,7 +98,7 @@ export function Sidebar() {
                     { backgroundColor: on ? '#FFFFFF' : pressed || hovered ? 'rgba(255,255,255,0.10)' : 'transparent' },
                   ]}>
                   <Icon name={it.icon} size={15} color={on ? c.deep : 'rgba(255,255,255,0.75)'} />
-                  <Text style={[styles.itemText, { color: on ? '#0B3D35' : '#FFFFFF', fontFamily: on ? fonts.semibold : fonts.medium }]}>{it.label}</Text>
+                  <Text style={[styles.itemText, { color: on ? c.deep : '#FFFFFF', fontFamily: on ? fonts.semibold : fonts.medium }]}>{it.label}</Text>
                 </Pressable>
               );
             })}
@@ -98,7 +112,7 @@ export function Sidebar() {
         </Pressable>
         <Pressable onPress={() => router.push('/profile')} style={[styles.me, isOn('/profile') && { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
           <View style={styles.avatar}>
-            <Text style={{ color: '#0B3D35', fontFamily: fonts.bold, fontSize: 12 }}>
+            <Text style={{ color: c.deep, fontFamily: fonts.bold, fontSize: 12 }}>
               {name
                 .split(/[\s@.]+/)
                 .filter(Boolean)
@@ -118,6 +132,7 @@ export function Sidebar() {
 }
 
 const styles = StyleSheet.create({
+  firmLogo: { height: 44, borderRadius: 8, backgroundColor: '#FFFFFF', padding: 6, marginBottom: 6 },
   rail: { width: 248, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: 'rgba(0,0,0,0.2)' },
   firm: { borderRadius: radius.md, padding: space.md, gap: 2 },
   firmLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },

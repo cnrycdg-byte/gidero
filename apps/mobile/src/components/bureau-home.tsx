@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -8,6 +9,7 @@ import { Text } from '@/components/text';
 import { Group, Notice, Row, SectionTitle, StatusTag } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
 import { currentPeriod, dateText, money } from '@/lib/format';
+import { logoUrl } from '@/lib/brand';
 import { useQueue } from '@/lib/queue';
 import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
@@ -74,6 +76,11 @@ export function BureauHome() {
       <Stack.Screen options={{ title: bureau?.name ?? 'Büro', headerLargeTitle: false }} />
       <View style={[styles.hero, { backgroundColor: c.deep }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          {active.companies.logo_path ? (
+            <View style={styles.logo}>
+              <Image source={{ uri: logoUrl(active.companies.logo_path)! }} style={{ width: '100%', height: '100%' }} contentFit="contain" />
+            </View>
+          ) : null}
           <View style={{ flex: 1 }}>
             <Text style={[type.small, { color: c.onDeepMuted, fontWeight: '600' }]}>Şu an çalıştığınız firma</Text>
             <Text style={{ fontFamily: fonts.displayHeavy, fontSize: 28, color: c.onDeep }} numberOfLines={1}>
@@ -154,6 +161,7 @@ function Tile({ icon, title, text, onPress, primary }: { icon: IconName; title: 
 
 const styles = StyleSheet.create({
   hero: { borderRadius: radius.lg, padding: space.xl, gap: space.sm },
+  logo: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: '#FFFFFF', padding: 6 },
   switch: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   tile: { flexGrow: 1, flexBasis: 200, borderRadius: radius.lg, padding: space.lg, gap: 4, minHeight: 116 },

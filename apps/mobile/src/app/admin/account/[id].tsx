@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -249,10 +249,19 @@ export default function AdminAccountScreen() {
       <SectionTitle title="Firmalar ve kişiler" />
       {byCompany.map(([company, list]) => (
         <View key={company} style={{ gap: space.sm }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 16, color: c.ink }}>
-            {company}
-            {list[0]?.tax_number ? <Text style={[type.small, { color: c.muted }]}>  VKN {list[0].tax_number}</Text> : null}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' }}>
+            <Text style={{ fontFamily: fonts.display, fontSize: 16, color: c.ink, flex: 1 }}>
+              {company}
+              {list[0]?.tax_number ? <Text style={[type.small, { color: c.muted }]}>  VKN {list[0].tax_number}</Text> : null}
+            </Text>
+            {list[0]?.company_id ? (
+              <Button
+                title="Logo ve renkler"
+                variant="secondary"
+                onPress={() => router.push({ pathname: '/brand', params: { company: list[0].company_id! } })}
+              />
+            ) : null}
+          </View>
           <Group>
             {list.filter((p) => p.user_id).length === 0 ? (
               <Row title="Henüz kişi eklenmemiş" />

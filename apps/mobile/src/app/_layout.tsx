@@ -121,6 +121,9 @@ function RootStack() {
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
 
       </Stack.Protected>
+      <Stack.Protected guard={signedIn && (hasCompany || hasBureau || platformAdmin)}>
+        <Stack.Screen name="brand" options={{ title: 'Logo ve renkler' }} />
+      </Stack.Protected>
       <Stack.Protected guard={signedIn && platformAdmin}>
         <Stack.Screen name="admin/index" options={{ title: 'Gidero Yönetim', headerLargeTitle: true }} />
         <Stack.Screen name="admin/account/[id]" options={{ title: 'Müşteri' }} />

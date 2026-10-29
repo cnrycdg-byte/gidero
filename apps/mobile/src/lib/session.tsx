@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import { BrandContext } from '@/constants/theme';
 import { supabase } from './supabase';
 import type { Membership } from './types';
 
@@ -74,6 +75,9 @@ type WorkspaceCompany = {
   bureau_account_id: string | null;
   billing_account_id: string;
   active: boolean;
+  brand_primary?: string | null;
+  brand_accent?: string | null;
+  logo_path?: string | null;
 };
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -135,7 +139,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         bureau_account_id: c.bureau_account_id,
         billing_account_id: c.billing_account_id,
         company_active: c.active,
-        companies: { id: c.company_id, legal_name: c.legal_name, tax_number: c.tax_number },
+        companies: {
+          id: c.company_id,
+          legal_name: c.legal_name,
+          tax_number: c.tax_number,
+          brand_primary: c.brand_primary ?? null,
+          brand_accent: c.brand_accent ?? null,
+          logo_path: c.logo_path ?? null,
+        },
       }));
       setBureaus(ws.bureaus ?? []);
       setPlatformAdmin(!!ws.platform_admin);
@@ -164,6 +175,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const active = memberships.find((m) => m.company_id === activeId) ?? null;
 
+  // Seçili şirketin renkleri tüm ekranlara uygulanır; şirket değişince palet de değişir
+  const brandPrimary = active?.companies.brand_primary ?? null;
+  const brandAccent = active?.companies.brand_accent ?? null;
+  const brand = useMemo(() => ({ primary: brandPrimary, accent: brandAccent }), [brandPrimary, brandAccent]);
+
   const value = useMemo<Ctx>(
     () => ({
       ready: authReady && (!userId || membershipsReady),
@@ -184,7 +200,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>
+      <BrandContext.Provider value={brand}>{children}</BrandContext.Provider>
+    </SessionContext.Provider>
+  );
 }
 
 export function useSession() {
