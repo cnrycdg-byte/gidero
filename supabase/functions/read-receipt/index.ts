@@ -1,7 +1,9 @@
 // read-receipt: bir masrafın fiş görselini okur, vergi kurallarından geçirir ve sonucu kaydeder.
 //
 // İstek:  POST { expense_id: uuid, qr_payload?: string, recheck?: boolean }  (Authorization: Bearer <kullanıcı oturumu>)
-// Yanıt:  { fields, flags, model, attempts }
+// Yanıt:  { fields, flags, model, attempts, parts, count, extra_ids }
+// Fotoğrafta birden çok fiş varsa (en çok 5) ilk fiş bu masrafa yazılır, diğerleri aynı rapora aynı görselle
+// ayrı masraf olarak eklenir (photo_part / photo_parts). Fotoğraftaki bir parçayı yeniden okurken yalnızca o fiş alınır.
 // recheck: fiş yeniden okunmaz; kullanıcının kaydettiği bilgilerle vergi kontrolü tekrarlanır
 // (kategori, katılımcı veya tutar değişince uyarılar güncellensin diye).
 //
@@ -10,7 +12,7 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { parseGibQr } from "../_shared/receipt/qr.ts";
-import { readReceipt, type ImageInput } from "../_shared/receipt/claude.ts";
+import { MAX_RECEIPTS_PER_PHOTO, readPhoto, type ImageInput } from "../_shared/receipt/claude.ts";
 import { alcoholFlag, evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
 import type { ReceiptFields, TaxContext } from "../_shared/receipt/types.ts";
 import { normalizePlate } from "../_shared/receipt/validate.ts";
@@ -65,7 +67,7 @@ Deno.serve(async (req) => {
   const { data: exp, error: expErr } = await user
     .from("expenses")
     .select(
-      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total, alcohol_present, alcohol_amount, alcohol_items, alcohol_decision, alcohol_decided_by",
+      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total, alcohol_present, alcohol_amount, alcohol_items, alcohol_decision, alcohol_decided_by, payment_method, photo_part, photo_parts, einvoice_confirmed_at",
     )
     .eq("id", body.expense_id)
     .maybeSingle();
@@ -97,18 +99,87 @@ Deno.serve(async (req) => {
 
   let read;
   try {
-    read = await readReceipt(apiKey, { base64: toBase64(bytes), media_type: mediaType }, qr, allowedRates);
+    read = await readPhoto(apiKey, { base64: toBase64(bytes), media_type: mediaType }, qr, allowedRates);
   } catch (e) {
     console.error("read-receipt claude error", e);
     return json(502, { error: "Fiş şu anda okunamadı. Tutarı elle girebilir veya biraz sonra tekrar deneyebilirsiniz." });
   }
-  const f: ReceiptFields = read.fields;
+  const qrUsed = qr?.total != null;
 
-  // 4. Vergi kontrolü
+  // Fotoğraftaki bir parça yeniden okunuyorsa yalnızca o fiş alınır, yeni masraf açılmaz
+  if (exp.photo_part && exp.photo_parts && exp.photo_parts > 1) {
+    const f = read.receipts[exp.photo_part - 1] ?? read.receipts[0];
+    const r = await store(admin, exp, f, sha, qrUsed, { part: exp.photo_part, parts: exp.photo_parts });
+    if ("error" in r) return json(500, { error: r.error });
+    return json(200, { fields: f, flags: r.flags, model: read.model, attempts: publicAttempts(read.attempts), parts: exp.photo_parts, count: exp.photo_parts, extra_ids: [] });
+  }
+
+  // Ek fişler yalnızca rapor hâlâ düzenlenebiliyorsa açılır
+  let receipts = read.receipts;
+  if (receipts.length > 1) {
+    const { data: rep } = await admin.from("reports").select("status").eq("id", exp.report_id).single();
+    if (!rep || !["draft", "returned"].includes(rep.status)) receipts = receipts.slice(0, 1);
+  }
+  const parts = receipts.length;
+  const partInfo = (i: number) => (parts > 1 ? { part: i + 1, parts } : { part: null, parts: null });
+  const overflow = read.count > MAX_RECEIPTS_PER_PHOTO && parts === MAX_RECEIPTS_PER_PHOTO
+    ? {
+      code: "multi_over_limit", severity: "warning" as const,
+      message: `Fotoğrafta ${read.count} fiş var; ilk ${MAX_RECEIPTS_PER_PHOTO} fiş ayrı kayıt olarak okundu. Kalan fişleri ayrıca çekin.`,
+    }
+    : null;
+
+  const first = await store(admin, exp, receipts[0], sha, qrUsed, partInfo(0), overflow);
+  if ("error" in first) return json(500, { error: first.error });
+
+  const extraIds: string[] = [];
+  for (let i = 1; i < parts; i++) {
+    const f = receipts[i];
+    const { data: row, error: insErr } = await admin.from("expenses").insert({
+      company_id: exp.company_id,
+      report_id: exp.report_id,
+      created_by: exp.created_by,
+      image_path: exp.image_path,
+      payment_method: exp.payment_method ?? "personal",
+      total: f.total != null && f.total > 0 ? f.total : 0,
+    }).select("id, company_id, report_id, created_by, total, image_path, category_id, attendees, payment_method, einvoice_confirmed_at").single();
+    if (insErr || !row) {
+      console.error("read-receipt extra insert error", insErr);
+      continue;
+    }
+    // Yeni satırın tutarı fişten geldi; "kullanıcının girdiği tutar" sayılmasın
+    const r = await store(admin, { ...row, total: 0 }, f, sha, false, partInfo(i));
+    if (!("error" in r)) extraIds.push(row.id);
+  }
+
+  return json(200, {
+    fields: receipts[0],
+    flags: first.flags,
+    model: read.model,
+    attempts: publicAttempts(read.attempts),
+    parts,
+    count: read.count,
+    extra_ids: extraIds,
+  });
+});
+
+const publicAttempts = (a: { model: string; ok: boolean; issues: string[] }[]) =>
+  a.map((x) => ({ model: x.model, ok: x.ok, issues: x.issues }));
+
+/** Okunan bir fişi masrafa yazar, KDV satırlarını ve vergi uyarılarını yeniler. */
+async function store(
+  // deno-lint-ignore no-explicit-any
+  admin: SupabaseClient<any, any, any>,
+  exp: Row,
+  f: ReceiptFields,
+  sha: string,
+  qrUsed: boolean,
+  part: { part: number | null; parts: number | null },
+  extraFlag: { code: string; severity: "info" | "warning" | "critical"; message: string } | null = null,
+): Promise<{ flags: ReturnType<typeof evaluateTaxRules> } | { error: string }> {
   const enteredTotal = Number(exp.total) > 0 ? Number(exp.total) : null;
-  const flags = await evaluate(admin, exp, f, sha, f.total);
+  const flags = await evaluate(admin, { ...exp, photo_part: part.part }, f, sha, f.total);
 
-  // 5. Kayıt
   const { error: upErr } = await admin.from("expenses").update({
     doc_type: f.doc_type,
     seller_name: f.seller_name,
@@ -120,8 +191,11 @@ Deno.serve(async (req) => {
     plate: normalizePlate(f.plate) ?? f.plate,
     currency: f.currency || "TRY",
     read_total: f.total,
-    read_source: qr?.total != null ? "qr" : "ai",
+    read_source: qrUsed ? "qr" : "ai",
     image_sha256: sha,
+    photo_part: part.part,
+    photo_parts: part.parts,
+    photo_position: part.parts ? (f.position ?? null)?.slice(0, 60) ?? null : null,
     // Alkol: yeniden okunursa önceki muhasebe kararı sıfırlanır; şirket kuralı veritabanında uygulanır
     alcohol_amount: f.alcohol?.present ? (f.alcohol.amount ?? null) : null,
     alcohol_items: f.alcohol?.present ? f.alcohol.items.slice(0, 20) : [],
@@ -133,7 +207,7 @@ Deno.serve(async (req) => {
   }).eq("id", exp.id);
   if (upErr) {
     console.error("read-receipt update error", upErr);
-    return json(500, { error: "Okunan bilgiler kaydedilemedi." });
+    return { error: "Okunan bilgiler kaydedilemedi." };
   }
 
   await admin.from("expense_vat_lines").delete().eq("expense_id", exp.id);
@@ -149,15 +223,10 @@ Deno.serve(async (req) => {
     const alc = alcoholFlag({ ...f.alcohol, decision: after?.alcohol_decision ?? null, auto: true });
     finalFlags = [...flags.filter((x) => x.code !== "alcohol" && x.code !== "alcohol_decided"), ...(alc ? [alc] : [])];
   }
+  if (extraFlag) finalFlags = [...finalFlags, extraFlag];
   await replaceFlags(admin, exp, finalFlags);
-
-  return json(200, {
-    fields: f,
-    flags: finalFlags,
-    model: read.model,
-    attempts: read.attempts.map((a) => ({ model: a.model, ok: a.ok, issues: a.issues })),
-  });
-});
+  return { flags: finalFlags };
+}
 
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
@@ -219,7 +288,12 @@ async function evaluate(
   const params = await loadParams(admin, docYear);
 
   const dupConds: string[] = [];
-  if (sha) dupConds.push(`image_sha256.eq.${sha}`);
+  // Aynı görsel: çok fişli fotoğrafta yalnızca aynı sıradaki fiş mükerrer sayılır
+  if (sha) {
+    dupConds.push(exp.photo_part
+      ? `and(image_sha256.eq.${sha},photo_part.eq.${exp.photo_part})`
+      : `and(image_sha256.eq.${sha},or(photo_part.is.null,photo_part.eq.1))`);
+  }
   if (f.ettn && UUID.test(f.ettn)) dupConds.push(`ettn.eq.${f.ettn}`);
   if (f.seller_vkn && f.doc_no) dupConds.push(`and(seller_vkn.eq.${f.seller_vkn},doc_no.eq.${encodeURIComponent(f.doc_no)})`);
   const { data: dups } = dupConds.length
@@ -272,6 +346,7 @@ async function evaluate(
     params,
     same_day_same_seller_total: sameDay,
     duplicate_of: (dups ?? []).map((d: { id: string }) => d.id),
+    einvoice_confirmed: !!exp.einvoice_confirmed_at,
     today: new Date().toISOString().slice(0, 10),
   });
 }

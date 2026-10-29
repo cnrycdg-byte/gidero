@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { parseGibQr } from "../qr.ts";
 import { consistencyIssues, isValidTckn, isValidVkn, mergeQr, normalizePlate } from "../validate.ts";
 import { evaluateTaxRules } from "../tax-rules.ts";
-import { readReceipt } from "../claude.ts";
+import { applyQr, readPhoto, readReceipt } from "../claude.ts";
 import type { ReceiptFields, TaxContext } from "../types.ts";
 
 // Geçerli VKN üretici (test için)
@@ -180,4 +180,36 @@ test("alkol şirket kuralıyla KKEG olunca bilgi notu çıkar, uyarı çıkmaz",
   assert.ok(!fl.some((f) => f.code === "alcohol"));
   const d = fl.find((f) => f.code === "alcohol_decided");
   assert.ok(d && d.severity === "info" && d.message.includes("KKEG") && d.message.includes("Şirket kuralına göre"));
+});
+
+test("bilgi fişi: e-Arşiv onayı yoksa uyarı, varsa muhasebe için bilgi notu", () => {
+  const f = base({ doc_type: "bilgi_fisi" });
+  let flags = evaluateTaxRules(ctx({ fields: f }));
+  assert.equal(flags.find((x) => x.code === "info_slip")?.severity, "warning");
+  flags = evaluateTaxRules(ctx({ fields: f, einvoice_confirmed: true }));
+  assert.equal(flags.find((x) => x.code === "info_slip")?.severity, "info");
+  assert.ok(!flags.some((x) => x.code === "over_invoice_limit"));
+  flags = evaluateTaxRules(ctx({ fields: base({ doc_type: "bilgi_fisi", buyer_vkn: "12345678901" }), einvoice_confirmed: true }));
+  assert.ok(flags.some((x) => x.code === "invoice_to_person"));
+});
+
+test("tek fotoğrafta birden çok fiş ayrı okunur, en çok 5", async () => {
+  const many = Array.from({ length: 7 }, (_, i) => ({ ...base({ total: 110 * (i + 1), vat_lines: [{ rate: 10, base: 100 * (i + 1), vat: 10 * (i + 1) }] }), position: `${i + 1}. sıra` }));
+  const fetchMany = (async () => new Response(JSON.stringify({
+    stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ count_in_photo: 7, receipts: many }) }],
+    usage: { input_tokens: 1, output_tokens: 1 },
+  }), { status: 200 })) as unknown as typeof fetch;
+  const r = await readPhoto("k", { base64: "AAAA", media_type: "image/jpeg" }, null, [1, 10, 20], fetchMany);
+  assert.equal(r.receipts.length, 5);
+  assert.equal(r.count, 7);
+  assert.equal(r.receipts[1].total, 220);
+  assert.equal(r.receipts[1].position, "2. sıra");
+});
+
+test("karekod çok fişli fotoğrafta yalnızca tutarı eşleşen fişe uygulanır", () => {
+  const a = base({ total: 110, vat_lines: [{ rate: 10, base: 100, vat: 10 }] });
+  const b = base({ total: 220, doc_no: null, vat_lines: [{ rate: 10, base: 200, vat: 20 }] });
+  const out = applyQr([a, b], { total: 220, doc_no: "QR123" });
+  assert.equal(out[0].doc_no, a.doc_no);
+  assert.equal(out[1].doc_no, "QR123");
 });

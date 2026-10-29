@@ -88,12 +88,14 @@ export const DOC_TYPE_LABEL: Record<string, string> = {
   bilet: 'Bilet',
   yurtdisi_fatura: 'Yurt dışı fatura',
   dekont: 'Dekont',
+  bilgi_fisi: 'e-Arşiv fatura (bilgi fişi)',
   unknown: 'Belge',
 };
 
 /** e-Defter belge türü: fatura, çek, senet, makbuz, navlun, diğer */
 export function eDefterDocType(docType: string): string {
-  if (docType === 'e_fatura' || docType === 'e_arsiv' || docType === 'yurtdisi_fatura') return 'Fatura';
+  // Bilgi fişinin asıl belgesi e-Arşiv faturadır
+  if (docType === 'e_fatura' || docType === 'e_arsiv' || docType === 'bilgi_fisi' || docType === 'yurtdisi_fatura') return 'Fatura';
   if (docType === 'serbest_meslek' || docType === 'gider_pusulasi') return 'Makbuz';
   return 'Diğer';
 }

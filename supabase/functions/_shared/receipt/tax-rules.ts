@@ -36,6 +36,19 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
       "VUK 227");
   }
 
+  // 2b. Bilgi fişi: asıl belge e-Arşiv fatura; çalışan onayı muhasebede görünür
+  if (f.doc_type === "bilgi_fisi") {
+    if (ctx.einvoice_confirmed) {
+      add("info_slip", "info",
+        "Bu bir bilgi fişi. Çalışan, e-Arşiv faturasının şirket adına düzenlendiğini onayladı. Kayıt e-Arşiv faturaya göre yapılır; faturayı e-postadan ya da ETTN ile kontrol edin.",
+        "VUK 509 GT");
+    } else {
+      add("info_slip", "warning",
+        "Bu bir bilgi fişi; tek başına gider belgesi değil, asıl belge e-Arşiv faturasıdır. Faturanın şirket adına düzenlenip e-postanıza geldiğini onaylayın.",
+        "VUK 509 GT");
+    }
+  }
+
   // 3. Kilometre ve gündelik: gider değil, ücret
   if (rule === "mileage") {
     add("payroll_mileage", "warning",
@@ -44,7 +57,7 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
   }
 
   // 4. Alıcı vergi numarası
-  if ((f.doc_type === "e_fatura" || f.doc_type === "e_arsiv") && f.buyer_vkn) {
+  if ((f.doc_type === "e_fatura" || f.doc_type === "e_arsiv" || f.doc_type === "bilgi_fisi") && f.buyer_vkn) {
     if (f.buyer_vkn !== ctx.company_tax_number) {
       const toEmployee = f.buyer_vkn.length === 11;
       add(toEmployee ? "invoice_to_person" : "invoice_to_other_company", "warning",
