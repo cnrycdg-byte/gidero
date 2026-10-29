@@ -61,7 +61,8 @@ export type Expense = {
   alcohol_present?: boolean;
   alcohol_amount?: number | null;
   alcohol_items?: string[];
-  alcohol_decision?: 'accepted' | 'rejected' | null;
+  alcohol_decision?: 'accepted' | 'rejected' | 'kkeg' | null;
+  alcohol_decided_by?: string | null;
   expense_vat_lines?: VatLine[];
   expense_flags?: Flag[];
 };

@@ -171,3 +171,11 @@ test("alkollü içki satırı muhasebe onayı için işaretlenir", () => {
   assert.match(fl!.message, /420,00 TL/);
   assert.ok(!codes(ctx({ fields: base({ alcohol: { present: false, amount: null, items: [] } }) })).includes("alcohol"), "alkol yoksa uyarı yok");
 });
+
+test("alkol şirket kuralıyla KKEG olunca bilgi notu çıkar, uyarı çıkmaz", () => {
+  const c = ctx({ fields: base({ alcohol: { present: true, amount: 300, items: ["Efes"], decision: "kkeg", auto: true } }) });
+  const fl = evaluateTaxRules(c);
+  assert.ok(!fl.some((f) => f.code === "alcohol"));
+  const d = fl.find((f) => f.code === "alcohol_decided");
+  assert.ok(d && d.severity === "info" && d.message.includes("KKEG") && d.message.includes("Şirket kuralına göre"));
+});

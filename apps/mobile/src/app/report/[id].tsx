@@ -290,8 +290,10 @@ export default function ReportScreen() {
                             e.payment_method && e.payment_method !== 'personal' ? PAYMENT_LABEL[e.payment_method] : null,
                             e.alcohol_present
                               ? e.alcohol_decision === 'accepted'
-                                ? 'Alkol onaylandı'
-                                : e.alcohol_decision === 'rejected'
+                                ? 'Alkol: normal gider'
+                                : e.alcohol_decision === 'kkeg'
+                                  ? 'Alkol: KKEG'
+                                  : e.alcohol_decision === 'rejected'
                                   ? `Alkol reddedildi (${money(Number(e.alcohol_amount ?? 0))})`
                                   : 'Alkol: muhasebe kararı bekliyor'
                               : null,
