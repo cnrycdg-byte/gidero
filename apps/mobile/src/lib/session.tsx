@@ -178,7 +178,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Seçili şirketin renkleri tüm ekranlara uygulanır; şirket değişince palet de değişir
   const brandPrimary = active?.companies.brand_primary ?? null;
   const brandAccent = active?.companies.brand_accent ?? null;
-  const brand = useMemo(() => ({ primary: brandPrimary, accent: brandAccent }), [brandPrimary, brandAccent]);
+  // Gidero yöneticisi her zaman Gidero renklerini görür (müşteri firmalarının rengini değiştirmek onu etkilemez)
+  const brand = useMemo(
+    () => (platformAdmin ? { primary: null, accent: null } : { primary: brandPrimary, accent: brandAccent }),
+    [brandPrimary, brandAccent, platformAdmin],
+  );
 
   const value = useMemo<Ctx>(
     () => ({
