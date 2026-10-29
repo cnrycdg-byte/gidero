@@ -30,6 +30,8 @@ export default function ExpenseScreen() {
   const c = useColors();
   const { userId, hasRole, active } = useSession();
   const [reloadKey, setReloadKey] = useState(0);
+  // Aynı raporda kontrol bekleyen diğer fişler (sıradaki fişe geçmek için)
+  const [remaining, setRemaining] = useState<string[]>([]);
 
   const [exp, setExp] = useState<Expense | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -94,6 +96,14 @@ export default function ExpenseScreen() {
           .catch(() => setUsage([]));
       }
       setCategories((cats.data ?? []) as Category[]);
+      supabase
+        .from('expenses')
+        .select('id')
+        .eq('report_id', e.report_id)
+        .is('checked_at', null)
+        .neq('id', e.id)
+        .order('created_at', { ascending: true })
+        .then(({ data: rest }) => setRemaining(((rest ?? []) as { id: string }[]).map((x) => x.id)));
       if (e.image_path) setImage(await receiptUrl(e.image_path));
     })();
   }, [id, reloadKey]);
@@ -148,7 +158,7 @@ export default function ExpenseScreen() {
     });
   }
 
-  async function save() {
+  async function save(goNext = false) {
     if (!exp) return;
     setError(null);
     const t = parseAmount(total);
@@ -202,19 +212,20 @@ export default function ExpenseScreen() {
       if (needsCheck) {
         const { error: e4 } = await supabase.rpc('check_expense', { p_expense: exp.id, p_checked: true });
         if (e4) throw e4;
-        // Sıradaki kontrol bekleyen fişe geç; kalmadıysa rapora dön
-        const { data: next } = await supabase
-          .from('expenses')
-          .select('id')
-          .eq('report_id', exp.report_id)
-          .is('checked_at', null)
-          .gt('total', 0)
-          .neq('id', exp.id)
-          .order('created_at', { ascending: true })
-          .limit(1);
-        if (next?.length) {
-          router.replace({ pathname: '/expense/[id]', params: { id: next[0].id, review: '1' } });
-          return;
+        // İstenirse sıradaki kontrol bekleyen fişe geçilir; kalmadıysa rapora dönülür
+        if (goNext) {
+          const { data: next } = await supabase
+            .from('expenses')
+            .select('id')
+            .eq('report_id', exp.report_id)
+            .is('checked_at', null)
+            .neq('id', exp.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+          if (next?.length) {
+            router.replace({ pathname: '/expense/[id]', params: { id: next[0].id, review: '1' } });
+            return;
+          }
         }
       }
       router.back();
@@ -263,8 +274,8 @@ export default function ExpenseScreen() {
               exp.checked_at
                 ? 'Bu fişi kontrol ettiniz. Bir şeyi değiştirirseniz yeniden kaydedin.'
                 : review
-                  ? 'Fotoğrafla bilgileri karşılaştırın: tutar, tarih, satıcı ve KDV. Yanlış olanı düzeltin, sonra "Bilgiler doğru, kaydet" deyin.'
-                  : 'Bilgileri fişle karşılaştırın; doğruysa "Bilgiler doğru, kaydet" deyin.'
+                  ? `Fotoğrafla bilgileri karşılaştırın: tutar, tarih, satıcı ve KDV. Yanlış olanı düzeltin, sonra "${remaining.length ? 'Doğru, sıradaki fiş' : 'Bilgiler doğru, kaydet'}" deyin.`
+                  : `Bilgileri fişle karşılaştırın; doğruysa "${remaining.length ? 'Doğru, sıradaki fiş' : 'Bilgiler doğru, kaydet'}" deyin.`
             }
           />
         ) : null}
@@ -451,7 +462,20 @@ export default function ExpenseScreen() {
 
       {editable && (
         <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
-          <Button icon="check" title={needsCheck ? 'Bilgiler doğru, kaydet' : 'Kaydet'} onPress={save} loading={busy} style={{ flex: 1 }} />
+          {needsCheck && remaining.length > 0 ? (
+            <>
+              <Button variant="secondary" title="Kaydet" onPress={() => save(false)} disabled={busy} style={{ flex: 1 }} />
+              <Button
+                icon="check"
+                title={`Doğru, sıradaki fiş (${remaining.length})`}
+                onPress={() => save(true)}
+                loading={busy}
+                style={{ flex: 1.6 }}
+              />
+            </>
+          ) : (
+            <Button icon="check" title={needsCheck ? 'Bilgiler doğru, kaydet' : 'Kaydet'} onPress={() => save(false)} loading={busy} style={{ flex: 1 }} />
+          )}
         </SafeAreaView>
       )}
     </KeyboardAvoidingView>
@@ -467,6 +491,8 @@ const styles = StyleSheet.create({
   chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
   box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
   bar: {
+    flexDirection: 'row',
+    gap: space.sm,
     position: 'absolute',
     left: 0,
     right: 0,
