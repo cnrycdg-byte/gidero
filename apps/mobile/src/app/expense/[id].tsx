@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +30,7 @@ export default function ExpenseScreen() {
   const c = useColors();
   const { userId, hasRole, active } = useSession();
   const [reloadKey, setReloadKey] = useState(0);
+  const { width: screenW, height: screenH } = useWindowDimensions();
   // Aynı raporda kontrol bekleyen diğer fişler (sıradaki fişe geçmek için)
   const [remaining, setRemaining] = useState<string[]>([]);
 
@@ -255,16 +256,49 @@ export default function ExpenseScreen() {
         ? { fg: c.amber, bg: c.amberSoft, label: 'Uyarı' }
         : { fg: c.pen, bg: c.penSoft, label: 'Bilgi' };
 
+  // Okunamayan (boş) alanlar: turuncu işaretlenir, kişi fişe bakıp elle yazar
+  const miss = {
+    total: !(parseAmount(total) ?? 0),
+    date: !date.trim(),
+    docNo: !docNo.trim(),
+    seller: !seller.trim(),
+    plate: showPlate && !plate.trim(),
+    category: !categoryId,
+  };
+  const MISS_LABEL: Record<keyof typeof miss, string> = {
+    total: 'tutar',
+    date: 'tarih',
+    docNo: 'fiş no',
+    seller: 'satıcı',
+    plate: 'plaka',
+    category: 'gider grubu',
+  };
+  const missingList = editable ? (Object.keys(miss) as (keyof typeof miss)[]).filter((k) => miss[k]) : [];
+  const m = (k: keyof typeof miss) => editable && miss[k];
+
+  // Geniş ekranda: solda dar form, sağda tıklamadan okunacak büyüklükte fiş fotoğrafı (fişler dikey)
+  const split = screenW >= 760 && !!image;
+  const formW = Math.min(460, Math.max(360, screenW * 0.42));
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+      <View style={{ flex: 1, flexDirection: split ? 'row' : 'column' }}>
+      <View style={split ? { width: formW } : { flex: 1 }}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 140 }}>
-        {image && (
-          <View style={[styles.imageWrap, { backgroundColor: c.paper }]}>
-            <Image source={{ uri: image }} style={styles.image} contentFit="contain" transition={150} />
+        {image && !split && (
+          <View style={[styles.imageWrap, { backgroundColor: c.paper, height: Math.min(560, Math.round(screenH * 0.5)) }]}>
+            <Image source={{ uri: image }} style={{ width: '100%', height: '100%' }} contentFit="contain" transition={150} />
           </View>
+        )}
+
+        {missingList.length > 0 && (
+          <Notice
+            tone="warn"
+            text={`Fişten okunamayan ${missingList.length === 1 ? 'alan' : 'alanlar'}: ${missingList.map((k) => MISS_LABEL[k]).join(', ')}. Turuncu kutuları fişe bakarak elle doldurun.`}
+          />
         )}
 
         {needsCheck && editable ? (
@@ -333,18 +367,19 @@ export default function ExpenseScreen() {
               keyboardType="decimal-pad"
               editable={editable}
               placeholder="0,00"
+              missing={m('total')}
               style={{ fontSize: 30, fontFamily: fonts.displayHeavy, fontVariant: ['tabular-nums'] }}
               hint={readDiffers ? `Fişten okunan tutar: ${money(exp.read_total)}` : undefined}
             />
             <View style={{ flexDirection: 'row', gap: space.sm }}>
               <View style={{ flex: 1 }}>
-                <Field label="Tarih" value={date} onChangeText={setDate} editable={editable} placeholder="GG.AA.YYYY" keyboardType="numbers-and-punctuation" />
+                <Field label="Tarih" value={date} onChangeText={setDate} editable={editable} placeholder="GG.AA.YYYY" keyboardType="numbers-and-punctuation" missing={m('date')} />
               </View>
               <View style={{ flex: 1.2 }}>
-                <Field label="Fiş / fatura no" value={docNo} onChangeText={setDocNo} editable={editable} autoCapitalize="characters" />
+                <Field label="Fiş / fatura no" value={docNo} onChangeText={setDocNo} editable={editable} autoCapitalize="characters" missing={m('docNo')} />
               </View>
             </View>
-            <Field label="Satıcı" value={seller} onChangeText={setSeller} editable={editable} />
+            <Field label="Satıcı" value={seller} onChangeText={setSeller} editable={editable} missing={m('seller')} />
             {showPlate && (
               <Field
                 label="Araç plakası"
@@ -353,6 +388,7 @@ export default function ExpenseScreen() {
                 editable={editable}
                 autoCapitalize="characters"
                 placeholder="35 ABC 123"
+                missing={m('plate')}
                 hint={plate.trim() && !normalizePlate(plate) ? 'Plaka 35 ABC 123 biçiminde olmalı.' : 'Akaryakıt fişlerinde kişi kartınızdaki araçla karşılaştırılır.'}
               />
             )}
@@ -392,6 +428,7 @@ export default function ExpenseScreen() {
         </Slip>
 
         <SectionTitle title="Kategori" />
+        {m('category') ? <Text style={[type.small, { color: c.amber, marginTop: -space.sm }]}>Gider grubunu seçin.</Text> : null}
         <View style={styles.chips}>
           {categories.map((k) => {
             const on = k.id === categoryId;
@@ -478,12 +515,22 @@ export default function ExpenseScreen() {
           )}
         </SafeAreaView>
       )}
+      </View>
+      {split && (
+        <View style={{ flex: 1, padding: space.lg, paddingLeft: 0 }}>
+          <View style={[styles.photoPane, { backgroundColor: c.paper, borderColor: c.paperLine }]}>
+            <Image source={{ uri: image! }} style={{ width: '100%', height: '100%' }} contentFit="contain" transition={150} />
+          </View>
+        </View>
+      )}
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   imageWrap: { borderRadius: radius.lg, overflow: 'hidden' },
+  photoPane: { flex: 1, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   image: { width: '100%', height: 300 },
   flag: { borderRadius: radius.md, borderLeftWidth: 3, padding: space.md, gap: 4 },
   lineRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-end', marginTop: space.sm },
