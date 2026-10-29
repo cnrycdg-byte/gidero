@@ -31,7 +31,7 @@ export interface ReceiptFields {
   other_taxes: { type: "konaklama" | "otv" | "diger"; amount: number }[];
   confidence: { total: number; date: number; doc_no: number; vat: number };
   /** Alkollü içki satırları (bira, şarap, rakı...): KDV dahil toplamı ve kalemler. Okunamazsa yok. */
-  alcohol?: { present: boolean; amount: number | null; items: string[] };
+  alcohol?: { present: boolean; amount: number | null; items: string[]; decision?: "accepted" | "rejected" | "kkeg" | null; auto?: boolean };
 }
 
 export interface ReadResult {

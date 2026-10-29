@@ -11,7 +11,7 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { parseGibQr } from "../_shared/receipt/qr.ts";
 import { readReceipt, type ImageInput } from "../_shared/receipt/claude.ts";
-import { evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
+import { alcoholFlag, evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
 import type { ReceiptFields, TaxContext } from "../_shared/receipt/types.ts";
 import { normalizePlate } from "../_shared/receipt/validate.ts";
 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   const { data: exp, error: expErr } = await user
     .from("expenses")
     .select(
-      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total, alcohol_present, alcohol_amount, alcohol_items, alcohol_decision",
+      "id, company_id, report_id, created_by, total, image_path, image_sha256, category_id, attendees, doc_type, seller_name, seller_vkn, buyer_vkn, doc_date, doc_no, ettn, plate, currency, read_total, alcohol_present, alcohol_amount, alcohol_items, alcohol_decision, alcohol_decided_by",
     )
     .eq("id", body.expense_id)
     .maybeSingle();
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     read_total: f.total,
     read_source: qr?.total != null ? "qr" : "ai",
     image_sha256: sha,
-    // Alkol: yeniden okunursa önceki muhasebe kararı sıfırlanır
+    // Alkol: yeniden okunursa önceki muhasebe kararı sıfırlanır; şirket kuralı veritabanında uygulanır
     alcohol_amount: f.alcohol?.present ? (f.alcohol.amount ?? null) : null,
     alcohol_items: f.alcohol?.present ? f.alcohol.items.slice(0, 20) : [],
     alcohol_present: !!f.alcohol?.present,
@@ -142,11 +142,18 @@ Deno.serve(async (req) => {
       f.vat_lines.map((l) => ({ expense_id: exp.id, company_id: exp.company_id, rate: l.rate, base: l.base, vat: l.vat })),
     );
   }
-  await replaceFlags(admin, exp, flags);
+  // Alkol kararı (şirket kuralı) kayıttan sonra belli olur; uyarı ona göre yazılır
+  let finalFlags = flags;
+  if (f.alcohol?.present) {
+    const { data: after } = await admin.from("expenses").select("alcohol_decision").eq("id", exp.id).single();
+    const alc = alcoholFlag({ ...f.alcohol, decision: after?.alcohol_decision ?? null, auto: true });
+    finalFlags = [...flags.filter((x) => x.code !== "alcohol" && x.code !== "alcohol_decided"), ...(alc ? [alc] : [])];
+  }
+  await replaceFlags(admin, exp, finalFlags);
 
   return json(200, {
     fields: f,
-    flags,
+    flags: finalFlags,
     model: read.model,
     attempts: read.attempts.map((a) => ({ model: a.model, ok: a.ok, issues: a.issues })),
   });
@@ -176,9 +183,15 @@ async function recheck(admin: SupabaseClient<any, any, any>, exp: Row): Promise<
     vat_lines: (lines ?? []).map((l: Row) => ({ rate: Number(l.rate), base: Number(l.base), vat: Number(l.vat) })),
     other_taxes: [],
     confidence: { total: 1, date: 1, doc_no: 1, vat: 1 },
-    // Muhasebe karar verdiyse alkol uyarısı kalkar
-    alcohol: exp.alcohol_present && !exp.alcohol_decision
-      ? { present: true, amount: exp.alcohol_amount == null ? null : Number(exp.alcohol_amount), items: exp.alcohol_items ?? [] }
+    // Alkol: karar (şirket kuralı ya da muhasebe) uyarının metnini belirler
+    alcohol: exp.alcohol_present
+      ? {
+        present: true,
+        amount: exp.alcohol_amount == null ? null : Number(exp.alcohol_amount),
+        items: exp.alcohol_items ?? [],
+        decision: exp.alcohol_decision ?? null,
+        auto: !exp.alcohol_decided_by,
+      }
       : undefined,
   };
   const flags = await evaluate(admin, exp, f, exp.image_sha256, exp.read_total == null ? null : Number(exp.read_total));

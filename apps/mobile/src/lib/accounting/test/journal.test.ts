@@ -114,3 +114,13 @@ test('Reddedilen alkol gider yazılmaz; kendi cebinden ödendiyse çalışana ö
   const ok = buildEntry(report([exp({ ...e, alcohol_decision: 'accepted' })]), company);
   assert.deepEqual(totals(ok), { debit: 1100, credit: 1100 });
 });
+
+test('Alkol KKEG: tutar 689 hesabına yazılır, KDV indirilmez, çalışana tamamı ödenir', () => {
+  const en = buildEntry(report([exp({ total: 1100, category: meal, vat_lines: [{ rate: 10, base: 1000, vat: 100 }], alcohol_amount: 330, alcohol_decision: 'kkeg' })]), company);
+  const by = Object.fromEntries(en.lines.map((l) => [l.account_code, l.debit || -l.credit]));
+  assert.equal(by['770.01'], 700);
+  assert.equal(by['191.10'], 70);
+  assert.equal(by['689'], 330);
+  assert.equal(by['335.0042'], -1100);
+  assert.deepEqual(totals(en), { debit: 1100, credit: 1100 });
+});

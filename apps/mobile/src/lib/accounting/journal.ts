@@ -22,7 +22,7 @@ export type ExpenseInput = {
   flag_messages: string[];
   /** Muhasebe reddettiyse alkol tutarı gider yazılmaz ve çalışana ödenmez */
   alcohol_amount?: number | null;
-  alcohol_decision?: 'accepted' | 'rejected' | null;
+  alcohol_decision?: 'accepted' | 'rejected' | 'kkeg' | null;
 };
 
 export type ReportInput = {
@@ -125,9 +125,12 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
   for (const e of report.expenses) {
     const paid = kurus(e.total);
     // Reddedilen alkol: gider ve KDV'den orantılı düşülür
-    const rejected = e.alcohol_decision === 'rejected' ? Math.min(Math.max(kurus(e.alcohol_amount ?? 0), 0), paid) : 0;
-    const total = paid - rejected;
-    const scale = (k: number) => (paid > 0 && rejected > 0 ? Math.round((k * total) / paid) : k);
+    const alc = Math.min(Math.max(kurus(e.alcohol_amount ?? 0), 0), paid);
+    const rejected = e.alcohol_decision === 'rejected' ? alc : 0;
+    // KKEG kararı: alkol tutarı (KDV dahil) vergiden düşülmeyen gidere yazılır, çalışana ödenir
+    const alcKkeg = e.alcohol_decision === 'kkeg' ? alc : 0;
+    const total = paid - rejected - alcKkeg;
+    const scale = (k: number) => (paid > 0 && total < paid ? Math.round((k * total) / paid) : k);
     const doc = {
       doc_type: eDefterDocType(e.doc_type),
       doc_no: e.doc_no ?? '',
@@ -163,7 +166,7 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
     }
 
     let expenseDebit = base;
-    let kkegDebit = 0;
+    let kkegDebit = alcKkeg;
     const vatDebits: { rate: number; amount: number }[] = [];
 
     if (ratio > 0) {
@@ -198,7 +201,7 @@ export function buildEntry(report: ReportInput, c: CompanySettings): JournalEntr
     }
     const pay = paymentAccount(e.payment_method, report, c);
     if (e.payment_method === 'personal') {
-      credits.set(pay, (credits.get(pay) ?? 0) + total);
+      credits.set(pay, (credits.get(pay) ?? 0) + paid - rejected);
     } else {
       credits.set(pay, (credits.get(pay) ?? 0) + paid);
       if (rejected > 0) {

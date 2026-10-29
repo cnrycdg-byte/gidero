@@ -294,6 +294,8 @@ export default function Categories() {
         </View>
       )}
 
+      {active && <AlcoholPolicy companyId={active.company_id} canEdit={canEdit} />}
+
       <SectionTitle title={`Gider grupları (${activeCats.length})`} />
       <Group>{activeCats.map(row)}</Group>
 
@@ -307,7 +309,76 @@ export default function Categories() {
   );
 }
 
+type Policy = 'reject' | 'kkeg' | 'expense' | 'manual';
+const POLICIES: { key: Policy; title: string; text: string }[] = [
+  { key: 'kkeg', title: 'Ödenir, KKEG yazılır', text: 'Çalışan parasını alır. Tutar deftere girer ama vergiden düşülmez (689), KDV indirilmez.' },
+  { key: 'reject', title: 'Ödenmez', text: 'Alkol tutarı çalışana ödenmez ve gider yazılmaz. Fişteki yemek kısmı normal işlenir.' },
+  { key: 'expense', title: 'Ödenir, normal gider yazılır', text: 'İş amaçlı ağırlamalar için. Vergi incelemesinde iş bağlantısı ve katılımcılar sorulabilir.' },
+  { key: 'manual', title: 'Muhasebe her fişte karar verir', text: 'Karar verilene kadar rapor muhasebeye aktarılamaz.' },
+];
+
+/** Şirketin alkollü içki kuralı: fiş okunurken alkol satırlarına otomatik uygulanır */
+function AlcoholPolicy({ companyId, canEdit }: { companyId: string; canEdit: boolean }) {
+  const c = useColors();
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      supabase.rpc('alcohol_policy', { p_company: companyId }).then(({ data }) => setPolicy((data as Policy) ?? 'kkeg'));
+    }, [companyId]),
+  );
+
+  async function choose(p: Policy) {
+    if (!canEdit || p === policy) return;
+    setError(null);
+    setSaved(false);
+    const prev = policy;
+    setPolicy(p);
+    const { error: e } = await supabase.rpc('set_alcohol_policy', { p_company: companyId, p_policy: p });
+    if (e) {
+      setPolicy(prev);
+      return setError(errorText(e));
+    }
+    setSaved(true);
+  }
+
+  return (
+    <View style={{ gap: space.sm }}>
+      <SectionTitle title="Alkollü içki kuralı" />
+      <Text style={[type.small, { color: c.muted }]}>
+        Fişte alkol satırı varsa sistem onu ayırır ve bu kuralı uygular. Temsil ve ağırlama gruplarında alkol normal gider sayılır. Muhasebeci her fişte kararı değiştirebilir.
+      </Text>
+      <Group>
+        {POLICIES.map((p) => {
+          const on = policy === p.key;
+          return (
+            <Pressable
+              key={p.key}
+              onPress={() => choose(p.key)}
+              disabled={!canEdit}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+              style={{ flexDirection: 'row', gap: space.md, padding: space.md, alignItems: 'flex-start' }}>
+              <View style={[styles.radio, { borderColor: on ? c.pen : c.faint }]}>{on && <View style={[styles.radioDot, { backgroundColor: c.pen }]} />}</View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[type.bodyStrong, { color: c.ink }]}>{p.title}</Text>
+                <Text style={[type.small, { color: c.muted }]}>{p.text}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </Group>
+      {error && <Notice tone="bad" text={error} />}
+      {saved && <Notice tone="ok" text="Kaydedildi. Henüz aktarılmamış fişler de yeni kurala göre güncellendi." />}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
   edit: { padding: space.lg, gap: space.md, borderTopWidth: StyleSheet.hairlineWidth },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },

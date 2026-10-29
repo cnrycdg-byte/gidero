@@ -485,22 +485,25 @@ function AlcoholCard({ expense, canDecide, onDecided }: { expense: Expense; canD
   const [error, setError] = useState<string | null>(null);
   const amount = Number(expense.alcohol_amount ?? 0);
   const decision = expense.alcohol_decision ?? null;
-  const tone = decision === 'accepted' ? c.pen : decision === 'rejected' ? c.red : c.amber;
+  const by = expense.alcohol_decided_by ? 'Muhasebe kararı' : 'Şirket kuralı';
+  const tone = decision === 'rejected' ? c.red : decision ? c.pen : c.amber;
   const status =
     decision === 'accepted'
-      ? 'Muhasebe onayladı: gider yazılır.'
-      : decision === 'rejected'
-        ? `Muhasebe reddetti: ${money(amount)} ödenmez ve gider yazılmaz.`
-        : 'Muhasebe kararı bekleniyor. Karar verilmeden rapor aktarılamaz.';
+      ? `${by}: normal gider yazılır, size ödenir.`
+      : decision === 'kkeg'
+        ? `${by}: size ödenir; vergiden düşülmeyen gider (KKEG) olarak yazılır.`
+        : decision === 'rejected'
+          ? `${by}: ${money(amount)} size ödenmez ve gider yazılmaz.`
+          : 'Muhasebe kararı bekleniyor. Karar verilmeden rapor aktarılamaz.';
 
-  async function decide(d: 'accepted' | 'rejected') {
+  function decide(d: 'accepted' | 'rejected' | 'kkeg') {
     if (d === 'rejected') {
       return confirm('Alkolü reddet', `${money(amount)} gider yazılmayacak ve çalışana ödenmeyecek. Devam edilsin mi?`, 'Reddet', () => send(d));
     }
     send(d);
   }
 
-  async function send(d: 'accepted' | 'rejected') {
+  async function send(d: 'accepted' | 'rejected' | 'kkeg') {
     setBusy(true);
     setError(null);
     const { error: e } = await supabase.rpc('decide_alcohol', { p_expense: expense.id, p_decision: d });
@@ -508,6 +511,12 @@ function AlcoholCard({ expense, canDecide, onDecided }: { expense: Expense; canD
     if (e) return setError(errorText(e));
     onDecided();
   }
+
+  const options: { key: 'accepted' | 'kkeg' | 'rejected'; label: string }[] = [
+    { key: 'kkeg', label: 'Öde, KKEG yaz' },
+    { key: 'accepted', label: 'Normal gider' },
+    { key: 'rejected', label: 'Reddet' },
+  ];
 
   return (
     <View style={[styles.flag, { backgroundColor: c.paper, borderLeftColor: tone, gap: space.sm }]}>
@@ -523,8 +532,16 @@ function AlcoholCard({ expense, canDecide, onDecided }: { expense: Expense; canD
       {error ? <Notice tone="bad" text={error} /> : null}
       {canDecide ? (
         <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
-          <Button title={decision === 'accepted' ? 'Onaylandı' : 'Onayla'} onPress={() => decide('accepted')} disabled={busy || decision === 'accepted'} />
-          <Button title={decision === 'rejected' ? 'Reddedildi' : 'Reddet'} variant="danger" onPress={() => decide('rejected')} disabled={busy || decision === 'rejected'} />
+          {options.map((o) => (
+            <Button
+              key={o.key}
+              title={o.label}
+              variant={decision === o.key ? 'primary' : o.key === 'rejected' ? 'danger' : 'secondary'}
+              icon={decision === o.key ? 'check' : undefined}
+              onPress={() => decide(o.key)}
+              disabled={busy || (decision === o.key && !!expense.alcohol_decided_by)}
+            />
+          ))}
         </View>
       ) : null}
     </View>

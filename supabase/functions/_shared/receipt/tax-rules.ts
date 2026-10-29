@@ -2,7 +2,7 @@
 // Tutarlar kodda sabit değil, ctx.params (tax_parameters tablosu, belge yılı) içinden okunur.
 // Kurallar ve dayanaklar: docs/vergi-kurallari.md, docs/bagimsiz-inceleme.md, turk-masraf-vergi skill'i.
 
-import type { Flag, TaxContext } from "./types.ts";
+import type { Flag, ReceiptFields, TaxContext } from "./types.ts";
 import { formatPlate, normalizePlate } from "./validate.ts";
 
 const fmt = (n: number) =>
@@ -20,16 +20,9 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
   const add = (code: string, severity: Flag["severity"], message: string, legal_ref?: string) =>
     flags.push({ code, severity, message, legal_ref });
 
-  // 0. Alkollü içki: muhasebe karar verene kadar gider yazılmaz
-  if (f.alcohol?.present) {
-    const amt = f.alcohol.amount;
-    const list = f.alcohol.items.slice(0, 4).join(", ");
-    add(
-      "alcohol",
-      "warning",
-      `Fişte alkollü içki var${amt ? `: ${amt.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL` : ""}${list ? ` (${list})` : ""}. Muhasebe onaylamadan gider yazılmaz; reddedilirse bu tutar size ödenmez.`,
-    );
-  }
+  // 0. Alkollü içki: şirket kuralına ya da muhasebe kararına göre
+  const alc = alcoholFlag(f.alcohol);
+  if (alc) flags.push(alc);
 
   // 1. Okunamayan belge
   if (!f.readable) {
@@ -182,4 +175,25 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
   }
 
   return flags;
+}
+
+const tl = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Alkol uyarısı: karar yoksa muhasebe beklenir; varsa kararın sonucu bilgi olarak yazılır */
+export function alcoholFlag(a: ReceiptFields["alcohol"]): Flag | null {
+  if (!a?.present) return null;
+  const amt = a.amount ? `${tl(a.amount)} TL` : "tutar okunamadı";
+  const list = a.items.slice(0, 4).join(", ");
+  const what = `Fişte alkollü içki var: ${amt}${list ? ` (${list})` : ""}.`;
+  const by = a.auto ? "Şirket kuralına göre" : "Muhasebe kararıyla";
+  switch (a.decision) {
+    case "kkeg":
+      return { code: "alcohol_decided", severity: "info", message: `${what} ${by} size ödenir; vergiden düşülmeyen gider (KKEG) olarak yazılır.` };
+    case "accepted":
+      return { code: "alcohol_decided", severity: "info", message: `${what} ${by} normal gider yazılır.` };
+    case "rejected":
+      return { code: "alcohol_decided", severity: "warning", message: `${what} ${by} bu tutar size ödenmez ve gider yazılmaz.` };
+    default:
+      return { code: "alcohol", severity: "warning", message: `${what} Muhasebe karar verene kadar rapor aktarılmaz; reddedilirse bu tutar size ödenmez.` };
+  }
 }
