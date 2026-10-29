@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { Children, Fragment, isValidElement, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View, type LayoutChangeEvent, type TextInputProps, type ViewStyle } from 'react-native';
 
@@ -267,10 +268,20 @@ export function Notice({ text, tone = 'info' }: { text: string; tone?: 'info' | 
     bad: { bg: c.redSoft, fg: c.red, icon: 'error' as IconName },
     ok: { bg: c.stampSoft, fg: c.stamp, icon: 'checkCircle' as IconName },
   }[tone];
+  // Paket sınırı uyarılarında doğrudan paket satın alma ekranına git
+  const upgrade = (tone === 'bad' || tone === 'warn') && /paket(inizi|i)\s+(büyüt|yenile)/i.test(text);
   return (
-    <View style={[styles.notice, { backgroundColor: map.bg }]}>
+    <View style={[styles.notice, { backgroundColor: map.bg, alignItems: upgrade ? 'center' : 'flex-start' }]}>
       <Icon name={map.icon} size={16} color={map.fg} />
       <Text style={[type.small, { color: map.fg, flex: 1, fontWeight: '500' }]}>{text}</Text>
+      {upgrade && (
+        <Pressable
+          onPress={() => router.push('/subscription')}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.upgrade, { backgroundColor: map.fg, opacity: pressed ? 0.85 : 1 }]}>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: fonts.semibold }}>Paketi büyüt</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -336,6 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
   },
   input: { borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, fontFamily: fonts.regular },
+  upgrade: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   notice: { borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   empty: { alignItems: 'center', gap: space.sm, paddingVertical: space.xxl, paddingHorizontal: space.xl },
   emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: space.xs },
