@@ -20,6 +20,8 @@ import { unreadCount } from '@/lib/notifications';
 import { useQueue } from '@/lib/queue';
 import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
+import { pendingPages, sectionsFor } from '@/lib/tour';
+import { tourState } from '@/lib/tour/state';
 import { errorText, supabase } from '@/lib/supabase';
 import { ROLE_LABEL, type Report } from '@/lib/types';
 
@@ -48,6 +50,23 @@ function Home() {
       router.push('/admin');
     }
   }, [platformAdmin]);
+  // İlk açılışta rolüne göre tanıtım (her bölüm bir kez; oturumda bir kez kontrol edilir)
+  useEffect(() => {
+    if (!userId || platformAdmin || tourState.checked === userId) return;
+    if (!active && !bureaus.length) return;
+    tourState.checked = userId;
+    supabase
+      .from('profiles')
+      .select('tour_seen')
+      .eq('id', userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) return;
+        tourState.seen = (data as { tour_seen?: string[] } | null)?.tour_seen ?? [];
+        const sections = sectionsFor({ roles: active?.roles ?? [], bureau: bureaus.length > 0 || !!active?.bureau_account_id, hasCompany: !!active });
+        if (pendingPages(sections, tourState.seen).length) router.push('/tour');
+      });
+  }, [userId, platformAdmin, active, bureaus]);
   const { version, enqueue, items } = useQueue();
   const [reports, setReports] = useState<Report[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
