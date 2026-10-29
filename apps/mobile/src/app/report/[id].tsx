@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { QueueProgress } from '@/components/queue-progress';
+import { ApprovalTimeline, type TimelineAction } from '@/components/approval-timeline';
 import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Slip, Stamp } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
@@ -19,7 +20,7 @@ import { PAYMENT_LABEL, paymentSummary, rejectedAlcohol } from '@/lib/payment';
 import { sendPending } from '@/lib/notifications';
 import { DOC_TYPE_LABEL, type Expense, type Report } from '@/lib/types';
 
-type Action = { id: string; action: string; note: string | null; created_at: string };
+type Action = TimelineAction;
 
 const ACTION_LABEL: Record<string, string> = {
   submitted: 'Onaya gönderildi',
@@ -43,6 +44,7 @@ export default function ReportScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [approvers, setApprovers] = useState<string[]>([]);
+  const [names, setNames] = useState<Map<string, string>>(new Map());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,7 +55,7 @@ export default function ReportScreen() {
         .select('*, expense_flags(id, code, severity, message, legal_ref)')
         .eq('report_id', id)
         .order('created_at', { ascending: true }),
-      supabase.from('approval_actions').select('id, action, note, created_at').eq('report_id', id).order('created_at'),
+      supabase.from('approval_actions').select('id, action, note, created_at, actor_user_id, step_position').eq('report_id', id).order('created_at'),
     ]);
     const rep = (r.data as Report) ?? null;
     setReport(rep);
@@ -66,7 +68,14 @@ export default function ReportScreen() {
       const { data: ap } = await supabase.rpc('my_approvers', { p_company: rep.company_id });
       setApprovers((((ap ?? []) as { name?: string }[]) || []).map((x) => x.name ?? 'Onaylayıcı'));
     } else setApprovers([]);
-    setActions((a.data ?? []) as Action[]);
+    const acts = (a.data ?? []) as Action[];
+    setActions(acts);
+    // Akış şemasındaki kişilerin adları: rapor sahibi, işlem yapanlar, onayı bekleyenler
+    if (rep) {
+      const ids = [...new Set([rep.owner_user_id, ...acts.map((x) => x.actor_user_id), ...(rep.current_approver_ids ?? [])])];
+      const { data: ps } = await supabase.from('profiles').select('id, full_name').in('id', ids);
+      setNames(new Map(((ps ?? []) as { id: string; full_name: string }[]).map((p) => [p.id, p.full_name])));
+    }
     setLoading(false);
   }, [id]);
 
@@ -235,6 +244,9 @@ export default function ReportScreen() {
           </View>
         </Slip>
 
+        <SectionTitle title="Onay akışı" />
+        <ApprovalTimeline report={report} actions={actions} names={names} preview={approvers} />
+
         {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />}
         {error && <Notice tone="bad" text={error} />}
         {notice && <Notice tone="ok" text={notice} />}
@@ -329,12 +341,16 @@ export default function ReportScreen() {
           </View>
         )}
 
-        {actions.length > 0 && (
+        {actions.some((a) => a.action === 'returned') && (
           <>
-            <SectionTitle title="Geçmiş" />
+            <SectionTitle title="Tüm hareketler" />
             <Group>
               {actions.map((a) => (
-                <Row key={a.id} title={ACTION_LABEL[a.action] ?? a.action} subtitle={a.note ? `${dateText(a.created_at)}: ${a.note}` : dateText(a.created_at)} />
+                <Row
+                  key={a.id}
+                  title={`${ACTION_LABEL[a.action] ?? a.action}${names.get(a.actor_user_id) ? `: ${names.get(a.actor_user_id)}` : ''}`}
+                  subtitle={a.note ? `${dateText(a.created_at)}: ${a.note}` : dateText(a.created_at)}
+                />
               ))}
             </Group>
           </>
