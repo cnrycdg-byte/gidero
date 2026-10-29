@@ -23,7 +23,7 @@ const addDays = (n: number) => {
 
 // Müşteri detayı: abonelik (elle paket verme, deneme uzatma), firmalar ve kişiler, siparişler
 export default function AdminAccountScreen() {
-  const { id, created } = useLocalSearchParams<{ id: string; created?: string }>();
+  const { id, created, brand } = useLocalSearchParams<{ id: string; created?: string; brand?: string }>();
   const [link, setLink] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState(false);
   const c = useColors();
@@ -126,6 +126,7 @@ export default function AdminAccountScreen() {
   return (
     <Page wide>
       {created && <Notice tone="ok" text="Müşteri açıldı. Aşağıdan hesap sahibine giriş bağlantısı oluşturup WhatsApp'tan gönderin." />}
+      {brand === 'failed' && <Notice tone="warn" text="Logo ve renkler kaydedilemedi. Firmanın yanındaki 'Logo ve renkler' düğmesinden tekrar ekleyin." />}
       {link ? (
         <InviteLink link={link} name={acc.owner_email ?? "Hesap sahibi"} email={acc.owner_email ?? undefined} onClose={() => setLink(null)} />
       ) : (
