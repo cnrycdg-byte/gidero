@@ -50,6 +50,10 @@ export type Expense = {
   attendees: string[];
   image_path: string | null;
   created_at: string;
+  alcohol_present?: boolean;
+  alcohol_amount?: number | null;
+  alcohol_items?: string[];
+  alcohol_decision?: 'accepted' | 'rejected' | null;
   expense_vat_lines?: VatLine[];
   expense_flags?: Flag[];
 };

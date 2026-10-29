@@ -46,7 +46,7 @@ export async function loadReports(companyId: string, opts: { period?: string | n
     supabase
       .from('expenses')
       .select(
-        'id, report_id, doc_date, doc_type, doc_no, ettn, seller_name, seller_vkn, total, payment_method, description, attendees, ' +
+        'id, report_id, doc_date, doc_type, doc_no, ettn, seller_name, seller_vkn, total, payment_method, description, attendees, alcohol_amount, alcohol_decision, ' +
           'categories(name, expense_account, tax_rule, kkeg_ratio), expense_vat_lines(rate, base, vat), expense_flags(code, message)',
       )
       .in('report_id', ids)
@@ -79,6 +79,8 @@ export async function loadReports(companyId: string, opts: { period?: string | n
       vat_lines: (e.expense_vat_lines ?? []).map((v: any) => ({ rate: Number(v.rate), base: Number(v.base), vat: Number(v.vat) })),
       flag_codes: (e.expense_flags ?? []).map((f: any) => f.code),
       flag_messages: (e.expense_flags ?? []).map((f: any) => f.message),
+      alcohol_amount: e.alcohol_amount == null ? null : Number(e.alcohol_amount),
+      alcohol_decision: e.alcohol_decision ?? null,
     });
     byReport.set(e.report_id, list);
   }

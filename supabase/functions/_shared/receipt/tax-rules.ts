@@ -20,6 +20,17 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
   const add = (code: string, severity: Flag["severity"], message: string, legal_ref?: string) =>
     flags.push({ code, severity, message, legal_ref });
 
+  // 0. Alkollü içki: muhasebe karar verene kadar gider yazılmaz
+  if (f.alcohol?.present) {
+    const amt = f.alcohol.amount;
+    const list = f.alcohol.items.slice(0, 4).join(", ");
+    add(
+      "alcohol",
+      "warning",
+      `Fişte alkollü içki var${amt ? `: ${amt.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL` : ""}${list ? ` (${list})` : ""}. Muhasebe onaylamadan gider yazılmaz; reddedilirse bu tutar size ödenmez.`,
+    );
+  }
+
   // 1. Okunamayan belge
   if (!f.readable) {
     add("unreadable", "warning", "Fiş okunamadı. Tutarı elle girin; muhasebe bu belgeyi ayrıca kontrol edecek.");

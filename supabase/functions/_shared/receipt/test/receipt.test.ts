@@ -163,3 +163,11 @@ test("gider grubu sınırı: aşım ve yaklaşma", () => {
   const c = codes(ctx({ entered_total: 100, limit: lim(100) }));
   assert.ok(!c.includes("over_limit") && !c.includes("near_limit"));
 });
+
+test("alkollü içki satırı muhasebe onayı için işaretlenir", () => {
+  const c = ctx({ fields: base({ alcohol: { present: true, amount: 420, items: ["Efes 50 cl x2", "Rakı 35 cl"] } }) });
+  const fl = evaluateTaxRules(c).find((f) => f.code === "alcohol");
+  assert.ok(fl, "alkol uyarısı çıkar");
+  assert.match(fl!.message, /420,00 TL/);
+  assert.ok(!codes(ctx({ fields: base({ alcohol: { present: false, amount: null, items: [] } }) })).includes("alcohol"), "alkol yoksa uyarı yok");
+});

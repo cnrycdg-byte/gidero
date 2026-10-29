@@ -98,3 +98,19 @@ test('Excel, Luca ve Logo dosyaları üretilir', () => {
   assert.match(g, /<GL_CODE>191\.10<\/GL_CODE>/);
   assert.match(g, /<TOTAL_DEBIT>1100\.00<\/TOTAL_DEBIT>/);
 });
+
+test('Reddedilen alkol gider yazılmaz; kendi cebinden ödendiyse çalışana ödenmez', () => {
+  const e = { total: 1100, category: meal, vat_lines: [{ rate: 10, base: 1000, vat: 100 }], alcohol_amount: 330, alcohol_decision: 'rejected' as const };
+  const en = buildEntry(report([exp(e)]), company);
+  assert.deepEqual(en.lines.map((l) => [l.account_code, l.debit, l.credit]), [
+    ['770.01', 700, 0],
+    ['191.10', 70, 0],
+    ['335.0042', 0, 770],
+  ]);
+  assert.ok(en.warnings.some((w) => w.includes('alkol')));
+  const card = buildEntry(report([exp({ ...e, payment_method: 'company_card' })]), company);
+  assert.deepEqual(totals(card), { debit: 1100, credit: 1100 });
+  assert.ok(card.lines.some((l) => l.account_code === '335.0042' && l.debit === 330), 'Şirket kartıyla ödenen alkol çalışandan alacak olur');
+  const ok = buildEntry(report([exp({ ...e, alcohol_decision: 'accepted' })]), company);
+  assert.deepEqual(totals(ok), { debit: 1100, credit: 1100 });
+});

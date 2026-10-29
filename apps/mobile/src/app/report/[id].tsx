@@ -15,7 +15,7 @@ import { pickFromLibrary } from '@/lib/receipts';
 import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
-import { PAYMENT_LABEL, paymentSummary } from '@/lib/payment';
+import { PAYMENT_LABEL, paymentSummary, rejectedAlcohol } from '@/lib/payment';
 import { sendPending } from '@/lib/notifications';
 import { DOC_TYPE_LABEL, type Expense, type Report } from '@/lib/types';
 
@@ -89,6 +89,8 @@ export default function ReportScreen() {
   const stillReading = new Set(reading.map((i) => i.expenseId).filter(Boolean) as string[]);
   const warnCount = expenses.reduce((a, e) => a + (e.expense_flags ?? []).filter((f) => f.severity !== 'info').length, 0);
   const pay = paymentSummary(expenses);
+  const alcoholCut = rejectedAlcohol(expenses);
+  const alcoholPending = expenses.filter((e) => e.alcohol_present && !e.alcohol_decision).length;
   const zeroTotals = expenses.filter((e) => Number(e.total) === 0 && !stillReading.has(e.id)).length;
   const lastReturn = [...actions].reverse().find((a) => a.action === 'returned');
 
@@ -172,7 +174,15 @@ export default function ReportScreen() {
                 .map((k) => (
                   <Text key={k} style={[type.small, { color: c.muted }]}>{`${PAYMENT_LABEL[k]}: ${money(pay[k])}`}</Text>
                 ))}
+              {alcoholCut > 0 && (
+                <Text style={[type.small, { color: c.red }]}>{`Reddedilen alkol (ödenmez): ${money(alcoholCut)}`}</Text>
+              )}
             </View>
+          )}
+          {alcoholPending > 0 && (
+            <Text style={[type.small, { color: c.amber, fontWeight: '600', marginTop: space.xs }]}>
+              {`${alcoholPending} fişte alkollü içki var; muhasebe fişi açıp onaylamalı ya da reddetmeli.`}
+            </Text>
           )}
           <Perforation />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -240,7 +250,18 @@ export default function ReportScreen() {
                       ? 'Tutar, tarih ve KDV dolduruluyor'
                       : noTotal
                         ? 'Tutar okunamadı, dokunup yazın'
-                        : [dateText(e.doc_date), e.payment_method && e.payment_method !== 'personal' ? PAYMENT_LABEL[e.payment_method] : null, warns.length ? `${warns.length} uyarı` : null]
+                        : [
+                            dateText(e.doc_date),
+                            e.payment_method && e.payment_method !== 'personal' ? PAYMENT_LABEL[e.payment_method] : null,
+                            e.alcohol_present
+                              ? e.alcohol_decision === 'accepted'
+                                ? 'Alkol onaylandı'
+                                : e.alcohol_decision === 'rejected'
+                                  ? `Alkol reddedildi (${money(Number(e.alcohol_amount ?? 0))})`
+                                  : 'Alkol: muhasebe kararı bekliyor'
+                              : null,
+                            warns.filter((f) => f.code !== 'alcohol').length ? `${warns.filter((f) => f.code !== 'alcohol').length} uyarı` : null,
+                          ]
                             .filter(Boolean)
                             .join(', ')
                   }
