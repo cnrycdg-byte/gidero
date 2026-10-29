@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSyncExternalStore } from 'react';
+import { createContext, useContext, useSyncExternalStore } from 'react';
 import { useColorScheme } from 'react-native';
+
+import { brandPalette, type BrandInput } from '@/lib/brand/colors';
 
 // Gidero marka seti: defter yeşili (#0B6E5F), koyu yeşil (#0B3D35), onay amberi (#F2A93B).
 // Amber yalnızca onay ve vurgu içindir; uyarılar turuncu-kırmızı, kritik hatalar kırmızıdır.
@@ -87,8 +89,24 @@ export function useScheme(): 'light' | 'dark' {
   return pref === 'system' ? (sys === 'dark' ? 'dark' : 'light') : pref;
 }
 
+// Şirket markası: seçili şirketin kurumsal renkleri tüm uygulamaya uygulanır (oturum sağlar)
+const NO_BRAND: BrandInput = { primary: null, accent: null };
+export const BrandContext = createContext<BrandInput>(NO_BRAND);
+const paletteCache = new Map<string, Palette>();
+
+export function paletteFor(scheme: 'light' | 'dark', b: BrandInput): Palette {
+  const key = `${scheme}|${b.primary ?? ''}|${b.accent ?? ''}`;
+  let p = paletteCache.get(key);
+  if (!p) {
+    p = brandPalette(scheme === 'dark' ? dark : light, b, scheme);
+    paletteCache.set(key, p);
+  }
+  return p;
+}
+
 export function useColors(): Palette {
-  return useScheme() === 'dark' ? dark : light;
+  const scheme = useScheme();
+  return paletteFor(scheme, useContext(BrandContext));
 }
 
 /** Marka yazı aileleri: başlık ve tutarlar Bricolage Grotesque, metin Figtree. */

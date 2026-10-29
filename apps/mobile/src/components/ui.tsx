@@ -88,16 +88,19 @@ type RowProps = {
   iconColor?: string;
   iconBg?: string;
   right?: ReactNode;
+  /** Simge yerine solda gösterilecek öğe (örneğin şirket logosu) */
+  left?: ReactNode;
   onPress?: () => void;
   chevron?: boolean;
 };
 
-export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor, iconBg, right, onPress, chevron }: RowProps) {
+export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor, iconBg, right, left, onPress, chevron }: RowProps) {
   const c = useColors();
   const wide = useWide();
   const body = (
     <View style={[styles.row, wide && { minHeight: 48, paddingVertical: 9 }]}>
-      {icon && (
+      {left}
+      {!left && icon && (
         <View style={[styles.rowIcon, { backgroundColor: iconBg ?? c.penSoft }]}>
           <Icon name={icon} size={17} color={iconColor ?? c.pen} />
         </View>
@@ -216,7 +219,7 @@ function buttonLook(c: Palette, v: ButtonProps['variant']) {
     case 'plain':
       return { bg: 'transparent', fg: c.pen };
     case 'light':
-      return { bg: '#FFFFFF', fg: '#0B3D35' };
+      return { bg: '#FFFFFF', fg: c.deep };
     case 'ghostLight':
       return { bg: 'rgba(255,255,255,0.12)', fg: '#FFFFFF' };
     default:

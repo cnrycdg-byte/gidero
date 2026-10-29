@@ -1,6 +1,13 @@
 export type ReportStatus = 'draft' | 'pending' | 'returned' | 'approved' | 'booked' | 'exported' | 'paid';
 
-export type Company = { id: string; legal_name: string; tax_number: string };
+export type Company = {
+  id: string;
+  legal_name: string;
+  tax_number: string;
+  brand_primary?: string | null;
+  brand_accent?: string | null;
+  logo_path?: string | null;
+};
 export type Membership = {
   company_id: string;
   roles: string[];

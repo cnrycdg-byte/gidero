@@ -6,6 +6,7 @@ import { Icon } from '@/components/icon';
 import { InviteLink, TempPassword } from '@/components/invite-link';
 import { confirm } from '@/lib/confirm';
 import { Text } from '@/components/text';
+import { CompanyLogo } from '@/components/company-logo';
 import { Button, Empty, Field, Group, Notice, Row, SectionTitle } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { accountStatus, type AccountStatus } from '@/lib/billing';
@@ -221,6 +222,7 @@ export default function Clients() {
               <View key={f.company_id}>
                 <Row
                   icon="doc"
+                  left={f.companies.logo_path ? <CompanyLogo path={f.companies.logo_path} /> : undefined}
                   title={f.companies.legal_name}
                   subtitle={`Vergi no ${f.companies.tax_number} · Sorumlu: ${respText}`}
                   right={

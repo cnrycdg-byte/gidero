@@ -5,6 +5,7 @@ import { ScrollView } from 'react-native';
 
 import { Text } from '@/components/text';
 import { Icon } from '@/components/icon';
+import { CompanyLogo } from '@/components/company-logo';
 import { Group, Row, SectionTitle } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
@@ -44,6 +45,7 @@ export default function Settings() {
               key={m.company_id}
               title={m.companies.legal_name}
               subtitle={`Vergi no ${m.companies.tax_number}`}
+              left={m.companies.logo_path ? <CompanyLogo path={m.companies.logo_path} /> : undefined}
               right={on ? <Icon name="check" size={16} color={c.pen} /> : undefined}
               chevron={false}
               onPress={
@@ -82,6 +84,9 @@ export default function Settings() {
       <Group>
         <Row icon="inbox" title="Onayınızı bekleyenler" onPress={() => router.push('/approvals')} />
         {hasRole('admin') ? <Row icon="team" title="Ekip" onPress={() => router.push('/team')} /> : null}
+        {hasRole('admin') ? (
+          <Row icon="settings" title="Logo ve renkler" subtitle="Şirketinizin logosu ve kurumsal renkleri" onPress={() => router.push('/brand')} />
+        ) : null}
         {hasRole('admin') || hasRole('accountant') ? (
           <Row icon="receipt" title="Gider grupları ve sınırlar" onPress={() => router.push('/categories')} />
         ) : null}
