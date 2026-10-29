@@ -4,13 +4,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Page } from '@/components/page';
 import { Text } from '@/components/text';
-import { Button, Field, Notice } from '@/components/ui';
+import { Button, Field, Notice, SectionTitle } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
 import { createCustomer } from '@/lib/admin';
+import { BrandPicker, type BrandDraft } from '@/components/brand-picker';
+import { uploadLogo } from '@/lib/brand';
+import { normalizeHex } from '@/lib/brand/colors';
 import { ownerLink } from '@/lib/people';
 import { fetchPlans, type Plan } from '@/lib/billing';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
-import { errorText } from '@/lib/supabase';
+import { errorText, supabase } from '@/lib/supabase';
 
 const addDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 
@@ -32,6 +35,7 @@ export default function NewCustomer() {
   const [end, setEnd] = useState(dateInput(addDays(14)));
   const [note, setNote] = useState('');
   const [paid, setPaid] = useState('');
+  const [brand, setBrand] = useState<BrandDraft>({ primary: '', accent: '', logoUri: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +65,8 @@ export default function NewCustomer() {
     if (!e) return setError('Bitiş tarihini GG.AA.YYYY biçiminde yazın.');
     if (status === 'active' && !planId && !demo) return setError('Ücretli müşteri için paket seçin.');
     if (demo && ownerName.trim().length < 2) return setError('Test kişisinin adını soyadını yazın.');
+    if (kind === 'company' && brand.primary && !normalizeHex(brand.primary)) return setError('Ana rengi #1A2B3C biçiminde yazın.');
+    if (kind === 'company' && brand.accent && !normalizeHex(brand.accent)) return setError('Vurgu rengini #1A2B3C biçiminde yazın.');
     setBusy(true);
     try {
       const r = await createCustomer({
@@ -77,6 +83,22 @@ export default function NewCustomer() {
         note: note.trim(),
         paidNet: status === 'active' && paid.trim() && !demo ? parseAmount(paid) : null,
       });
+      // Şirketin logosu ve renkleri: şirket açıldıktan sonra kaydedilir
+      let brandFailed = false;
+      if (kind === 'company' && r.company_id && (brand.logoUri || brand.primary || brand.accent)) {
+        try {
+          const logoPath = brand.logoUri ? await uploadLogo(r.company_id, brand.logoUri) : null;
+          const { error: be } = await supabase.rpc('set_company_brand', {
+            p_company: r.company_id,
+            p_primary: normalizeHex(brand.primary),
+            p_accent: normalizeHex(brand.accent),
+            p_logo_path: logoPath,
+          });
+          if (be) throw be;
+        } catch {
+          brandFailed = true;
+        }
+      }
       if (demo) {
         // Test müşterisinin sahibi hemen açılır; test ekranından ona geçilir
         await ownerLink(r.account_id, ownerName.trim());
@@ -84,7 +106,7 @@ export default function NewCustomer() {
         return;
       }
       if (ownerName.trim()) await ownerLink(r.account_id, ownerName.trim()).catch(() => null);
-      router.replace({ pathname: '/admin/account/[id]', params: { id: r.account_id, created: r.invited ? 'invited' : 'linked' } });
+      router.replace({ pathname: '/admin/account/[id]', params: { id: r.account_id, created: r.invited ? 'invited' : 'linked', ...(brandFailed ? { brand: 'failed' } : {}) } });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -199,6 +221,16 @@ export default function NewCustomer() {
           placeholder="Boş bırakırsanız gelire işlenmez"
           hint="Kampanyalı ya da indirimli sattıysanız gerçek tutarı yazın. KDV eklenerek gelire işlenir."
         />
+      )}
+
+      {kind === 'company' && (
+        <>
+          <SectionTitle title="Logo ve kurumsal renkler (isteğe bağlı)" />
+          <Text style={[type.small, { color: c.muted }]}>
+            Bu şirkete giren herkes uygulamayı bu renklerle görür. Boş bırakırsanız Gidero renkleri kullanılır; sonra müşteri sayfasından da ekleyebilirsiniz.
+          </Text>
+          <BrandPicker value={brand} onChange={setBrand} />
+        </>
       )}
 
       {error && <Notice tone="bad" text={error} />}
