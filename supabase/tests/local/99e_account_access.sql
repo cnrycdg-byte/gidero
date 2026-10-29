@@ -60,3 +60,20 @@ set role authenticated;
 select test.expect_error($q$select public.approve_report('50000000-0000-0000-0000-00000000aee9', null)$q$, 'Ayrılan kişi onay veremez');
 select test.expect_error($q$select public.return_report('50000000-0000-0000-0000-00000000aee9', 'x')$q$, 'Ayrılan kişi iade edemez');
 reset role;
+
+-- Test müşterisinde test kişisinin şifresi yeniden belirlenebilir, gerçek müşteride giriş yapmış kişininki belirlenemez
+reset role;
+insert into auth.users (id, email, last_sign_in_at) values
+ ('00000000-0000-0000-0000-00000000aef1', 'demo.patron@test.gidero.app', now()),
+ ('00000000-0000-0000-0000-00000000aef2', 'demo.calisan@test.gidero.app', now());
+insert into public.accounts (id, kind, name, is_demo) values ('10000000-0000-0000-0000-00000000aef0', 'company', 'Demo şifre', true);
+insert into public.subscriptions (account_id, status, trial_ends_at) values ('10000000-0000-0000-0000-00000000aef0', 'trial', now() + interval '14 days');
+insert into public.companies (id, account_id, legal_name, tax_number) values ('20000000-0000-0000-0000-00000000aef0', '10000000-0000-0000-0000-00000000aef0', 'Demo Şifre AŞ', '8100000001');
+insert into public.memberships (company_id, user_id, roles) values
+ ('20000000-0000-0000-0000-00000000aef0', '00000000-0000-0000-0000-00000000aef1', '{employee,admin}'),
+ ('20000000-0000-0000-0000-00000000aef0', '00000000-0000-0000-0000-00000000aef2', '{employee}');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000aef1"}', false);
+set role authenticated;
+select test.ok(public.can_issue_invite('20000000-0000-0000-0000-00000000aef0', '00000000-0000-0000-0000-00000000aef2'), 'Test müşterisinde giriş yapılmış test kişisinin şifresi yeniden belirlenebilir');
+select test.ok((public.team_status('20000000-0000-0000-0000-00000000aef0') -> '00000000-0000-0000-0000-00000000aef2' ->> 'can_invite') = 'true', 'Ekip ekranı şifre belirlenebilecek kişiyi gösterir');
+reset role;

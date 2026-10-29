@@ -18,13 +18,23 @@ async function copy(text: string) {
   return false;
 }
 
+/** WhatsApp için uluslararası numara: 0532... → 90532... */
+function waNumber(phone?: string) {
+  const d = (phone ?? '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('90')) return d;
+  if (d.startsWith('0')) return `9${d}`;
+  if (d.length === 10 && d.startsWith('5')) return `90${d}`;
+  return d;
+}
+
 /** Mesajı WhatsApp, e-posta ya da SMS ile gönderme düğmeleri (kişinin kendi uygulamasından gider) */
 function SendButtons({ message, subject, email, phone }: { message: string; subject: string; email?: string; phone?: string }) {
   const [copied, setCopied] = useState(false);
   const sms = Platform.OS === 'ios' ? `sms:${phone ?? ''}&body=${encodeURIComponent(message)}` : `sms:${phone ?? ''}?body=${encodeURIComponent(message)}`;
   return (
     <View style={styles.row}>
-      <Button title="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/${(phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`)} />
+      <Button title="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(message)}`)} />
       <Button variant="secondary" title="E-posta" onPress={() => Linking.openURL(`mailto:${email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`)} />
       <Button variant="secondary" title="SMS" onPress={() => Linking.openURL(sms)} />
       <Button variant="secondary" title={copied ? 'Kopyalandı' : Platform.OS === 'web' ? 'Kopyala' : 'Paylaş'} onPress={async () => setCopied(await copy(message))} />
@@ -44,6 +54,21 @@ export function InviteLink({ link, name, email, phone, onClose }: { link: string
       </Text>
       <Text selectable style={[type.small, { color: c.ink }]} numberOfLines={2}>{link}</Text>
       <SendButtons message={message} subject="Gidero hesabınız açıldı" email={email} phone={phone} />
+      {onClose && <Button variant="plain" title="Kapat" onPress={onClose} />}
+    </View>
+  );
+}
+
+/** Geçici şifre hazır: bilgileri kişiye gönderme */
+export function Credentials({ name, email, password, phone, onClose }: { name: string; email: string; password: string; phone?: string; onClose?: () => void }) {
+  const c = useColors();
+  const message = `Merhaba ${name}, Gidero hesabınız hazır.\nAdres: ${APP_URL}\nE-posta: ${email}\nGeçici şifre: ${password}\nİlk girişte kendi şifrenizi belirleyeceksiniz.`;
+  return (
+    <View style={[styles.box, { backgroundColor: c.penSoft }]}>
+      <Text style={[type.bodyStrong, { color: c.ink }]}>{`${name} için giriş bilgileri hazır`}</Text>
+      <Text selectable style={[type.body, { color: c.ink }]}>{`Adres: ${APP_URL}\nE-posta: ${email}\nGeçici şifre: ${password}`}</Text>
+      <Text style={[type.small, { color: c.muted }]}>Bu bilgileri kişiye iletin. İlk girişte kendi şifresini koymadan devam edemez.</Text>
+      <SendButtons message={message} subject="Gidero giriş bilgileriniz" email={email} phone={phone} />
       {onClose && <Button variant="plain" title="Kapat" onPress={onClose} />}
     </View>
   );
@@ -85,17 +110,7 @@ export function TempPassword({
     }
   }
 
-  if (done) {
-    const message = `Merhaba ${name}, Gidero hesabınız hazır.\nAdres: ${APP_URL}\nE-posta: ${done.email}\nGeçici şifre: ${done.password}\nİlk girişte kendi şifrenizi belirleyeceksiniz.`;
-    return (
-      <View style={[styles.box, { backgroundColor: c.penSoft }]}>
-        <Text style={[type.bodyStrong, { color: c.ink }]}>{`${name} için geçici şifre hazır`}</Text>
-        <Text selectable style={[type.body, { color: c.ink }]}>{`E-posta: ${done.email}\nGeçici şifre: ${done.password}`}</Text>
-        <Text style={[type.small, { color: c.muted }]}>Bu bilgileri kişiye iletin. İlk girişte kendi şifresini koymadan devam edemez.</Text>
-        <SendButtons message={message} subject="Gidero giriş bilgileriniz" email={done.email} phone={phone} />
-      </View>
-    );
-  }
+  if (done) return <Credentials name={name} email={done.email} password={done.password} phone={phone} />;
 
   return (
     <View style={[styles.box, { backgroundColor: c.paper, borderWidth: 1, borderColor: c.paperLine }]}>

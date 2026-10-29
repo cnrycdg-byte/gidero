@@ -9,9 +9,9 @@ import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { ROLE_LABEL } from '@/lib/types';
-import { InviteLink, TempPassword } from '@/components/invite-link';
+import { Credentials, InviteLink, TempPassword } from '@/components/invite-link';
 import { confirm } from '@/lib/confirm';
-import { addPerson, memberLink } from '@/lib/people';
+import { addPerson, memberLink, randomPassword } from '@/lib/people';
 
 type Member = { user_id: string; roles: string[]; manager_user_id: string | null; vehicle_plates: string[]; full_name: string; title: string | null; final_approver: boolean };
 
@@ -22,6 +22,11 @@ export default function Team() {
   const { active, userId, reloadMemberships } = useSession();
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [plates, setPlates] = useState('');
+  const [access, setAccess] = useState<'link' | 'password'>('link');
+  const [newPw, setNewPw] = useState(randomPassword());
+  const [creds, setCreds] = useState<{ name: string; email: string; password: string; phone?: string } | null>(null);
   const [roles, setRoles] = useState<string[]>(['employee']);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +42,8 @@ export default function Team() {
   const [title, setTitle] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editName, setEditName] = useState('');
-  const [invite, setInvite] = useState<{ link: string; name: string; email?: string; userId?: string } | null>(null);
-  const [status, setStatus] = useState<Record<string, { activated: boolean; email: string }>>({});
+  const [invite, setInvite] = useState<{ link: string; name: string; email?: string; userId?: string; phone?: string } | null>(null);
+  const [status, setStatus] = useState<Record<string, { activated: boolean; can_invite: boolean; email: string }>>({});
   const [tempFor, setTempFor] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState<string | null>(null);
 
@@ -57,7 +62,7 @@ export default function Team() {
     const names = new Map((people ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]));
     setMembers(list.map((m) => ({ ...m, full_name: names.get(m.user_id) || 'İsimsiz kullanıcı' })));
     const { data: st } = await supabase.rpc('team_status', { p_company: active.company_id });
-    setStatus((st ?? {}) as Record<string, { activated: boolean; email: string }>);
+    setStatus((st ?? {}) as Record<string, { activated: boolean; can_invite: boolean; email: string }>);
   }, [active]);
 
   useFocusEffect(
@@ -72,6 +77,11 @@ export default function Team() {
     setInfo(null);
     setInvite(null);
     if (fullName.trim().length < 2) return setError('Kişinin adını soyadını yazın.');
+    const plateParts = plates.split(/[,\n;]+/).map((x) => x.trim()).filter(Boolean);
+    const badPlates = plateParts.filter((x) => !normalizePlate(x));
+    if (badPlates.length) return setError(`Şu plaka geçersiz: ${badPlates.join(', ')}. Örnek: 35 ABC 123`);
+    if (access === 'password' && newPw.length < 8) return setError('Geçici şifre en az 8 karakter olmalı.');
+    setCreds(null);
     setBusy(true);
     try {
       const r = await addPerson({
@@ -81,13 +91,27 @@ export default function Team() {
         email: email.trim(),
         roles,
         managerId: manager ?? userId,
+        phone: phone.trim(),
+        password: access === 'password' ? newPw : undefined,
       });
+      if (plateParts.length) {
+        const { error: pe } = await supabase.rpc('set_member_plates', {
+          p_company: active.company_id,
+          p_user: r.user_id,
+          p_plates: plateParts.map((x) => normalizePlate(x) as string),
+        });
+        if (pe) setError(`Kişi eklendi ama araç kaydedilemedi: ${errorText(pe)}`);
+      }
+      if (r.password_set) setCreds({ name: fullName.trim(), email: r.email, password: newPw, phone: phone.trim() || undefined });
       setInfo(`${fullName.trim()} eklendi. Masraflarını ${manager && manager !== userId ? nameOf(manager) : 'siz'} onaylayacak; onay zincirini "Onay zinciri" ekranından düzenleyebilirsiniz.`);
-      if (!r.demo && r.link) setInvite({ link: r.link, name: fullName.trim(), email: r.email, userId: r.user_id });
-      if (!r.demo && !r.link) setInfo(`${fullName.trim()} zaten Gidero kullanıyor; kendi şifresiyle girer ve şirketinizi görür.`);
+      if (!r.password_set && r.link) setInvite({ link: r.link, name: fullName.trim(), email: r.email, userId: r.user_id, phone: phone.trim() || undefined });
+      if (!r.demo && !r.link && !r.password_set) setInfo(`${fullName.trim()} zaten Gidero kullanıyor; kendi şifresiyle girer ve şirketinizi görür.`);
       if (r.warning) setError(r.warning);
       setManager(null);
       setEmail('');
+      setPhone('');
+      setPlates('');
+      setNewPw(randomPassword());
       setFullName('');
       setTitle('');
       setRoles(['employee']);
@@ -168,11 +192,20 @@ export default function Team() {
       <SectionTitle title="Kişi ekle" />
       <View style={[styles.box, { backgroundColor: c.paper }]}>
         <Text style={[type.small, { color: c.muted }]}>
-          Kişiyi siz açarsınız. Ekledikten sonra çıkan giriş bağlantısını WhatsApp'tan gönderin; kişi tıklayıp şifresini belirler.
+          Kişiyi siz açarsınız; önceden kaydolması gerekmez. İlk girişi bağlantıyla ya da sizin belirlediğiniz geçici şifreyle yapar.
         </Text>
         <Field label="Ad soyad" value={fullName} onChangeText={setFullName} placeholder="Örnek: Ali Çelik" />
         <Field label="Ünvan" value={title} onChangeText={setTitle} placeholder="Örnek: Satış Temsilcisi" />
         <Field label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" hint="Kişi bu e-postayla giriş yapar. Test müşterisinde boş bırakabilirsiniz." />
+        <Field label="Telefon (isteğe bağlı)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="05xx xxx xx xx" hint="Giriş bilgisini WhatsApp ya da SMS ile bu numaraya gönderebilirsiniz." />
+        <Field
+          label="Araç plakaları (isteğe bağlı)"
+          value={plates}
+          onChangeText={setPlates}
+          autoCapitalize="characters"
+          placeholder="35 ABC 123, 06 XYZ 45"
+          hint="Akaryakıt fişindeki plaka bunlarla karşılaştırılır. Birden çok aracı virgülle ayırın."
+        />
         <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Rolleri</Text>
         <View style={styles.chips}>
           {CHOICES.map((r) => {
@@ -202,13 +235,36 @@ export default function Team() {
             </View>
           </>
         )}
+        <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>İlk girişi nasıl yapsın?</Text>
+        <View style={styles.chips}>
+          {([
+            ['link', 'Giriş bağlantısı göndereyim'],
+            ['password', 'Şifresini ben belirleyeyim'],
+          ] as const).map(([k, label]) => {
+            const on = access === k;
+            return (
+              <Pressable key={k} onPress={() => setAccess(k)} style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
+                <Text style={{ color: on ? c.onPen : c.ink, fontWeight: on ? '600' : '400' }}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {access === 'password' ? (
+          <View style={{ gap: space.xs }}>
+            <Field label="Geçici şifre" value={newPw} onChangeText={setNewPw} autoCapitalize="none" hint="En az 8 karakter. Kişi ilk girişte kendi şifresini koyar." />
+            <Button variant="plain" title="Yeni şifre öner" onPress={() => setNewPw(randomPassword())} />
+          </View>
+        ) : (
+          <Text style={[type.small, { color: c.muted }]}>Ekleyince çıkan bağlantıyı WhatsApp, e-posta ya da SMS ile gönderirsiniz; kişi tıklayıp şifresini belirler (1 saat geçerli).</Text>
+        )}
         {error && <Notice tone="bad" text={error} />}
         {info && <Notice tone="ok" text={info} />}
         <Button icon="personAdd" title="Kişiyi ekle" onPress={add} loading={busy} disabled={roles.length === 0} />
       </View>
+      {creds && <Credentials name={creds.name} email={creds.email} password={creds.password} phone={creds.phone} onClose={() => setCreds(null)} />}
       {invite && (
         <>
-          <InviteLink link={invite.link} name={invite.name} email={invite.email} onClose={() => setInvite(null)} />
+          <InviteLink link={invite.link} name={invite.name} email={invite.email} phone={invite.phone} onClose={() => setInvite(null)} />
           {invite.userId && tempFor !== invite.userId && (
             <Button variant="plain" title="Bağlantı yerine şifresini ben belirleyeyim" onPress={() => setTempFor(invite.userId!)} />
           )}
@@ -281,7 +337,7 @@ export default function Team() {
                 {plateError && <Notice tone="bad" text={plateError} />}
                 {m.user_id !== userId && (
                   <View style={styles.chips}>
-                    {status[m.user_id] && !status[m.user_id].activated && (
+                    {status[m.user_id]?.can_invite && m.user_id !== userId && (
                       <>
                         <Button variant="secondary" title="Giriş bağlantısı gönder" onPress={() => makeLink(m)} loading={linkBusy === m.user_id} />
                         <Button variant="secondary" title="Şifresini ben belirleyeyim" onPress={() => setTempFor(tempFor === m.user_id ? null : m.user_id)} />
