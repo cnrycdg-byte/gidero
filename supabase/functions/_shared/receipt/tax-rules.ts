@@ -49,6 +49,13 @@ export function evaluateTaxRules(ctx: TaxContext): Flag[] {
     }
   }
 
+  // Görseli olmayan masraf: belge muhasebeye sonra gelir ya da GİB'den bulunur
+  if (ctx.has_image === false && !f.ettn) {
+    add("no_image", "warning",
+      "Bu masrafın görseli yok; bilgiler elle yazıldı. e-Arşiv faturasını GİB'de \"Adıma düzenlenen belgeler\"den ya da e-Fatura dosyasından bulup eşleştirin; fatura numarası, satıcı VKN'si ve ödenecek tutarla GİB'den doğrulanabilir.",
+      "VUK 509 GT");
+  }
+
   // 3. Kilometre ve gündelik: gider değil, ücret
   if (rule === "mileage") {
     add("payroll_mileage", "warning",

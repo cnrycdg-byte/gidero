@@ -56,6 +56,39 @@ export async function uploadReceipt(p: { uri: string; companyId: string; reportI
   return exp.id as string;
 }
 
+/**
+ * Görseli olmayan masraf: e-Arşiv kesildi ama kişiye verilmedi ya da e-postasına gelmedi.
+ * Bilgiler elle yazılır; fatura XML'i ya da görseli sonra eklenince eşleşir.
+ */
+export async function createWithoutImage(p: { companyId: string; reportId: string; userId: string }): Promise<string> {
+  const payment_method = await lastPaymentMethod(p.companyId, p.userId);
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({ company_id: p.companyId, report_id: p.reportId, created_by: p.userId, total: 0, doc_type: 'e_arsiv', image_path: null, payment_method })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+/** Görseli olmayan masrafa sonradan fotoğraf ekler; elle yazılan bilgiler değişmez. */
+export async function attachImage(p: { expenseId: string; companyId: string; reportId: string; uri: string }): Promise<string> {
+  const ctx = ImageManipulator.manipulate(p.uri);
+  ctx.resize({ width: 1280 });
+  const img = await ctx.renderAsync();
+  const saved = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  if (!saved.base64) throw new Error('Fotoğraf hazırlanamadı. Tekrar deneyin.');
+  const path = `${p.companyId}/${p.reportId}/${randomId()}.jpg`;
+  const { error: upErr } = await supabase.storage.from('receipts').upload(path, base64ToBytes(saved.base64), { contentType: 'image/jpeg', upsert: false });
+  if (upErr) throw upErr;
+  const { error } = await supabase.from('expenses').update({ image_path: path }).eq('id', p.expenseId).is('image_path', null);
+  if (error) {
+    await supabase.storage.from('receipts').remove([path]);
+    throw error;
+  }
+  return path;
+}
+
 /** Kişinin bu şirkette en son seçtiği ödeme yolu (şirket kartı kullanan çalışan her fişte yeniden seçmesin) */
 const lastPaymentCache = new Map<string, string>();
 async function lastPaymentMethod(companyId: string, userId: string): Promise<string> {

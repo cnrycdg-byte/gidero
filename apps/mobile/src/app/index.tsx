@@ -18,7 +18,7 @@ import { accountStatus, daysLeft, type AccountStatus } from '@/lib/billing';
 import { fetchUsage, usageState, type Usage } from '@/lib/limits';
 import { unreadCount } from '@/lib/notifications';
 import { useQueue } from '@/lib/queue';
-import { pickFromLibrary } from '@/lib/receipts';
+import { createWithoutImage, pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { pendingPages, sectionsFor } from '@/lib/tour';
 import { tourState } from '@/lib/tour/state';
@@ -335,6 +335,22 @@ function Home() {
             />
             {target ? (
               <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
+            ) : null}
+            {target && userId && active?.company_active ? (
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={8}
+                style={{ alignSelf: 'center', paddingVertical: 4 }}
+                onPress={async () => {
+                  try {
+                    const eid = await createWithoutImage({ companyId: active.company_id, reportId: target.id, userId });
+                    router.push({ pathname: '/expense/[id]', params: { id: eid } });
+                  } catch (e) {
+                    setError(errorText(e));
+                  }
+                }}>
+                <Text style={{ color: c.onDeepMuted, fontSize: 14, textDecorationLine: 'underline' }}>Fişi elimde yok, bilgileri yazacağım</Text>
+              </Pressable>
             ) : null}
           </View>
         </Slip>

@@ -65,6 +65,8 @@ export interface TaxContext {
   company: { car_kkeg_vat_deductible: boolean; okc_vat_policy: "cautious" | "flexible" };
   /** Bilgi fişinde çalışanın e-Arşiv faturası onayı */
   einvoice_confirmed?: boolean;
+  /** Masrafın görseli var mı (false: e-Arşiv kişiye verilmedi, bilgiler elle yazıldı) */
+  has_image?: boolean;
   category: { tax_rule: TaxRule; attendees_required: boolean } | null;
   attendees: string[];
   params: Record<string, unknown>;         // tax_parameters: key -> value (belge yılı)

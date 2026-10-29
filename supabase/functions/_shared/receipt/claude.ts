@@ -82,8 +82,8 @@ export const PHOTO_SCHEMA = {
       type: "array",
       items: {
         ...RECEIPT_SCHEMA,
-        required: [...RECEIPT_SCHEMA.required, "position"],
-        properties: { ...RECEIPT_SCHEMA.properties, position: nullable("string") },
+        required: [...RECEIPT_SCHEMA.required, "position", "complete"],
+        properties: { ...RECEIPT_SCHEMA.properties, position: nullable("string"), complete: { type: "boolean" } },
       },
     },
   },
@@ -98,6 +98,9 @@ Fotoğraftaki belge sayısı:
 - Aynı alışverişin hem fişi (ya da bilgi fişi) hem faturası çekildiyse tek öğe yaz ve faturayı esas al.
 - position: birden çok belge varsa belgenin fotoğraftaki yeri, kısa ve Türkçe (ör. "sol üst", "ortadaki", "sağdaki"). Tek belge varsa null.
 - Fotoğrafta hiç harcama belgesi yoksa tek öğe yaz ve readable=false ver.
+- complete: belge fotoğrafta bütün olarak görünüyorsa ve toplam tutarı okunabiliyorsa true. Fotoğrafın kenarından taşan, yarısı kesik, başka bir fişin altında kalmış ya da toplamı görünmeyen belge için false.
+- Asıl çekilmek istenen belgeler fotoğrafın ortasındaki, bütün ve net olanlardır. Kenarda kalan yarım belgeleri count_in_photo'ya sayma; bütün belge varken onları receipts'e de yazma.
+- Aynı belge iki kez görünüyorsa (yansıma, ikinci kopya, üst üste iki çekim) yalnızca en net olanını yaz.
 
 Belge türü:
 - e_fatura / e_arsiv: "e-Fatura", "e-Arşiv Fatura", ETTN veya karekod içeren fatura.
@@ -177,9 +180,23 @@ export async function callClaude(
   const parsed = JSON.parse(text) as { count_in_photo?: number; receipts?: ReceiptFields[] } & Partial<ReceiptFields>;
   // Eski tek belge biçimi de kabul edilir
   const receipts = Array.isArray(parsed.receipts) ? parsed.receipts : [parsed as ReceiptFields];
-  const list = (receipts.length ? receipts : [emptyFields()]).slice(0, MAX_RECEIPTS_PER_PHOTO);
-  const count = Math.max(list.length, Number(parsed.count_in_photo) || list.length);
+  const all = receipts.length ? receipts : [emptyFields()];
+  const kept = pickComplete(all);
+  const list = kept.slice(0, MAX_RECEIPTS_PER_PHOTO);
+  // Ayıklanan yarım fişler toplam sayıya katılmaz
+  const count = Math.max(list.length, (Number(parsed.count_in_photo) || list.length) - (all.length - kept.length));
   return { fields: list[0], receipts: list, count, usage: data.usage };
+}
+
+/**
+ * Kenardaki yarım fişleri ayıklar: bütün belge varsa yalnızca bütünler kalır.
+ * Hepsi yarımsa en çok okunabilen tek belge kalır (kullanıcı eksikleri tamamlar).
+ */
+export function pickComplete(list: (ReceiptFields & { complete?: boolean })[]): ReceiptFields[] {
+  const whole = list.filter((r) => r.complete !== false);
+  if (whole.length) return whole;
+  const score = (r: ReceiptFields) => (r.total != null ? 2 : 0) + (r.date ? 1 : 0) + (r.seller_name ? 1 : 0) + (r.confidence?.total ?? 0);
+  return [list.slice().sort((a, b) => score(b) - score(a))[0]];
 }
 
 /** Okunamayan fotoğraf için boş alanlar */

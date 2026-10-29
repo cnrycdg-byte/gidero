@@ -107,12 +107,20 @@ export async function matchExisting(companyId: string, items: Item[], people: Pe
     const { data } = await supabase.from('expenses').select('id, ettn, seller_vkn, total, doc_date, reports(owner_user_id)').eq('company_id', companyId).in('seller_vkn', vkns);
     rows.push(...(data ?? []));
   }
+  // Görseli olmayan (elle yazılmış) masraflar: VKN yazılmamış olabilir; tarih + tutar tek kayda uyuyorsa eşleşir
+  const dates = [...new Set(invs.map((i) => i.invoice!.doc_date).filter(Boolean) as string[])];
+  const noImage: any[] = [];
+  if (dates.length) {
+    const { data } = await supabase.from('expenses').select('id, ettn, seller_vkn, total, doc_date, reports(owner_user_id)').eq('company_id', companyId).is('image_path', null).is('ettn', null).in('doc_date', dates);
+    noImage.push(...(data ?? []));
+  }
   const name = (uid: string) => people.find((p) => p.user_id === uid)?.full_name ?? 'bir çalışan';
   for (const it of invs) {
     const inv = it.invoice!;
     const hit =
       rows.find((r) => r.ettn && inv.ettn && String(r.ettn).toLowerCase() === inv.ettn.toLowerCase()) ??
-      rows.find((r) => r.seller_vkn === inv.seller_vkn && r.doc_date === inv.doc_date && Math.abs(Number(r.total) - (inv.total ?? -1)) < 0.01);
+      rows.find((r) => r.seller_vkn === inv.seller_vkn && r.doc_date === inv.doc_date && Math.abs(Number(r.total) - (inv.total ?? -1)) < 0.01) ??
+      uniqueMatch(noImage.filter((r) => (!r.seller_vkn || r.seller_vkn === inv.seller_vkn) && r.doc_date === inv.doc_date && Math.abs(Number(r.total) - (inv.total ?? -1)) < 0.01));
     if (hit) {
       it.existingId = hit.id;
       it.status = 'matched';
@@ -120,6 +128,11 @@ export async function matchExisting(companyId: string, items: Item[], people: Pe
       it.message = hit.ettn ? `Zaten kayıtlı: ${name(hit.reports?.owner_user_id)} bu faturayı yüklemiş.` : `${name(hit.reports?.owner_user_id)} kişisinin fişiyle eşleşti; fatura bilgisi fişe eklenecek.`;
     }
   }
+}
+
+/** Birden çok aday varsa yanlış kişiye bağlamamak için eşleştirme yapılmaz */
+function uniqueMatch<T>(list: T[]): T | undefined {
+  return list.length === 1 ? list[0] : undefined;
 }
 
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -156,7 +169,7 @@ export async function processItem(it: Item, ctx: { companyId: string; me: string
     const inv = it.invoice;
     const { data } = await supabase
       .from('expenses')
-      .update({ ettn: inv.ettn?.toLowerCase() ?? null, doc_type: inv.doc_type, doc_no: inv.doc_no, buyer_vkn: inv.buyer_vkn })
+      .update({ ettn: inv.ettn?.toLowerCase() ?? null, doc_type: inv.doc_type, doc_no: inv.doc_no, buyer_vkn: inv.buyer_vkn, seller_vkn: inv.seller_vkn })
       .eq('id', it.existingId)
       .is('ettn', null)
       .select('id');
