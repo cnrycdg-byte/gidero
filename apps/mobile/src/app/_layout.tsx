@@ -144,6 +144,7 @@ function RootStack() {
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
         <Stack.Screen name="profile" options={{ title: 'Hesabım', headerRight: () => null }} />
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
+        <Stack.Screen name="tour" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack.Protected>
     </Stack>
     {signedIn && <DemoBar />}
