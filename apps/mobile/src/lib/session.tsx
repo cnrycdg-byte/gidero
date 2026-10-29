@@ -100,6 +100,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      if (event === 'SIGNED_OUT') {
+        setRecovery(false);
+        setInvite(false);
+      }
       setSession(s);
     });
     return () => sub.subscription.unsubscribe();

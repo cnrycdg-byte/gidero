@@ -9,7 +9,8 @@ import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { ROLE_LABEL } from '@/lib/types';
-import { InviteLink } from '@/components/invite-link';
+import { InviteLink, TempPassword } from '@/components/invite-link';
+import { confirm } from '@/lib/confirm';
 import { addPerson, memberLink } from '@/lib/people';
 
 type Member = { user_id: string; roles: string[]; manager_user_id: string | null; vehicle_plates: string[]; full_name: string; title: string | null; final_approver: boolean };
@@ -36,7 +37,9 @@ export default function Team() {
   const [title, setTitle] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editName, setEditName] = useState('');
-  const [invite, setInvite] = useState<{ link: string; name: string } | null>(null);
+  const [invite, setInvite] = useState<{ link: string; name: string; email?: string; userId?: string } | null>(null);
+  const [status, setStatus] = useState<Record<string, { activated: boolean; email: string }>>({});
+  const [tempFor, setTempFor] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -53,6 +56,8 @@ export default function Team() {
       .in('id', list.map((m) => m.user_id));
     const names = new Map((people ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]));
     setMembers(list.map((m) => ({ ...m, full_name: names.get(m.user_id) || 'İsimsiz kullanıcı' })));
+    const { data: st } = await supabase.rpc('team_status', { p_company: active.company_id });
+    setStatus((st ?? {}) as Record<string, { activated: boolean; email: string }>);
   }, [active]);
 
   useFocusEffect(
@@ -78,7 +83,7 @@ export default function Team() {
         managerId: manager ?? userId,
       });
       setInfo(`${fullName.trim()} eklendi. Masraflarını ${manager && manager !== userId ? nameOf(manager) : 'siz'} onaylayacak; onay zincirini "Onay zinciri" ekranından düzenleyebilirsiniz.`);
-      if (!r.demo && r.link) setInvite({ link: r.link, name: fullName.trim() });
+      if (!r.demo && r.link) setInvite({ link: r.link, name: fullName.trim(), email: r.email, userId: r.user_id });
       if (!r.demo && !r.link) setInfo(`${fullName.trim()} zaten Gidero kullanıyor; kendi şifresiyle girer ve şirketinizi görür.`);
       if (r.warning) setError(r.warning);
       setManager(null);
@@ -99,7 +104,7 @@ export default function Team() {
     setLinkBusy(m.user_id);
     setPlateError(null);
     try {
-      setInvite({ link: await memberLink(active.company_id, m.user_id), name: m.full_name });
+      setInvite({ link: await memberLink(active.company_id, m.user_id), name: m.full_name, email: status[m.user_id]?.email, userId: m.user_id });
     } catch (e) {
       setPlateError(errorText(e));
     } finally {
@@ -201,7 +206,22 @@ export default function Team() {
         {info && <Notice tone="ok" text={info} />}
         <Button icon="personAdd" title="Kişiyi ekle" onPress={add} loading={busy} disabled={roles.length === 0} />
       </View>
-      {invite && <InviteLink link={invite.link} name={invite.name} onClose={() => setInvite(null)} />}
+      {invite && (
+        <>
+          <InviteLink link={invite.link} name={invite.name} email={invite.email} onClose={() => setInvite(null)} />
+          {invite.userId && tempFor !== invite.userId && (
+            <Button variant="plain" title="Bağlantı yerine şifresini ben belirleyeyim" onPress={() => setTempFor(invite.userId!)} />
+          )}
+        </>
+      )}
+      {tempFor && active && tempFor === invite?.userId && (
+        <TempPassword
+          name={members.find((x) => x.user_id === tempFor)?.full_name ?? invite?.name ?? 'Kişi'}
+          userId={tempFor}
+          companyId={active.company_id}
+          onDone={load}
+        />
+      )}
 
       <SectionTitle title={`Ekip (${members.length})`} />
       <Text style={[type.small, { color: c.muted, marginTop: -space.sm }]}>Rolünü, yöneticisini ya da araç plakasını değiştirmek için kişiye dokunun.</Text>
@@ -212,6 +232,7 @@ export default function Team() {
               icon="team"
               title={`${m.full_name}${m.user_id === userId ? ' (siz)' : ''}`}
               subtitle={
+                (status[m.user_id] && !status[m.user_id].activated ? 'Davet bekliyor. ' : '') +
                 (m.title ? `${m.title}. ` : '') +
                 m.roles.map((r) => ROLE_LABEL[r] ?? r).join(', ') +
                 (m.manager_user_id ? `. Yöneticisi: ${nameOf(m.manager_user_id) ?? '—'}` : '') +
@@ -259,7 +280,31 @@ export default function Team() {
                 />
                 {plateError && <Notice tone="bad" text={plateError} />}
                 {m.user_id !== userId && (
-                  <Button variant="plain" title="Giriş bağlantısı oluştur" onPress={() => makeLink(m)} loading={linkBusy === m.user_id} />
+                  <View style={styles.chips}>
+                    {status[m.user_id] && !status[m.user_id].activated && (
+                      <>
+                        <Button variant="secondary" title="Giriş bağlantısı gönder" onPress={() => makeLink(m)} loading={linkBusy === m.user_id} />
+                        <Button variant="secondary" title="Şifresini ben belirleyeyim" onPress={() => setTempFor(tempFor === m.user_id ? null : m.user_id)} />
+                      </>
+                    )}
+                    {tempFor === m.user_id && active && (
+                      <View style={{ width: '100%' }}>
+                        <TempPassword name={m.full_name} userId={m.user_id} companyId={active.company_id} onDone={load} />
+                      </View>
+                    )}
+                    <Button
+                      variant="danger"
+                      title="Ekipten çıkar"
+                      onPress={() =>
+                        confirm(`${m.full_name} ekipten çıkarılsın mı?`, 'Artık giriş yapıp masraf giremez. Eski raporları ve kayıtları silinmez; ona bağlı kişiler onun yöneticisine bağlanır.', 'Çıkar', async () => {
+                          const { error: e } = await supabase.rpc('remove_member', { p_company: active!.company_id, p_user: m.user_id });
+                          if (e) return setPlateError(errorText(e));
+                          setEditing(null);
+                          load();
+                        })
+                      }
+                    />
+                  </View>
                 )}
                 <View style={{ flexDirection: 'row', gap: space.sm }}>
                   <Button variant="secondary" title="Vazgeç" onPress={() => setEditing(null)} style={{ flex: 1, backgroundColor: c.canvas }} />

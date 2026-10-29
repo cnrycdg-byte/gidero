@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSyncExternalStore } from 'react';
 import { useColorScheme } from 'react-native';
 
 // Gidero marka seti: defter yeşili (#0B6E5F), koyu yeşil (#0B3D35), onay amberi (#F2A93B).
@@ -48,8 +50,45 @@ const dark: typeof light = {
 
 export type Palette = typeof light;
 
+// Görünüm tercihi: telefonun ayarı (sistem), açık ya da koyu. Cihazda saklanır.
+export type ThemePref = 'system' | 'light' | 'dark';
+const THEME_KEY = 'gidero.theme';
+let themePref: ThemePref = 'system';
+const themeSubs = new Set<() => void>();
+const subscribe = (f: () => void) => {
+  themeSubs.add(f);
+  return () => {
+    themeSubs.delete(f);
+  };
+};
+
+export async function loadThemePref() {
+  const v = await AsyncStorage.getItem(THEME_KEY).catch(() => null);
+  if (v === 'light' || v === 'dark' || v === 'system') {
+    themePref = v;
+    themeSubs.forEach((f) => f());
+  }
+}
+
+export function setThemePref(p: ThemePref) {
+  themePref = p;
+  AsyncStorage.setItem(THEME_KEY, p).catch(() => {});
+  themeSubs.forEach((f) => f());
+}
+
+export function useThemePref(): ThemePref {
+  return useSyncExternalStore(subscribe, () => themePref, () => themePref);
+}
+
+/** Geçerli görünüm: tercih "sistem" ise telefonun ayarı */
+export function useScheme(): 'light' | 'dark' {
+  const sys = useColorScheme();
+  const pref = useThemePref();
+  return pref === 'system' ? (sys === 'dark' ? 'dark' : 'light') : pref;
+}
+
 export function useColors(): Palette {
-  return useColorScheme() === 'dark' ? dark : light;
+  return useScheme() === 'dark' ? dark : light;
 }
 
 /** Marka yazı aileleri: başlık ve tutarlar Bricolage Grotesque, metin Figtree. */

@@ -127,7 +127,7 @@ export default function AdminAccountScreen() {
     <Page wide>
       {created && <Notice tone="ok" text="Müşteri açıldı. Aşağıdan hesap sahibine giriş bağlantısı oluşturup WhatsApp'tan gönderin." />}
       {link ? (
-        <InviteLink link={link} name={acc.owner_email ?? 'Hesap sahibi'} onClose={() => setLink(null)} />
+        <InviteLink link={link} name={acc.owner_email ?? "Hesap sahibi"} email={acc.owner_email ?? undefined} onClose={() => setLink(null)} />
       ) : (
         <Button
           variant="secondary"

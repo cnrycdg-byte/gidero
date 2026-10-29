@@ -43,3 +43,20 @@ export async function staffLink(accountId: string, userId: string): Promise<stri
   if (error) throw await functionError(error);
   return (data as { link: string }).link;
 }
+
+/** Yönetici geçici şifre belirler; kişi ilk girişte kendi şifresini koymak zorunda kalır. */
+export async function setTempPassword(p: { companyId?: string; accountId?: string; userId: string; password: string }): Promise<{ email: string }> {
+  const { data, error } = await supabase.functions.invoke('people', {
+    body: { action: 'set_password', company_id: p.companyId, account_id: p.accountId, user_id: p.userId, password: p.password },
+  });
+  if (error) throw await functionError(error);
+  return data;
+}
+
+/** Okunması kolay geçici şifre: karışmayan harfler ve rakamlar */
+export function randomPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const arr = new Uint32Array(10);
+  globalThis.crypto?.getRandomValues?.(arr);
+  return Array.from(arr, (n, i) => chars[(n || Math.floor(Math.random() * 1e9) + i) % chars.length]).join('');
+}
