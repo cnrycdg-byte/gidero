@@ -213,3 +213,29 @@ test("karekod çok fişli fotoğrafta yalnızca tutarı eşleşen fişe uygulan�
   assert.equal(out[0].doc_no, a.doc_no);
   assert.equal(out[1].doc_no, "QR123");
 });
+
+test("kenardaki yarım fişler alınmaz; hepsi yarımsa en okunaklı tek fiş kalır", async () => {
+  const photo = (receipts: unknown[], count: number) => (async () => new Response(JSON.stringify({
+    stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ count_in_photo: count, receipts }) }],
+    usage: { input_tokens: 1, output_tokens: 1 },
+  }), { status: 200 })) as unknown as typeof fetch;
+  const whole = (t: number) => ({ ...base({ total: t, vat_lines: [{ rate: 10, base: t / 1.1, vat: t - t / 1.1 }] }), position: "orta", complete: true });
+  const half = { ...base({ total: null, seller_name: null }), position: "sol kenar", complete: false };
+  let r = await readPhoto("k", { base64: "AAAA", media_type: "image/jpeg" }, null, [1, 10, 20], photo([half, whole(110), whole(220), half], 4));
+  assert.equal(r.receipts.length, 2);
+  assert.equal(r.count, 2);
+  assert.deepEqual(r.receipts.map((x) => x.total), [110, 220]);
+  const halfWithTotal = { ...base({ total: 330 }), position: "sağ", complete: false };
+  r = await readPhoto("k", { base64: "AAAA", media_type: "image/jpeg" }, null, [1, 10, 20], photo([half, halfWithTotal], 2));
+  assert.equal(r.receipts.length, 1);
+  assert.equal(r.receipts[0].total, 330);
+});
+
+test("görseli olmayan masraf uyarı alır; e-Fatura dosyasıyla eşleşince uyarı kalkar", () => {
+  let flags = evaluateTaxRules(ctx({ fields: base({ doc_type: "e_arsiv", ettn: null }), has_image: false }));
+  assert.equal(flags.find((x) => x.code === "no_image")?.severity, "warning");
+  flags = evaluateTaxRules(ctx({ fields: base({ doc_type: "e_arsiv", ettn: "f3b1c2d4-0000-4000-8000-000000000001" }), has_image: false }));
+  assert.ok(!flags.some((x) => x.code === "no_image"));
+  flags = evaluateTaxRules(ctx({ fields: base({}), has_image: true }));
+  assert.ok(!flags.some((x) => x.code === "no_image"));
+});

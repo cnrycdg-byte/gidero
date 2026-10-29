@@ -14,7 +14,7 @@ import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Sl
 import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
 import { useQueue } from '@/lib/queue';
-import { pickFromLibrary } from '@/lib/receipts';
+import { createWithoutImage, pickFromLibrary } from '@/lib/receipts';
 import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
@@ -188,6 +188,17 @@ export default function ReportScreen() {
     load();
   }
 
+  async function addWithoutImage() {
+    if (!report || !userId) return;
+    setError(null);
+    try {
+      const eid = await createWithoutImage({ companyId: report.company_id, reportId: report.id, userId });
+      router.push({ pathname: '/expense/[id]', params: { id: eid } });
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
   function remove() {
     confirm('Rapor silinsin mi?', 'Taslak rapor ve içindeki fişler silinir.', 'Sil', async () => {
       const paths = expenses.map((e) => e.image_path).filter((p): p is string => !!p);
@@ -335,7 +346,8 @@ export default function ReportScreen() {
                                   ? `Alkol reddedildi (${money(Number(e.alcohol_amount ?? 0))})`
                                   : 'Alkol: muhasebe kararı bekliyor'
                               : null,
-                            warns.filter((f) => f.code !== 'alcohol' && f.code !== 'info_slip').length ? `${warns.filter((f) => f.code !== 'alcohol' && f.code !== 'info_slip').length} uyarı` : null,
+                            !e.image_path && !e.ettn ? 'görsel yok, e-Arşiv bekleniyor' : null,
+                            warns.filter((f) => !['alcohol', 'info_slip', 'no_image'].includes(f.code)).length ? `${warns.filter((f) => !['alcohol', 'info_slip', 'no_image'].includes(f.code)).length} uyarı` : null,
                             needsCheck && !e.checked_at && editable ? 'kontrol bekliyor' : null,
                           ]
                             .filter(Boolean)
@@ -353,6 +365,17 @@ export default function ReportScreen() {
                 />
               );
             })}
+          </Group>
+        )}
+
+        {editable && mode !== 'summary' && (
+          <Group>
+            <Row
+              icon="doc"
+              title="Fişi elimde yok, bilgileri yazacağım"
+              subtitle="e-Arşiv kesildi ama size verilmediyse ya da e-postanıza gelmediyse"
+              onPress={addWithoutImage}
+            />
           </Group>
         )}
 
@@ -387,7 +410,7 @@ export default function ReportScreen() {
         {expenses.length > 0 && <PrintPanel reportId={report.id} receiptCount={expenses.length} />}
 
         {report.status === 'draft' && (isOwner || isCreator) && (
-          <Button variant="plain" title="Taslak raporu sil" onPress={remove} />
+          <Button variant="danger" icon="trash" title="Taslak raporu sil" onPress={remove} />
         )}
       </ScrollView>
 

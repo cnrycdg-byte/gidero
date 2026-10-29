@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
@@ -14,7 +14,7 @@ import { AttendeePicker } from '@/components/attendee-picker';
 import { rememberContacts } from '@/lib/contacts';
 import { PERIOD_LABEL, fetchUsage, rangeText, usageState, type Usage } from '@/lib/limits';
 import { formatPlate, normalizePlate } from '@/lib/plate';
-import { receiptUrl, recheckExpense } from '@/lib/receipts';
+import { attachImage, pickFromLibrary, readReceipt, receiptUrl, recheckExpense } from '@/lib/receipts';
 import { confirm } from '@/lib/confirm';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
@@ -55,6 +55,7 @@ export default function ExpenseScreen() {
 
   const [usage, setUsage] = useState<Usage[]>([]);
   const [busy, setBusy] = useState(false);
+  const [attaching, setAttaching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -150,7 +151,7 @@ export default function ExpenseScreen() {
   })();
   const showPlate =
     exp.doc_type === 'akaryakit_okc' || !!exp.plate || ['fuel', 'car_running'].includes(category?.tax_rule ?? '');
-  const flags: Flag[] = (exp.expense_flags ?? []).filter((f) => f.code !== 'alcohol' && f.code !== 'alcohol_decided' && f.code !== 'info_slip');
+  const flags: Flag[] = (exp.expense_flags ?? []).filter((f) => f.code !== 'alcohol' && f.code !== 'alcohol_decided' && f.code !== 'info_slip' && f.code !== 'no_image');
   const order = { critical: 0, warning: 1, info: 2 } as const;
   flags.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -245,12 +246,35 @@ export default function ExpenseScreen() {
     }
   }
 
+  async function addPhoto() {
+    if (!exp || !report) return;
+    setError(null);
+    const uris = await pickFromLibrary();
+    if (!uris.length) return;
+    setAttaching(true);
+    try {
+      await attachImage({ expenseId: exp.id, companyId: exp.company_id, reportId: exp.report_id, uri: uris[0] });
+      // Tutar henüz yazılmadıysa fotoğraftan okunur; yazıldıysa elle girilen bilgiler korunur
+      if (Number(exp.total) > 0) await recheckExpense(exp.id);
+      else await readReceipt(exp.id);
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setAttaching(false);
+    }
+  }
+
   function remove() {
     if (!exp) return;
     confirm('Fiş silinsin mi?', 'Bu fiş rapordan çıkarılır.', 'Sil', async () => {
-      if (exp.image_path) await supabase.storage.from('receipts').remove([exp.image_path]);
       const { error: e } = await supabase.from('expenses').delete().eq('id', exp.id);
       if (e) return setError(errorText(e));
+      // Aynı fotoğraftaki diğer fişler görseli kullanmaya devam eder; görsel yalnızca son fiş silinince kalkar
+      if (exp.image_path) {
+        const { count } = await supabase.from('expenses').select('id', { count: 'exact', head: true }).eq('image_path', exp.image_path);
+        if (!count) await supabase.storage.from('receipts').remove([exp.image_path]);
+      }
       router.back();
     });
   }
@@ -281,8 +305,10 @@ export default function ExpenseScreen() {
     plate: 'plaka',
     category: 'gider grubu',
   };
-  const missingList = editable ? (Object.keys(miss) as (keyof typeof miss)[]).filter((k) => miss[k]) : [];
-  const m = (k: keyof typeof miss) => editable && miss[k];
+  // Görseli olmayan masrafta "fişten okunamadı" uyarısı anlamsız: alanlar elle yazılır
+  const noImage = !exp.image_path && !exp.ettn;
+  const missingList = editable && !noImage ? (Object.keys(miss) as (keyof typeof miss)[]).filter((k) => miss[k]) : [];
+  const m = (k: keyof typeof miss) => editable && !noImage && miss[k];
 
   // Geniş ekranda: solda dar form, sağda tıklamadan okunacak büyüklükte fiş fotoğrafı (fişler dikey)
   const split = screenW >= 760 && !!image;
@@ -302,6 +328,16 @@ export default function ExpenseScreen() {
           </View>
         )}
 
+        {editable && <Stack.Screen options={{ headerRight: () => <HeaderDelete onPress={remove} /> }} />}
+        {noImage && (
+          <View style={[styles.noImage, { backgroundColor: c.paper, borderColor: c.paperLine }]}>
+            <Text style={[type.bodyStrong, { color: c.ink }]}>Bu masrafın görseli yok</Text>
+            <Text style={[type.small, { color: c.muted }]}>
+              e-Arşiv kesildi ama size verilmediyse ya da e-postanıza gelmediyse bilgileri fişsiz yazabilirsiniz: satıcı, tarih, tutar ve KDV. Fatura numarasını biliyorsanız yazın; muhasebe faturayı GİB'den ya da e-Fatura dosyasından bulup bu kayıtla eşleştirir.
+            </Text>
+            {editable && <Button variant="secondary" icon="gallery" title="Fotoğrafını sonra ekle" onPress={addPhoto} loading={attaching} />}
+          </View>
+        )}
         {missingList.length > 0 && (
           <Notice
             tone="warn"
@@ -309,7 +345,7 @@ export default function ExpenseScreen() {
           />
         )}
 
-        {needsCheck && editable ? (
+        {needsCheck && editable && !noImage ? (
           <Notice
             tone={exp.checked_at ? 'ok' : 'info'}
             text={
@@ -510,7 +546,7 @@ export default function ExpenseScreen() {
 
         {error && <Notice tone="bad" text={error} />}
         {editable ? (
-          <Button variant="plain" icon="trash" title="Fişi sil" onPress={remove} />
+          <Button variant="danger" icon="trash" title="Bu fişi sil" onPress={remove} />
         ) : (
           <Notice text="Rapor onaya gönderildiği için fiş değiştirilemez." />
         )}
@@ -563,7 +599,25 @@ export default function ExpenseScreen() {
   );
 }
 
+/** Başlıktaki sil düğmesi: fişi silmek için ekranın sonuna inmek gerekmesin */
+function HeaderDelete({ onPress }: { onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel="Bu fişi sil"
+      style={({ pressed }) => [styles.headerDelete, { backgroundColor: pressed ? c.red : c.redSoft }]}>
+      {({ pressed }) => (
+        <>
+          <Icon name="trash" size={15} color={pressed ? '#FFFFFF' : c.red} />
+          <Text style={{ color: pressed ? '#FFFFFF' : c.red, fontFamily: fonts.semibold, fontSize: 14 }}>Sil</Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  headerDelete: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, marginRight: 4 },
+  noImage: { borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', padding: space.lg, gap: space.sm },
   imageWrap: { borderRadius: radius.lg, overflow: 'hidden' },
   photoPane: { flex: 1, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   image: { width: '100%', height: 300 },

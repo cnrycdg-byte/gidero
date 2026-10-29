@@ -347,6 +347,7 @@ async function evaluate(
     same_day_same_seller_total: sameDay,
     duplicate_of: (dups ?? []).map((d: { id: string }) => d.id),
     einvoice_confirmed: !!exp.einvoice_confirmed_at,
+    has_image: !!exp.image_path,
     today: new Date().toISOString().slice(0, 10),
   });
 }
