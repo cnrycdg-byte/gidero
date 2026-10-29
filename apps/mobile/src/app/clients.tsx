@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { InviteLink, TempPassword } from '@/components/invite-link';
@@ -43,13 +43,21 @@ export default function Clients() {
   const [invite, setInvite] = useState<{ link: string; name: string; email?: string } | null>(null);
   const [tempFor, setTempFor] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState<string | null>(null);
+  // Firmanın kendi girişi açık mı (büro tercihi)
+  const [selfService, setSelfService] = useState<Record<string, boolean>>({});
+  const [accessFirm, setAccessFirm] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!bureau) return;
     setStatus(await accountStatus(bureau.account_id).catch(() => null));
     const { data } = await supabase.rpc('bureau_team', { p_account: bureau.account_id });
     setTeam((data ?? []) as Staff[]);
-  }, [bureau]);
+    const ids = memberships.filter((m) => m.bureau_account_id === bureau.account_id).map((m) => m.company_id);
+    if (ids.length) {
+      const { data: cs } = await supabase.from('companies').select('id, self_service').in('id', ids);
+      setSelfService(Object.fromEntries(((cs ?? []) as { id: string; self_service: boolean }[]).map((x) => [x.id, x.self_service])));
+    }
+  }, [bureau, memberships]);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,6 +81,19 @@ export default function Clients() {
   const meOwner = !!owner && owner.user_id === userId;
   const ownerChip = meOwner ? 'Bana bağla' : `Büro sahibine bağla${owner ? ` (${owner.full_name})` : ''}`;
   const ownerLabel = owner ? `${owner.full_name}${owner.user_id === userId ? ' (siz)' : ''}` : 'Büro sahibi';
+
+  async function setFirmAccess(companyId: string, on: boolean) {
+    setError(null);
+    const { error: e } = await supabase.rpc('bureau_set_self_service', { p_company: companyId, p_on: on });
+    if (e) return setError(errorText(e));
+    setSelfService((x) => ({ ...x, [companyId]: on }));
+  }
+
+  /** Firmanın yetkilisini eklemek için o firmaya geçip Ekip ekranını açar */
+  function addFirmUser(companyId: string) {
+    setActiveCompany(companyId);
+    router.push('/team');
+  }
 
   async function assign(user: string, company: string, on: boolean) {
     if (!bureau) return;
@@ -211,7 +232,7 @@ export default function Clients() {
         <Empty
           icon="doc"
           title="Henüz müşteri firma yok"
-          text="Firma ekleyin, sonra firmaya dokunun: WhatsApp'tan gelen fişleri o firmaya yükler, kayda alır ve dökümünü alırsınız. Firmalara giriş açılmaz; girişleri büro yapar."
+          text="Firma ekleyin, sonra firmaya dokunun: WhatsApp'tan gelen fişleri o firmaya yükler, kayda alır ve dökümünü alırsınız. İsterseniz firmaya kendi girişini de açabilirsiniz."
         />
       ) : (
         <Group>
@@ -228,6 +249,11 @@ export default function Clients() {
                   right={
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                       {isOwner && (
+                        <Pressable onPress={() => setAccessFirm(accessFirm === f.company_id ? null : f.company_id)} hitSlop={8} style={[styles.small, { backgroundColor: selfService[f.company_id] ? c.penSoft : c.canvas }]}>
+                          <Text style={{ color: c.pen, fontSize: 13, fontWeight: '600' }}>{selfService[f.company_id] ? 'Girişi açık' : 'Firma girişi'}</Text>
+                        </Pressable>
+                      )}
+                      {isOwner && (
                         <Pressable onPress={() => setEditingFirm(editingFirm === f.company_id ? null : f.company_id)} hitSlop={8} style={[styles.small, { backgroundColor: c.canvas }]}>
                           <Text style={{ color: c.pen, fontSize: 13, fontWeight: '600' }}>Sorumlu</Text>
                         </Pressable>
@@ -240,6 +266,21 @@ export default function Clients() {
                     router.dismissTo('/');
                   }}
                 />
+                {accessFirm === f.company_id && (
+                  <View style={[styles.edit, { borderTopColor: c.paperLine }]}>
+                    <Text style={[type.bodyStrong, { color: c.ink }]}>Firmanın kendi girişi</Text>
+                    <Text style={[type.small, { color: c.muted }]}>
+                      Açarsanız firmanın yetkilisi ve çalışanları Gidero'ya kendileri girer: fişlerini telefonla çeker, kendi onay zincirlerinden geçirir ve bütün giderlerini görür. Muhasebe, kontrol ve aktarım yine sizde kalır; sizin girdiğiniz fişler onaysız kayda alınmaya devam eder.
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                      <Text style={[type.body, { color: c.ink, flex: 1 }]}>{selfService[f.company_id] ? 'Firma kendi girişini kullanıyor' : 'Fişleri yalnızca büro giriyor'}</Text>
+                      <Switch value={!!selfService[f.company_id]} onValueChange={(v) => setFirmAccess(f.company_id, v)} />
+                    </View>
+                    {selfService[f.company_id] ? (
+                      <Button icon="personAdd" title="Firmaya yetkili ya da çalışan ekle" onPress={() => addFirmUser(f.company_id)} />
+                    ) : null}
+                  </View>
+                )}
                 {editingFirm === f.company_id && (
                   <View style={[styles.edit, { borderTopColor: c.paperLine }]}>
                     <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Bu firmaya kim bakacak?</Text>
