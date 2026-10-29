@@ -83,6 +83,7 @@ export default function Settings() {
 
       <Group>
         <Row icon="inbox" title="Onayınızı bekleyenler" onPress={() => router.push('/approvals')} />
+        {hasRole('payer') ? <Row icon="receipt" title="Ödemeler" subtitle="Muhasebenin aktardığı ödemeler" onPress={() => router.push('/payments')} /> : null}
         {hasRole('admin') ? <Row icon="team" title="Ekip" onPress={() => router.push('/team')} /> : null}
         {hasRole('admin') ? (
           <Row icon="settings" title="Logo ve renkler" subtitle="Şirketinizin logosu ve kurumsal renkleri" onPress={() => router.push('/brand')} />

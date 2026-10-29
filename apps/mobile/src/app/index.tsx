@@ -53,6 +53,7 @@ function Home() {
   const [limits, setLimits] = useState<Usage[]>([]);
   const [sub, setSub] = useState<AccountStatus | null>(null);
   const [waiting, setWaiting] = useState(0);
+  const [toPay, setToPay] = useState(0);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
@@ -107,6 +108,11 @@ function Home() {
         .catch(() => setSub(null));
     }
     unreadCount().then(setUnread).catch(() => setUnread(0));
+    if (active.roles.includes('payer')) {
+      supabase
+        .rpc('payment_queue', { p_company: active.company_id, p_paid: false })
+        .then(({ data }) => setToPay(((data ?? []) as unknown[]).length));
+    }
     fetchUsage(active.company_id, userId)
       .then(setLimits)
       .catch(() => setLimits([]));
@@ -312,6 +318,19 @@ function Home() {
         <QueueProgress />
 
         {error && <Notice tone="bad" text={error} />}
+
+        {toPay > 0 && (
+          <Pressable onPress={() => router.push('/payments')} style={[styles.approvalCard, { backgroundColor: c.penSoft }]}>
+            <View style={[styles.approvalBadge, { backgroundColor: c.pen }]}>
+              <Text style={{ fontFamily: fonts.displayHeavy, fontSize: 18, color: c.onPen }}>{toPay}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[type.bodyStrong, { color: c.ink }]}>Ödeme bekleyen rapor</Text>
+              <Text style={[type.small, { color: c.muted }]}>IBAN'ı kopyalayıp ödeyin, sonra "Ödeme yapıldı" deyin</Text>
+            </View>
+            <Icon name="chevron" size={13} color={c.muted} />
+          </Pressable>
+        )}
 
         {waiting > 0 && (
           <Pressable onPress={() => router.push('/approvals')} style={[styles.approvalCard, { backgroundColor: c.stampSoft }]}>

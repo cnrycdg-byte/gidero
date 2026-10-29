@@ -9,7 +9,7 @@ import { supabase } from './supabase';
 export type AppNotification = {
   id: number;
   report_id: string | null;
-  kind: 'approval_needed' | 'approved' | 'returned' | 'ready_for_accounting';
+  kind: 'approval_needed' | 'approved' | 'returned' | 'ready_for_accounting' | 'paid' | 'payment_needed';
   title: string;
   body: string;
   created_at: string;

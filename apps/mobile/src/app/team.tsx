@@ -9,13 +9,14 @@ import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { formatPlate, normalizePlate } from '@/lib/plate';
 import { ROLE_LABEL } from '@/lib/types';
+import { bankFromIban, ibanError, saveBank } from '@/lib/bank';
 import { Credentials, InviteLink, TempPassword } from '@/components/invite-link';
 import { confirm } from '@/lib/confirm';
 import { addPerson, memberLink, randomPassword } from '@/lib/people';
 
 type Member = { user_id: string; roles: string[]; manager_user_id: string | null; vehicle_plates: string[]; full_name: string; title: string | null; final_approver: boolean };
 
-const CHOICES = ['employee', 'approver', 'accountant', 'admin'];
+const CHOICES = ['employee', 'approver', 'accountant', 'payer', 'admin'];
 
 export default function Team() {
   const c = useColors();
@@ -24,6 +25,9 @@ export default function Team() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [plates, setPlates] = useState('');
+  const [iban, setIban] = useState('');
+  const [bank, setBank] = useState('');
+  const [holder, setHolder] = useState('');
   const [access, setAccess] = useState<'link' | 'password'>('link');
   const [newPw, setNewPw] = useState(randomPassword());
   const [creds, setCreds] = useState<{ name: string; email: string; password: string; phone?: string } | null>(null);
@@ -82,6 +86,8 @@ export default function Team() {
     const badPlates = plateParts.filter((x) => !normalizePlate(x));
     if (badPlates.length) return setError(`Şu plaka geçersiz: ${badPlates.join(', ')}. Örnek: 35 ABC 123`);
     if (access === 'password' && newPw.length < 8) return setError('Geçici şifre en az 8 karakter olmalı.');
+    const ibanErr = ibanError(iban);
+    if (ibanErr) return setError(ibanErr);
     setCreds(null);
     setBusy(true);
     try {
@@ -103,6 +109,13 @@ export default function Team() {
         });
         if (pe) setError(`Kişi eklendi ama araç kaydedilemedi: ${errorText(pe)}`);
       }
+      if (iban.trim() || bank.trim()) {
+        try {
+          await saveBank(active.company_id, r.user_id, { iban, bank, holder: holder || fullName });
+        } catch (be) {
+          setError(`Kişi eklendi ama banka bilgisi kaydedilemedi: ${errorText(be)}`);
+        }
+      }
       if (r.password_set) setCreds({ name: fullName.trim(), email: r.email, password: newPw, phone: phone.trim() || undefined });
       setInfo(`${fullName.trim()} eklendi. Masraflarını ${manager && manager !== userId ? nameOf(manager) : 'siz'} onaylayacak; onay zincirini "Onay zinciri" ekranından düzenleyebilirsiniz.`);
       if (!r.password_set && r.link) setInvite({ link: r.link, name: fullName.trim(), email: r.email, userId: r.user_id, phone: phone.trim() || undefined });
@@ -112,6 +125,9 @@ export default function Team() {
       setEmail('');
       setPhone('');
       setPlates('');
+      setIban('');
+      setBank('');
+      setHolder('');
       setNewPw(randomPassword());
       setFullName('');
       setTitle('');
@@ -207,6 +223,26 @@ export default function Team() {
           placeholder="35 ABC 123, 06 XYZ 45"
           hint="Akaryakıt fişindeki plaka bunlarla karşılaştırılır. Birden çok aracı virgülle ayırın."
         />
+        <Field
+          label="IBAN (isteğe bağlı)"
+          value={iban}
+          onChangeText={(v) => {
+            setIban(v);
+            const b = bankFromIban(v);
+            if (b && !bank) setBank(b);
+          }}
+          autoCapitalize="characters"
+          placeholder="TR00 0000 0000 0000 0000 0000 00"
+          hint={ibanError(iban) ?? 'Masraf ödemesi bu hesaba yapılır. Kaydettikten sonra yalnızca muhasebe, ödeme yetkilisi ve kişinin kendisi görür.'}
+        />
+        <View style={{ flexDirection: 'row', gap: space.sm }}>
+          <View style={{ flex: 1 }}>
+            <Field label="Banka" value={bank} onChangeText={setBank} placeholder="Örnek: Ziraat Bankası" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field label="Hesap sahibi" value={holder} onChangeText={setHolder} placeholder={fullName || 'Ad soyad'} />
+          </View>
+        </View>
         <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Rolleri</Text>
         <View style={styles.chips}>
           {CHOICES.map((r) => {

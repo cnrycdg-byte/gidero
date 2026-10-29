@@ -78,6 +78,7 @@ export const ROLE_TEXT: Record<string, string> = {
   accountant: 'Muhasebeci',
   admin: 'Yönetici',
   auditor: 'Denetçi',
+  payer: 'Ödeme yetkilisi',
   cost_center_owner: 'Masraf merkezi sorumlusu',
   bureau_owner: 'Büro sahibi',
   bureau_accountant: 'Büro muhasebecisi',
