@@ -3,7 +3,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
-import { InviteLink } from '@/components/invite-link';
+import { InviteLink, TempPassword } from '@/components/invite-link';
+import { confirm } from '@/lib/confirm';
 import { Text } from '@/components/text';
 import { Button, Empty, Field, Group, Notice, Row, SectionTitle } from '@/components/ui';
 import { radius, space, type, useColors } from '@/constants/theme';
@@ -38,7 +39,8 @@ export default function Clients() {
   const [staffEmail, setStaffEmail] = useState('');
   const [staffFirms, setStaffFirms] = useState<string[]>([]);
   const [staffBusy, setStaffBusy] = useState(false);
-  const [invite, setInvite] = useState<{ link: string; name: string } | null>(null);
+  const [invite, setInvite] = useState<{ link: string; name: string; email?: string } | null>(null);
+  const [tempFor, setTempFor] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -121,7 +123,7 @@ export default function Clients() {
     setStaffBusy(true);
     try {
       const r = await addBureauStaff({ accountId: bureau.account_id, fullName: staffName.trim(), email: staffEmail.trim(), companyIds: staffFirms });
-      if (r.link) setInvite({ link: r.link, name: staffName.trim() });
+      if (r.link) setInvite({ link: r.link, name: staffName.trim(), email: staffEmail.trim() || undefined });
       else setInfo(r.demo ? `${staffName.trim()} eklendi. Test sürüşü ekranından ona geçebilirsiniz.` : `${staffName.trim()} zaten Gidero kullanıyor; kendi şifresiyle girer.`);
       setStaffName('');
       setStaffEmail('');
@@ -140,7 +142,7 @@ export default function Clients() {
     setLinkBusy(s.user_id);
     setError(null);
     try {
-      setInvite({ link: await staffLink(bureau.account_id, s.user_id), name: s.full_name });
+      setInvite({ link: await staffLink(bureau.account_id, s.user_id), name: s.full_name, email: s.email });
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -167,7 +169,7 @@ export default function Clients() {
 
       {error && <Notice tone="bad" text={error} />}
       {info && <Notice tone="ok" text={info} />}
-      {invite && <InviteLink link={invite.link} name={invite.name} onClose={() => setInvite(null)} />}
+      {invite && <InviteLink link={invite.link} name={invite.name} email={invite.email} onClose={() => setInvite(null)} />}
       {full && isOwner && <Notice tone="warn" text="Paketinizdeki firma hakkının hepsi kullanılıyor. Yeni firma için paketinizi büyütün." />}
 
       {/* ------------------------------ Firmalar ------------------------------ */}
@@ -298,8 +300,29 @@ export default function Clients() {
                 })}
                 {firms.length === 0 && <Text style={[type.small, { color: c.muted }]}>Önce müşteri firma ekleyin.</Text>}
               </View>
-              {isOwner && !m.activated && (
-                <Button variant="plain" title="Giriş bağlantısı oluştur" loading={linkBusy === m.user_id} onPress={() => makeLink(m)} />
+              {isOwner && (
+                <View style={styles.chips}>
+                  {!m.activated && (
+                    <>
+                      <Button variant="secondary" title="Giriş bağlantısı gönder" loading={linkBusy === m.user_id} onPress={() => makeLink(m)} />
+                      <Button variant="secondary" title="Şifresini ben belirleyeyim" onPress={() => setTempFor(tempFor === m.user_id ? null : m.user_id)} />
+                    </>
+                  )}
+                  <Button
+                    variant="danger"
+                    title="Büro ekibinden çıkar"
+                    onPress={() =>
+                      confirm(`${m.full_name} büro ekibinden çıkarılsın mı?`, 'Artık firmalarınızı göremez. Girdiği kayıtlar silinmez.', 'Çıkar', async () => {
+                        const { error: e } = await supabase.rpc('bureau_remove_staff', { p_account: bureau.account_id, p_user: m.user_id });
+                        if (e) return setError(errorText(e));
+                        load();
+                      })
+                    }
+                  />
+                </View>
+              )}
+              {tempFor === m.user_id && (
+                <TempPassword name={m.full_name} userId={m.user_id} accountId={bureau.account_id} onDone={load} />
               )}
             </>
           )}

@@ -66,7 +66,15 @@ Deno.serve(async (req) => {
       .in('kind', [...EMAIL_KINDS])
       .order('created_at')
       .limit(50);
+    // E-posta bildirimini kapatan kişilere gönderilmez
+    const ids = [...new Set(((mails ?? []) as Note[]).map((n) => n.user_id))];
+    const { data: prefs } = ids.length ? await db.from('profiles').select('id, email_notifications').in('id', ids) : { data: [] };
+    const off = new Set((prefs ?? []).filter((p: { email_notifications: boolean }) => p.email_notifications === false).map((p: { id: string }) => p.id));
     for (const n of (mails ?? []) as Note[]) {
+      if (off.has(n.user_id)) {
+        await db.from('notifications').update({ email_sent_at: new Date().toISOString() }).eq('id', n.id);
+        continue;
+      }
       try {
         const { data: u } = await db.auth.admin.getUserById(n.user_id);
         if (u?.user?.email) {

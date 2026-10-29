@@ -6,6 +6,7 @@
 //   { action: 'owner_link', account_id, full_name? }                           → { link|null, email }   (Gidero yöneticisi)
 //   { action: 'add_staff', account_id, full_name, email, company_ids? }        → { user_id, link|null } (büro sahibi)
 //   { action: 'staff_link', account_id, user_id }                              → { link }               (büro sahibi)
+//   { action: 'set_password', company_id | account_id, user_id, password }      → { ok }  geçici şifre; kişi ilk girişte değiştirir
 // Bağlantı yalnızca yeni açılan kişiye ya da şifresini hiç belirlememiş ve yalnızca çağıranın yönettiği
 // şirketlerde olan kişiye verilir (veritabanı: can_issue_invite). Başkasının hesabına bağlantı verilmez.
 
@@ -22,6 +23,7 @@ type Body = {
   roles?: string[];
   manager_id?: string | null;
   company_ids?: string[];
+  password?: string;
 };
 
 Deno.serve(async (req) => {
@@ -148,6 +150,25 @@ Deno.serve(async (req) => {
       const { data: u, error } = await admin.auth.admin.getUserById(String(b.user_id));
       if (error || !u?.user?.email) return json(400, { error: 'Kişi bulunamadı.' });
       return json(200, { link: inviteUrl(await recoveryToken(admin, u.user.email)) });
+    }
+
+    if (b.action === 'set_password') {
+      const password = String(b.password ?? '');
+      if (password.length < 8) return json(400, { error: 'Geçici şifre en az 8 karakter olmalı.' });
+      const { data: may } = b.account_id
+        ? await asCaller.rpc('can_issue_bureau_invite', { p_account: b.account_id, p_user: b.user_id })
+        : await asCaller.rpc('can_issue_invite', { p_company: b.company_id, p_user: b.user_id });
+      if (may !== true) {
+        return json(400, { error: 'Bu kişinin şifresini belirleyemezsiniz: hesabını kullanmaya başlamış. Şifresini unuttuysa giriş ekranındaki "Şifremi unuttum"u kullansın.' });
+      }
+      const { data: u, error } = await admin.auth.admin.getUserById(String(b.user_id));
+      if (error || !u?.user) return json(400, { error: 'Kişi bulunamadı.' });
+      const { error: upErr } = await admin.auth.admin.updateUserById(u.user.id, {
+        password,
+        user_metadata: { ...(u.user.user_metadata ?? {}), must_change_password: true },
+      });
+      if (upErr) return json(400, { error: /weak|short|characters/i.test(upErr.message) ? 'Şifre çok zayıf; harf ve rakam karışık daha uzun bir şifre yazın.' : upErr.message });
+      return json(200, { ok: true, email: u.user.email });
     }
 
     if (b.action === 'owner_link') {

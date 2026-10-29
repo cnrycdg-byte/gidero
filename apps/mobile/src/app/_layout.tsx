@@ -9,12 +9,13 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DemoBar } from '@/components/demo-bar';
 import { NewPassword } from '@/components/new-password';
 import { Loading } from '@/components/ui';
-import { fonts, useColors } from '@/constants/theme';
+import { fonts, loadThemePref, useColors, useScheme } from '@/constants/theme';
+import { ProfileButton } from '@/components/profile-button';
 import { QueueProvider } from '@/lib/queue';
 import { listenForTaps, registerPush } from '@/lib/notifications';
 import { SessionProvider, useSession } from '@/lib/session';
@@ -22,7 +23,10 @@ import { SessionProvider, useSession } from '@/lib/session';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const scheme = useColorScheme();
+  const scheme = useScheme();
+  useEffect(() => {
+    loadThemePref();
+  }, []);
   const [fontsLoaded, fontError] = useFonts({
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
@@ -41,7 +45,7 @@ export default function RootLayout() {
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SessionProvider>
         <QueueProvider>
-          <StatusBar style="auto" />
+          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           <RootStack />
         </QueueProvider>
       </SessionProvider>
@@ -51,13 +55,14 @@ export default function RootLayout() {
 
 function RootStack() {
   const { ready, session, active, bureaus, platformAdmin, userId, recovery } = useSession();
+  const mustChange = session?.user.user_metadata?.must_change_password === true || session?.user.user_metadata?.must_change_password === 'true';
   const c = useColors();
   useEffect(() => {
     if (userId) registerPush(userId);
   }, [userId]);
   useEffect(() => listenForTaps(), []);
   if (!ready) return <Loading />;
-  if (recovery && session) return <NewPassword />;
+  if ((recovery || mustChange) && session) return <NewPassword temporary={mustChange && !recovery} />;
 
   const signedIn = !!session;
   const hasCompany = !!active;
@@ -75,6 +80,7 @@ function RootStack() {
         headerShadowVisible: false,
         headerLargeTitleShadowVisible: false,
         headerStyle: { backgroundColor: c.canvas },
+        headerRight: signedIn ? () => <ProfileButton /> : undefined,
       }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -104,6 +110,7 @@ function RootStack() {
         <Stack.Screen name="subscription" options={{ title: 'Abonelik' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
+        <Stack.Screen name="profile" options={{ title: 'Hesabım', headerRight: () => null }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && platformAdmin}>
         <Stack.Screen name="admin/index" options={{ title: 'Gidero Yönetim', headerLargeTitle: true }} />

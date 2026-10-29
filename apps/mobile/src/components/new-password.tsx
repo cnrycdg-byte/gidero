@@ -10,7 +10,7 @@ import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 
 /** Şifre yenileme bağlantısından gelen kişi yeni şifresini yazar; sonra uygulamaya girer. */
-export function NewPassword() {
+export function NewPassword({ temporary = false }: { temporary?: boolean }) {
   const c = useColors();
   const { session, finishRecovery, invite } = useSession();
   const [p1, setP1] = useState('');
@@ -20,12 +20,13 @@ export function NewPassword() {
 
   async function save() {
     setError(null);
-    if (p1.length < 6) return setError('Şifre en az 6 karakter olmalı.');
+    if (p1.length < 8) return setError('Şifre en az 8 karakter olmalı.');
     if (p1 !== p2) return setError('İki şifre aynı değil.');
     setBusy(true);
-    const { error: e } = await supabase.auth.updateUser({ password: p1 });
+    const { error: e } = await supabase.auth.updateUser({ password: p1, data: { must_change_password: false } });
     setBusy(false);
     if (e) return setError(errorText(e));
+    await supabase.auth.refreshSession().catch(() => null);
     finishRecovery();
   }
 
@@ -36,14 +37,21 @@ export function NewPassword() {
           <Slip tone="deep">
             <Logo size={40} color="#FFFFFF" />
           </Slip>
-          <Text style={[type.title, { color: c.ink }]}>{invite ? "Gidero'ya hoş geldiniz" : 'Yeni şifrenizi belirleyin'}</Text>
-          {invite && <Text style={[type.body, { color: c.muted }]}>Bundan sonra bu e-posta ve belirleyeceğiniz şifreyle girersiniz.</Text>}
+          <Text style={[type.title, { color: c.ink }]}>{invite || temporary ? "Gidero'ya hoş geldiniz" : 'Yeni şifrenizi belirleyin'}</Text>
+          {(invite || temporary) && (
+            <Text style={[type.body, { color: c.muted }]}>
+              {temporary
+                ? 'Yöneticinizin verdiği geçici şifreyle girdiniz. Devam etmek için kendi şifrenizi belirleyin; bundan sonra bu şifreyle girersiniz.'
+                : 'Bundan sonra bu e-posta ve belirleyeceğiniz şifreyle girersiniz.'}
+            </Text>
+          )}
           <Text style={[type.body, { color: c.muted }]}>{session?.user.email ?? ''}</Text>
           <View style={{ gap: space.lg }}>
-            <Field label="Yeni şifre" value={p1} onChangeText={setP1} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint="En az 6 karakter." autoFocus />
+            <Field label="Yeni şifre" value={p1} onChangeText={setP1} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint="En az 8 karakter; harf ve rakam karışık olsun." autoFocus />
             <Field label="Yeni şifre (tekrar)" value={p2} onChangeText={setP2} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
             {error && <Notice tone="bad" text={error} />}
-            <Button size="large" title={invite ? 'Şifremi belirle ve gir' : 'Şifreyi kaydet ve gir'} onPress={save} loading={busy} />
+            <Button size="large" title={invite || temporary ? 'Şifremi belirle ve gir' : 'Şifreyi kaydet ve gir'} onPress={save} loading={busy} />
+            <Button variant="plain" title="Çıkış yap" onPress={() => supabase.auth.signOut({ scope: 'local' })} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

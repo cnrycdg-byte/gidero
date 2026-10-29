@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BureauHome } from '@/components/bureau-home';
+import { ProfileButton } from '@/components/profile-button';
 import { Icon } from '@/components/icon';
 import { LimitBars } from '@/components/limit-bars';
 import { Logo } from '@/components/logo';
@@ -157,11 +158,7 @@ function Home() {
         options={{
           headerTitle: () => <Logo size={26} color={c.ink} />,
           headerTitleAlign: 'left',
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
-              <Icon name="settings" size={22} color={c.pen} />
-            </Pressable>
-          ),
+          headerRight: () => <ProfileButton />,
         }}
       />
       <ScrollView
