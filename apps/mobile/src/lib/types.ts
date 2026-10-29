@@ -17,6 +17,8 @@ export type Membership = {
   billing_account_id: string | null;
   /** Abonelik aktif mi (deneme veya ödenmiş dönem) */
   company_active: boolean;
+  /** active: geçerli; grace: bitti, 10 gün salt okunur ve veri indirilebilir; locked: kilitli */
+  phase?: 'active' | 'grace' | 'locked';
   companies: Company;
 };
 

@@ -1,8 +1,9 @@
 import { Redirect, router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BureauHome } from '@/components/bureau-home';
+import { Page } from '@/components/page';
 import { ProfileButton } from '@/components/profile-button';
 import { useWide } from '@/lib/layout';
 import { Icon } from '@/components/icon';
@@ -28,9 +29,10 @@ const landedOnAdmin = { done: false };
 
 // Ana adres her oturumda vardır: şirketi olmayan kişi büro ekranına ya da kuruluma yönlendirilir
 export default function Index() {
-  const { active, bureaus } = useSession();
+  const { active, bureaus, platformAdmin } = useSession();
   if (!active) return <Redirect href={bureaus.length ? '/clients' : '/onboarding'} />;
   // Büro personeli müşteri firmasında: büro ekranı (fiş yükle, kayda al, döküm)
+  if (active.phase === 'locked' && !platformAdmin) return <LockedHome />;
   if (active.bureau_account_id && !active.roles.includes('employee')) return <BureauHome />;
   return <Home />;
 }
@@ -229,10 +231,13 @@ function Home() {
             <Text style={[type.small, { flex: 1, color: sub.active ? c.stamp : c.red, fontWeight: '600' }]}>
               {sub.active
                 ? `Ücretsiz denemenizin bitmesine ${daysLeft(sub.ends_at)} gün kaldı.${sub.can_manage ? ' Paket seçmek için dokunun.' : ''}`
-                : `Aboneliğin süresi doldu; yeni fiş girilemiyor.${sub.can_manage ? ' Yenilemek için dokunun.' : ' Yöneticinize haber verin.'}`}
+                : `Aboneliğin süresi doldu; yeni fiş girilemiyor. ${sub.grace_ends_at ? `${dateText(sub.grace_ends_at)} tarihine kadar verilerinizi görebilir ve indirebilirsiniz; sonra hesap kapanır (veriler silinmez).` : ''}${sub.can_manage && Platform.OS === 'web' ? ' Yenilemek için dokunun.' : sub.can_manage ? '' : ' Yöneticinize haber verin.'}`}
             </Text>
             {sub.can_manage && <Icon name="chevron" size={12} color={sub.active ? c.stamp : c.red} />}
           </Pressable>
+        )}
+        {sub && !sub.active && (hasRole('admin') || hasRole('accountant')) && (
+          <Button variant="secondary" icon="inbox" title="Verilerimi indir (Excel + fiş görselleri)" onPress={() => router.push('/data-export')} />
         )}
 
         <Slip tone="deep">
@@ -474,3 +479,31 @@ const styles = StyleSheet.create({
   bar: { height: 8, borderRadius: 4 },
   newReport: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
+
+/** Abonelik ve 10 günlük ek süre bitti: veriler silinmedi, paket yenilenince her şey geri açılır */
+function LockedHome() {
+  const c = useColors();
+  const { active, memberships, setActiveCompany } = useSession();
+  const canRenew = !!active && (active.roles.includes('admin') || active.roles.includes('accountant'));
+  const others = memberships.filter((m) => m.company_id !== active?.company_id && m.phase !== 'locked');
+  return (
+    <Page>
+      <View style={{ gap: space.md, paddingTop: space.xl }}>
+        <Text style={[type.title, { color: c.ink }]}>{active?.companies.legal_name}</Text>
+        <Notice
+          tone="bad"
+          text={
+            canRenew
+              ? 'Abonelik ve 10 günlük ek süre sona erdi; hesap kapatıldı. Verileriniz silinmedi: paketi yenilediğiniz anda her şey olduğu gibi geri açılır.'
+              : 'Şirketinizin aboneliği sona erdi. Yöneticinize haber verin; paket yenilenince her şey olduğu gibi geri açılır.'
+          }
+        />
+        {canRenew && Platform.OS === 'web' ? <Button title="Paketi yenile" onPress={() => router.push('/subscription')} /> : null}
+        {canRenew && Platform.OS !== 'web' ? <Text style={[type.small, { color: c.muted }]}>Paketi bilgisayardan, yönetim panelinden yenileyebilirsiniz.</Text> : null}
+        {others.map((m) => (
+          <Button key={m.company_id} variant="secondary" title={`${m.companies.legal_name} şirketine geç`} onPress={() => setActiveCompany(m.company_id)} />
+        ))}
+      </View>
+    </Page>
+  );
+}
