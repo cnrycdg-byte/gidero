@@ -82,7 +82,7 @@ export type Category = { id: string; name: string; tax_rule: string; attendees_r
 export const STATUS_LABEL: Record<ReportStatus, string> = {
   draft: 'Taslak',
   pending: 'Onay bekliyor',
-  returned: 'İade edildi',
+  returned: 'Geri gönderildi',
   approved: 'Onaylandı',
   booked: 'Muhasebeleşti',
   exported: 'Aktarıldı',

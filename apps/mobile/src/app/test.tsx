@@ -28,7 +28,7 @@ const SCENARIO_SIRKET: Step[] = [
   { who: 'Şirket yöneticisi', text: 'Ekip ekranında kişileri ad soyad ve ünvanla ekleyin: Satış Direktörü, GMY, iki Satış Temsilcisi, Muhasebe Uzmanı (muhasebeci rolü). Test müşterisinde e-posta boş kalabilir.' },
   { who: 'Şirket yöneticisi', text: 'Onay zinciri ekranında kişileri sürükleyip yöneticisinin altına bırakın: temsilciler → Satış Direktörü → GMY → Genel Müdür. GMY\'yi "son onay" yapın.' },
   { who: 'Satış temsilcisi', text: 'Fiş ekleyip raporu gönderin. Rapor ekranında kime gittiğini görün.' },
-  { who: 'Satış Direktörü', text: 'Raporu onaylayın (bir kez de gerekçe yazıp iade edip deneyin). Kendi masrafınızı da gönderin: GMY\'ye gitmeli.' },
+  { who: 'Satış Direktörü', text: 'Raporu onaylayın (bir kez de gerekçe yazıp geri göndermeyi deneyin). Kendi masrafınızı da gönderin: GMY\'ye gitmeli.' },
   { who: 'GMY', text: 'Son onayı verin. Form muhasebeye düşer, Genel Müdür\'e çıkmaz.' },
   { who: 'Muhasebe', text: 'Muhasebe masasında formu kontrol edin, Excel\'i alın, "Aktarıldı", sonra "Ödendi" deyin. Form arşive geçer, çalışana "ödendi" bildirimi gider.' },
 ];

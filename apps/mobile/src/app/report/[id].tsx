@@ -27,7 +27,7 @@ type Action = TimelineAction;
 const ACTION_LABEL: Record<string, string> = {
   submitted: 'Onaya gönderildi',
   approved: 'Onaylandı',
-  returned: 'İade edildi',
+  returned: 'Geri gönderildi',
   auto_approved: 'Onay adımı olmadığı için onaylandı',
   booked_without_approval: 'Muhasebeci girdiği için onaysız kaydedildi',
 };
@@ -177,7 +177,7 @@ export default function ReportScreen() {
   }
 
   async function giveBack() {
-    if (!note.trim()) return setError('İade ederken nedenini yazın; çalışan neyi düzelteceğini bilsin.');
+    if (!note.trim()) return setError('Geri gönderirken nedenini yazın; çalışan neyi düzelteceğini bilsin.');
     setBusy('return');
     setError(null);
     const { error: e } = await supabase.rpc('return_report', { p_report: id, p_note: note.trim() });
@@ -258,7 +258,7 @@ export default function ReportScreen() {
 
         {isOwner && timeline}
 
-        {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />}
+        {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`Geri gönderme nedeni: ${lastReturn.note}`} />}
         {error && <Notice tone="bad" text={error} />}
         {notice && <Notice tone="ok" text={notice} />}
 
@@ -361,9 +361,9 @@ export default function ReportScreen() {
         {iApprove && (
           <View style={{ gap: space.md }}>
             <SectionTitle title="Kararınız" />
-            <Field label="Not" value={note} onChangeText={setNote} placeholder="İade ederken zorunlu" multiline />
+            <Field label="Not" value={note} onChangeText={setNote} placeholder="Geri gönderirken zorunlu" multiline />
             <View style={{ flexDirection: 'row', gap: space.sm }}>
-              <Button variant="danger" icon="undo" title="İade et" onPress={giveBack} loading={busy === 'return'} disabled={!!busy} style={{ flex: 1 }} />
+              <Button variant="danger" icon="undo" title="Geri gönder" onPress={giveBack} loading={busy === 'return'} disabled={!!busy} style={{ flex: 1 }} />
               <Button icon="check" title="Onayla" onPress={approve} loading={busy === 'approve'} disabled={!!busy} style={{ flex: 1 }} />
             </View>
           </View>
