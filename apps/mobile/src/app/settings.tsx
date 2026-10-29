@@ -85,6 +85,9 @@ export default function Settings() {
         <Row icon="inbox" title="Onayınızı bekleyenler" onPress={() => router.push('/approvals')} />
         {hasRole('payer') ? <Row icon="receipt" title="Ödemeler" subtitle="Muhasebenin aktardığı ödemeler" onPress={() => router.push('/payments')} /> : null}
         {hasRole('admin') ? <Row icon="team" title="Ekip" onPress={() => router.push('/team')} /> : null}
+        {hasRole('admin') || hasRole('accountant') ? (
+          <Row icon="inbox" title="Verilerimi indir" subtitle="Bütün raporlar, fişler ve görseller tek ZIP" onPress={() => router.push('/data-export')} />
+        ) : null}
         {hasRole('admin') ? (
           <Row icon="settings" title="Logo ve renkler" subtitle="Şirketinizin logosu ve kurumsal renkleri" onPress={() => router.push('/brand')} />
         ) : null}

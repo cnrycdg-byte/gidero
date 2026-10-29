@@ -71,7 +71,9 @@ function RootStack() {
   if ((recovery || mustChange) && session) return <NewPassword temporary={mustChange && !recovery} />;
 
   const signedIn = !!session;
-  const hasCompany = !!active;
+  // Ek süre de bittiyse (kilitli) şirket ekranları kapanır; yalnızca ana ekrandaki uyarı, abonelik ve ayarlar açık kalır
+  const hasMembership = !!active;
+  const hasCompany = hasMembership && (active.phase !== 'locked' || platformAdmin);
   const hasBureau = bureaus.length > 0;
 
   // Bilgisayarda: solda menü, sağda içerik (çok geniş ekranda içerik makul genişlikte kalır)
@@ -98,7 +100,7 @@ function RootStack() {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="index" options={{ title: '' }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !hasCompany && !hasBureau}>
+      <Stack.Protected guard={signedIn && !hasMembership && !hasBureau}>
         <Stack.Screen name="onboarding" options={{ title: 'Hoş geldiniz', headerLargeTitle: true }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>
@@ -115,8 +117,9 @@ function RootStack() {
         <Stack.Screen name="approval-flow" options={{ title: 'Onay zinciri' }} />
         <Stack.Screen name="accounting" options={{ title: 'Muhasebe masası' }} />
         <Stack.Screen name="payments" options={{ title: 'Ödemeler' }} />
+        <Stack.Screen name="data-export" options={{ title: 'Verilerimi indir' }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
+      <Stack.Protected guard={signedIn && (hasMembership || hasBureau)}>
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />
         <Stack.Screen name="subscription" options={{ title: 'Abonelik' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />

@@ -32,6 +32,8 @@ export type AccountStatus = {
   seats: number | null;
   companies_used: number;
   users_used: number;
+  phase?: 'active' | 'grace' | 'locked';
+  grace_ends_at?: string | null;
 };
 
 export type Quote = {

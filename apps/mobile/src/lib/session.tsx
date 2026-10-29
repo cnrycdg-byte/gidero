@@ -78,6 +78,7 @@ type WorkspaceCompany = {
   brand_primary?: string | null;
   brand_accent?: string | null;
   logo_path?: string | null;
+  phase?: 'active' | 'grace' | 'locked';
 };
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -139,6 +140,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         bureau_account_id: c.bureau_account_id,
         billing_account_id: c.billing_account_id,
         company_active: c.active,
+        phase: c.phase ?? (c.active ? 'active' : 'grace'),
         companies: {
           id: c.company_id,
           legal_name: c.legal_name,
