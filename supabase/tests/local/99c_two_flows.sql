@@ -36,6 +36,7 @@ insert into public.expenses (company_id, report_id, created_by, total) values
 -- Zincir: Ali → Kerem → Selin (son onay); Genel Müdür'e çıkmaz
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ae1"}', false);
 set role authenticated;
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-000000000ae1');
 reset role;
 select test.ok((select jsonb_array_length(flow_snapshot) from public.reports where id = '50000000-0000-0000-0000-000000000ae1') = 2,
@@ -48,6 +49,7 @@ select test.ok((select flow_snapshot -> 0 ->> 'name' from public.reports where i
 -- Onaylayıcının kendi raporu bir üstüne gider
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ae2"}', false);
 set role authenticated;
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-000000000ae2');
 select public.approve_report('50000000-0000-0000-0000-000000000ae1', null);
 select test.expect_error($q$select public.approve_report('50000000-0000-0000-0000-000000000ae2', null)$q$, 'Onaylayıcı kendi raporunu onaylayamaz');
@@ -69,6 +71,7 @@ select test.ok(exists (select 1 from public.notifications where user_id = '00000
 -- En tepedeki kişinin raporu başka bir yöneticiye ya da muhasebeye gider
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ae4"}', false);
 set role authenticated;
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-000000000ae4');
 reset role;
 select test.ok((select current_approver_ids from public.reports where id = '50000000-0000-0000-0000-000000000ae4') = array['00000000-0000-0000-0000-000000000ae5'::uuid],
@@ -117,6 +120,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title, pe
 values ('50000000-0000-0000-0000-0000000000c9', '20000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000c2', 'C Gıda Ekim', '2026-10');
 insert into public.expenses (company_id, report_id, created_by, total)
 values ('20000000-0000-0000-0000-00000000000c', '50000000-0000-0000-0000-0000000000c9', '00000000-0000-0000-0000-0000000000c2', 300);
+select test.check_all();
 select test.ok(public.submit_report('50000000-0000-0000-0000-0000000000c9') = 'approved', 'Büro firma adına girdiği raporu onaysız kayda alır');
 select test.expect_error($q$insert into public.reports (company_id, owner_user_id, created_by, title, period) values ('20000000-0000-0000-0000-000000000ae0', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000c2', 'Kaçak', '2026-10')$q$,
  'Büro, müşterisi olmayan şirkete rapor açamaz');

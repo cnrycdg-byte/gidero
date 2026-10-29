@@ -11,6 +11,7 @@ select test.ok((select not alcohol_present and alcohol_decision is null from pub
  'Çalışan alkol alanlarını kendisi dolduramaz');
 -- Okuma sonucu (sunucu) alkolü işaretler
 update public.expenses set alcohol_present = true, alcohol_amount = 420, alcohol_items = '{"Efes x2"}' where id = '60000000-0000-0000-0000-0000000a1c01';
+select test.check_all();
 update public.reports set status = 'approved' where id = '50000000-0000-0000-0000-0000000a1c01';
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2"}', false);

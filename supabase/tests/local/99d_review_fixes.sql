@@ -64,6 +64,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title, pe
 values ('50000000-0000-0000-0000-00000000adf3', (select id from solo), '00000000-0000-0000-0000-00000000adf3', '00000000-0000-0000-0000-00000000adf3', 'Kendi', '2026-10');
 insert into public.expenses (company_id, report_id, created_by, total)
 values ((select id from solo), '50000000-0000-0000-0000-00000000adf3', '00000000-0000-0000-0000-00000000adf3', 100);
+select test.check_all();
 select test.expect_error($q$select public.submit_report('50000000-0000-0000-0000-00000000adf3')$q$,
  'Onaylayacak kimse yoksa rapor kendiliğinden onaylanmaz');
 reset role;
@@ -78,6 +79,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title, pe
 values ('50000000-0000-0000-0000-00000000adf4', '20000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf4', '00000000-0000-0000-0000-00000000adf4', 'Kendi', '2026-10');
 insert into public.expenses (company_id, report_id, created_by, total)
 values ('20000000-0000-0000-0000-00000000000c', '50000000-0000-0000-0000-00000000adf4', '00000000-0000-0000-0000-00000000adf4', 5000);
+select test.check_all();
 select test.ok(public.submit_report('50000000-0000-0000-0000-00000000adf4') = 'pending', 'Büro firmasının muhasebecisinin kendi masrafı onaya gider');
 reset role;
 select test.ok(not (select '00000000-0000-0000-0000-00000000adf4'::uuid = any (current_approver_ids) from public.reports where id = '50000000-0000-0000-0000-00000000adf4'), 'Kendi raporunun onaylayıcısı olmaz');
@@ -90,6 +92,7 @@ insert into public.expenses (company_id, report_id, created_by, total)
 values ('20000000-0000-0000-0000-000000000ae0', '50000000-0000-0000-0000-00000000adf6', '00000000-0000-0000-0000-000000000ae1', 200);
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ae1"}', false);
 set role authenticated;
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-00000000adf6');
 reset role;
 select test.ok(not (select '00000000-0000-0000-0000-000000000ae2'::uuid = any (current_approver_ids) from public.reports where id = '50000000-0000-0000-0000-00000000adf6'), 'Ayrılan yöneticiye onay gitmez');

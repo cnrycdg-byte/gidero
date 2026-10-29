@@ -26,7 +26,7 @@ type LineInput = { rate: string; base: string; vat: string };
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export default function ExpenseScreen() {
-  const { id, readError } = useLocalSearchParams<{ id: string; readError?: string }>();
+  const { id, readError, review } = useLocalSearchParams<{ id: string; readError?: string; review?: string }>();
   const c = useColors();
   const { userId, hasRole, active } = useSession();
   const [reloadKey, setReloadKey] = useState(0);
@@ -106,6 +106,7 @@ export default function ExpenseScreen() {
     );
   }
 
+  const needsCheck = !active?.bureau_account_id;
   const editable =
     !!report &&
     (report.status === 'draft' || report.status === 'returned') &&
@@ -197,6 +198,25 @@ export default function ExpenseScreen() {
       }
       await rememberContacts(exp.company_id, people).catch(() => {});
       await recheckExpense(exp.id);
+      // Kişi bilgileri kontrol edip kaydetti: fiş "doğru" sayılır (büro firmalarında bu adım yok)
+      if (needsCheck) {
+        const { error: e4 } = await supabase.rpc('check_expense', { p_expense: exp.id, p_checked: true });
+        if (e4) throw e4;
+        // Sıradaki kontrol bekleyen fişe geç; kalmadıysa rapora dön
+        const { data: next } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('report_id', exp.report_id)
+          .is('checked_at', null)
+          .gt('total', 0)
+          .neq('id', exp.id)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        if (next?.length) {
+          router.replace({ pathname: '/expense/[id]', params: { id: next[0].id, review: '1' } });
+          return;
+        }
+      }
       router.back();
     } catch (e) {
       setError(errorText(e));
@@ -236,6 +256,18 @@ export default function ExpenseScreen() {
           </View>
         )}
 
+        {needsCheck && editable ? (
+          <Notice
+            tone={exp.checked_at ? 'ok' : 'info'}
+            text={
+              exp.checked_at
+                ? 'Bu fişi kontrol ettiniz. Bir şeyi değiştirirseniz yeniden kaydedin.'
+                : review
+                  ? 'Fotoğrafla bilgileri karşılaştırın: tutar, tarih, satıcı ve KDV. Yanlış olanı düzeltin, sonra "Bilgiler doğru, kaydet" deyin.'
+                  : 'Bilgileri fişle karşılaştırın; doğruysa "Bilgiler doğru, kaydet" deyin.'
+            }
+          />
+        ) : null}
         {readError ? <Notice tone="warn" text={readError} /> : null}
         {exp.read_source && !readError ? (
           <Notice
@@ -419,7 +451,7 @@ export default function ExpenseScreen() {
 
       {editable && (
         <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
-          <Button icon="check" title="Kaydet" onPress={save} loading={busy} style={{ flex: 1 }} />
+          <Button icon="check" title={needsCheck ? 'Bilgiler doğru, kaydet' : 'Kaydet'} onPress={save} loading={busy} style={{ flex: 1 }} />
         </SafeAreaView>
       )}
     </KeyboardAvoidingView>

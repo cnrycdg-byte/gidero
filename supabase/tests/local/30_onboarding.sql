@@ -37,6 +37,7 @@ values ('40000000-0000-0000-0000-0000000000e1', (select id from e_co),
         '00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-0000000000e2', 'Ekim');
 insert into public.expenses (company_id, report_id, created_by, total)
 values ((select id from e_co), '40000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000e2', 250);
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000e1') = 'pending', 'Çalışan raporu onaya gider');
 select test.ok((select current_approver_ids from public.reports where id = '40000000-0000-0000-0000-0000000000e1')
                = array['00000000-0000-0000-0000-0000000000e1'::uuid], 'Onaylayıcı kurucudur');
