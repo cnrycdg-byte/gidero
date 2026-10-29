@@ -472,3 +472,31 @@ input[type=range] { width: 100%; accent-color: var(--pen); height: 28px; cursor:
 .ctab td:last-child { text-align: right; }
 .ctab tr.sel td { background: var(--pen-soft); }
 .plate { font: 500 .8125rem var(--mono); border: 1.5px solid #14201D; border-radius: 4px; padding: 1px 6px; background: #fff; }
+
+/* Büro: firma kartı, firma seçici, anahtar */
+.side .firm { background: rgba(255,255,255,.08); border-radius: 8px; padding: 7px 8px; margin: 0 0 10px; display: grid; gap: 1px; }
+.side .firm small { font-size: .75rem; color: #9DC2B9; }
+.side .firm b { color: #fff; font-weight: 600; font-size: .75rem; line-height: 1.3; }
+.side .firm span { color: #F0B45A; font-size: .75rem; transition: opacity var(--m100); }
+.side .firm span.press { opacity: .5; }
+.app.over { z-index: 4; background: #F3F6F5; }
+.scene .app.over[data-at] { transform: none; transition-duration: var(--m300); }
+.pick { position: absolute; left: 0; top: 16px; width: 250px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 20px 40px rgba(0,0,0,.2); padding: 10px; z-index: 3; display: grid; gap: 4px; }
+.pick .pi { position: relative; padding: 7px 8px; border-radius: 7px; }
+.pick .pi small { display: block; color: var(--faint); font-size: .75rem; }
+.pick .pi.cur { background: var(--canvas); }
+.pick .hl { position: absolute; inset: 0; border: 1.5px solid var(--pen); border-radius: 7px; background: rgba(11,110,95,.06); }
+.scene .pick .hl[data-at] { transform: none; }
+.chips.wrapc { flex-wrap: wrap; }
+.chips span { position: relative; overflow: hidden; }
+.chips .onl { position: absolute; inset: -1px; font-style: normal; background: var(--pen); color: #fff; border-radius: 7px; padding: 4px 10px; white-space: nowrap; }
+.scene .chips .onl[data-at] { transform: none; }
+.swl { position: relative; display: grid; }
+.swl > span { grid-area: 1 / 1; }
+.swl .b { font-weight: 500; }
+.scene .swl .b[data-at] { transform: none; }
+.tg { position: relative; width: 36px; height: 20px; border-radius: 10px; background: #C7D2CE; flex: none; }
+.tg .on { position: absolute; inset: 0; border-radius: 10px; background: var(--pen); }
+.tg i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.tg i.r { left: 18px; }
+.scene .tg [data-at] { transform: none; }
