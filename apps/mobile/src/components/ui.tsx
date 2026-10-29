@@ -229,13 +229,14 @@ function buttonLook(c: Palette, v: ButtonProps['variant']) {
 
 /* ----------------------------- Form -------------------------------- */
 
-export function Field({ label, hint, ...props }: TextInputProps & { label: string; hint?: string }) {
+export function Field({ label, hint, missing, ...props }: TextInputProps & { label: string; hint?: string; missing?: boolean }) {
   const c = useColors();
   const wide = useWide();
   const [focus, setFocus] = useState(false);
+  // missing: fişten okunamayan alan; turuncu zeminle elle girilmesi istenir
   return (
     <View style={{ gap: 6, maxWidth: wide ? 560 : undefined, width: '100%' }}>
-      <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{label}</Text>
+      <Text style={[type.small, { color: missing ? c.amber : c.muted, fontWeight: '600' }]}>{label}</Text>
       <TextInput
         placeholderTextColor={c.faint}
         {...props}
@@ -249,14 +250,15 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
         }}
         style={[
           styles.input,
-          { color: c.ink, backgroundColor: c.canvas, borderColor: focus ? c.pen : c.paperLine },
+          { color: c.ink, backgroundColor: missing ? c.amberSoft : c.canvas, borderColor: focus ? c.pen : missing ? c.amber : c.paperLine },
           wide && { paddingVertical: 9, fontSize: 15 },
           props.editable === false && { opacity: 0.7 },
           props.multiline && { minHeight: 84, textAlignVertical: 'top' },
           props.style,
         ]}
       />
-      {hint ? <Text style={[type.small, { color: c.muted }]}>{hint}</Text> : null}
+      {missing && !hint ? <Text style={[type.small, { color: c.amber }]}>Okunamadı, fişe bakıp elle yazın.</Text> : null}
+      {hint ? <Text style={[type.small, { color: missing ? c.amber : c.muted }]}>{hint}</Text> : null}
     </View>
   );
 }
