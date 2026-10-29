@@ -29,3 +29,17 @@ export async function ownerLink(accountId: string, fullName?: string): Promise<{
   if (error) throw await functionError(error);
   return data;
 }
+
+export async function addBureauStaff(p: { accountId: string; fullName: string; email: string; companyIds: string[] }): Promise<{ user_id: string; link: string | null; demo: boolean }> {
+  const { data, error } = await supabase.functions.invoke('people', {
+    body: { action: 'add_staff', account_id: p.accountId, full_name: p.fullName, email: p.email, company_ids: p.companyIds },
+  });
+  if (error) throw await functionError(error);
+  return data;
+}
+
+export async function staffLink(accountId: string, userId: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('people', { body: { action: 'staff_link', account_id: accountId, user_id: userId } });
+  if (error) throw await functionError(error);
+  return (data as { link: string }).link;
+}
