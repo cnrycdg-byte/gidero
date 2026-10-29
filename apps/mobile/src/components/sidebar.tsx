@@ -34,6 +34,7 @@ export function Sidebar() {
     if (hasRole('approver') || hasRole('admin')) main.push({ href: '/approvals', label: 'Onayımı bekleyenler', icon: 'checkCircle' });
     if (hasRole('accountant')) main.push({ href: '/accounting', label: 'Muhasebe masası', icon: 'inbox' });
     if (hasRole('accountant')) main.push({ href: '/bulk', label: 'Toplu yükleme', icon: 'gallery' });
+    if (hasRole('payer')) main.push({ href: '/payments', label: 'Ödemeler', icon: 'receipt' });
     groups.push({ items: main });
     const admin: Item[] = [];
     if (hasRole('admin'))

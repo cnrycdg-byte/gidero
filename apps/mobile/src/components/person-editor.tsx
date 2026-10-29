@@ -1,3 +1,4 @@
+import { bankFromIban, fetchBank, formatIban, ibanError, saveBank } from '@/lib/bank';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -23,6 +24,7 @@ const ROLES: { key: string; hint: string }[] = [
   { key: 'employee', hint: 'Masraf girer' },
   { key: 'approver', hint: 'Bağlı kişilerin raporunu onaylar' },
   { key: 'accountant', hint: 'Muhasebe masasını kullanır' },
+  { key: 'payer', hint: 'Muhasebenin aktardığı ödemeleri yapar' },
   { key: 'admin', hint: 'Ekibi ve ayarları yönetir' },
 ];
 
@@ -50,6 +52,12 @@ export function PersonEditor({
   const [finalApprover, setFinal] = useState(person.final_approver);
   const [plates, setPlates] = useState((person.vehicle_plates ?? []).map(formatPlate).join(', '));
   const [q, setQ] = useState('');
+  // Banka: muhasebe/ödeme yetkilisi/kendisi görür; yönetici yalnızca "kayıtlı" bilgisini görür ve yenisini yazabilir
+  const [iban, setIban] = useState('');
+  const [bank, setBank] = useState('');
+  const [holder, setHolder] = useState('');
+  const [bankHidden, setBankHidden] = useState(false);
+  const [bankLoaded, setBankLoaded] = useState<{ iban: string; bank: string; holder: string }>({ iban: '', bank: '', holder: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +69,15 @@ export function PersonEditor({
     setFinal(person.final_approver);
     setPlates((person.vehicle_plates ?? []).map(formatPlate).join(', '));
     setError(null);
-  }, [person]);
+    fetchBank(companyId, person.user_id).then(({ info, saved }) => {
+      const v = { iban: formatIban(info?.iban), bank: info?.bank_name ?? '', holder: info?.account_holder ?? '' };
+      setIban(v.iban);
+      setBank(v.bank);
+      setHolder(v.holder);
+      setBankLoaded(v);
+      setBankHidden(!info && saved);
+    });
+  }, [person, companyId]);
 
   // Kişinin kendi altındakiler yöneticisi olamaz (zincir döngüye girer)
   const below = useMemo(() => {
@@ -92,6 +108,8 @@ export function PersonEditor({
     const parts = plates.split(/[,\n;]+/).map((x) => x.trim()).filter(Boolean);
     const bad = parts.filter((x) => !normalizePlate(x));
     if (bad.length) return setError(`Şu plaka geçersiz: ${bad.join(', ')}. Örnek: 35 ABC 123`);
+    const ie = ibanError(iban);
+    if (ie) return setError(ie);
     setBusy(true);
     try {
       const steps = [
@@ -102,6 +120,10 @@ export function PersonEditor({
       for (const s of steps) {
         const { error: e } = await s;
         if (e) throw e;
+      }
+      const bankChanged = iban !== bankLoaded.iban || bank !== bankLoaded.bank || holder !== bankLoaded.holder;
+      if (bankChanged && (iban.trim() || bank.trim() || !bankHidden)) {
+        await saveBank(companyId, person.user_id, { iban, bank, holder });
       }
       if (name.trim() !== person.full_name) {
         const { error: e } = await supabase.rpc('set_member_name', { p_company: companyId, p_user: person.user_id, p_full_name: name.trim() });
@@ -177,6 +199,27 @@ export function PersonEditor({
             </View>
 
             <Field label="Araç plakaları" value={plates} onChangeText={setPlates} autoCapitalize="characters" placeholder="35 ABC 123, 06 XYZ 45" />
+
+            <Field
+              label="IBAN"
+              value={iban}
+              onChangeText={(v) => {
+                setIban(v);
+                const b = bankFromIban(v);
+                if (b && !bank) setBank(b);
+              }}
+              autoCapitalize="characters"
+              placeholder={bankHidden ? 'Kayıtlı (gizli). Değiştirmek için yenisini yazın' : 'TR00 0000 0000 0000 0000 0000 00'}
+              hint={ibanError(iban) ?? (bankHidden ? 'IBAN kayıtlı. Yalnızca muhasebe, ödeme yetkilisi ve kişinin kendisi görebilir.' : undefined)}
+            />
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <View style={{ flex: 1 }}>
+                <Field label="Banka" value={bank} onChangeText={setBank} placeholder={bankHidden ? 'Gizli' : 'Örnek: Ziraat Bankası'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field label="Hesap sahibi" value={holder} onChangeText={setHolder} placeholder={bankHidden ? 'Gizli' : name} />
+              </View>
+            </View>
 
             {error && <Notice tone="bad" text={error} />}
             <View style={styles.actions}>

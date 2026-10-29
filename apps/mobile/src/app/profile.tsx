@@ -12,6 +12,7 @@ import { useDemo } from '@/lib/demo';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { ROLE_LABEL } from '@/lib/types';
+import { bankFromIban, fetchBank, formatIban, ibanError, saveBank } from '@/lib/bank';
 
 const THEMES: { key: ThemePref; label: string }[] = [
   { key: 'system', label: 'Telefonun ayarı' },
@@ -139,6 +140,8 @@ export default function Profile() {
         <Button title="Kaydet" onPress={saveInfo} loading={busy === 'info'} />
       </View>
 
+      {active && userId ? <MyBank companyId={active.company_id} userId={userId} company={active.companies.legal_name} /> : null}
+
       <SectionTitle title="Giriş ve güvenlik" />
       <Group>
         <Row icon="settings" title="Şifremi değiştir" subtitle="Mevcut şifrenizle yeni şifre belirleyin" onPress={() => setSection(section === 'password' ? null : 'password')} />
@@ -206,6 +209,62 @@ export default function Profile() {
         {`Gidero ${Constants.expoConfig?.version ?? ''}. Hesabınızın ve verilerinizin silinmesini istiyorsanız yöneticinize ya da destek@gidero.tr adresine yazın.`}
       </Text>
     </Page>
+  );
+}
+
+/** Kişinin masraf ödemesinin yapılacağı hesap (şirket bazında) */
+function MyBank({ companyId, userId, company }: { companyId: string; userId: string; company: string }) {
+  const c = useColors();
+  const [iban, setIban] = useState('');
+  const [bank, setBank] = useState('');
+  const [holder, setHolder] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBank(companyId, userId).then(({ info }) => {
+        setIban(formatIban(info?.iban));
+        setBank(info?.bank_name ?? '');
+        setHolder(info?.account_holder ?? '');
+      });
+    }, [companyId, userId]),
+  );
+  async function save() {
+    const e = ibanError(iban);
+    if (e) return setMsg({ tone: 'bad', text: e });
+    setBusy(true);
+    try {
+      await saveBank(companyId, userId, { iban, bank, holder });
+      setMsg({ tone: 'ok', text: 'Banka bilginiz kaydedildi.' });
+    } catch (err) {
+      setMsg({ tone: 'bad', text: errorText(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <SectionTitle title="Masraf ödemem için banka bilgim" />
+      <View style={[styles.box, { backgroundColor: c.paper }]}>
+        <Text style={[type.small, { color: c.muted }]}>{`${company} masraflarınızı bu hesaba öder. Yalnızca muhasebe ve ödeme yetkilisi görür.`}</Text>
+        <Field
+          label="IBAN"
+          value={iban}
+          onChangeText={(v) => {
+            setIban(v);
+            const b = bankFromIban(v);
+            if (b && !bank) setBank(b);
+          }}
+          autoCapitalize="characters"
+          placeholder="TR00 0000 0000 0000 0000 0000 00"
+          hint={ibanError(iban) ?? undefined}
+        />
+        <Field label="Banka" value={bank} onChangeText={setBank} />
+        <Field label="Hesap sahibi" value={holder} onChangeText={setHolder} />
+        {msg && <Notice tone={msg.tone} text={msg.text} />}
+        <Button title="Kaydet" onPress={save} loading={busy} />
+      </View>
+    </>
   );
 }
 

@@ -9,7 +9,7 @@ import { dateText } from '@/lib/format';
 import { fetchNotifications, markRead, type AppNotification } from '@/lib/notifications';
 import { errorText } from '@/lib/supabase';
 
-const ICON = { approval_needed: 'inbox', approved: 'checkCircle', returned: 'undo', ready_for_accounting: 'doc' } as const;
+const ICON = { approval_needed: 'inbox', approved: 'checkCircle', returned: 'undo', ready_for_accounting: 'doc', paid: 'checkCircle', payment_needed: 'receipt' } as const;
 
 export default function NotificationsScreen() {
   const c = useColors();
@@ -40,7 +40,8 @@ export default function NotificationsScreen() {
       await markRead([n.id]);
       setRows((r) => r.map((x) => (x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)));
     }
-    if (n.report_id) router.push({ pathname: '/report/[id]', params: { id: n.report_id } });
+    if (n.kind === 'payment_needed') router.push('/payments');
+    else if (n.report_id) router.push({ pathname: '/report/[id]', params: { id: n.report_id } });
   }
 
   const unread = rows.filter((r) => !r.read_at).length;

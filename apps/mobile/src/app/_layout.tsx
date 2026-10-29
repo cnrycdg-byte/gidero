@@ -114,6 +114,7 @@ function RootStack() {
         <Stack.Screen name="bulk" options={{ title: 'Toplu yükleme' }} />
         <Stack.Screen name="approval-flow" options={{ title: 'Onay zinciri' }} />
         <Stack.Screen name="accounting" options={{ title: 'Muhasebe masası' }} />
+        <Stack.Screen name="payments" options={{ title: 'Ödemeler' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && (hasCompany || hasBureau)}>
         <Stack.Screen name="clients" options={{ title: 'Müşteri firmalar', headerLargeTitle: !hasCompany }} />

@@ -19,7 +19,7 @@ const TABS: { key: Tab; label: string; statuses: string[] }[] = [
   { key: 'pay', label: 'Ödeme bekleyen', statuses: ['exported'] },
   { key: 'archive', label: 'Arşiv (ödendi)', statuses: ['paid'] },
 ];
-type R = { id: string; title: string; total: number; owner_user_id: string; approved_at: string | null; paid_at: string | null; paid_note: string | null; owner: string; alcohol: number };
+type R = { id: string; title: string; total: number; owner_user_id: string; approved_at: string | null; paid_at: string | null; paid_note: string | null; payment_requested_at: string | null; owner: string; alcohol: number };
 
 // Muhasebe masası: onaylanan formlar düşer → kontrol ve Excel/Luca aktarımı → ödendi → arşiv
 export default function AccountingDesk() {
@@ -35,6 +35,8 @@ export default function AccountingDesk() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const bureau = !!active?.bureau_account_id;
+  // Şirkette ödeme yetkilisi varsa muhasebe raporu ona aktarır
+  const [hasPayer, setHasPayer] = useState(false);
 
   const load = useCallback(async () => {
     if (!active) return;
@@ -44,7 +46,7 @@ export default function AccountingDesk() {
       const statuses = TABS.find((t) => t.key === tab)!.statuses;
       const { data, error: e } = await supabase
         .from('reports')
-        .select('id, title, total, owner_user_id, approved_at, paid_at, paid_note')
+        .select('id, title, total, owner_user_id, approved_at, paid_at, paid_note, payment_requested_at')
         .eq('company_id', active.company_id)
         .in('status', statuses)
         .order(tab === 'archive' ? 'paid_at' : 'approved_at', { ascending: tab !== 'archive' })
@@ -71,6 +73,13 @@ export default function AccountingDesk() {
         ),
       );
       setCounts({ check: all[0].count ?? 0, pay: all[1].count ?? 0, archive: all[2].count ?? 0 });
+      const { count: payers } = await supabase
+        .from('memberships')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('company_id', active.company_id)
+        .eq('status', 'active')
+        .contains('roles', ['payer']);
+      setHasPayer((payers ?? 0) > 0);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -112,6 +121,21 @@ export default function AccountingDesk() {
     load();
   }
 
+  async function sendToPayer() {
+    if (!active) return;
+    const list = chosen.filter((r) => !r.payment_requested_at);
+    if (!list.length) return setError('Seçtiğiniz raporlar zaten ödeme sorumlusunda.');
+    setBusy(true);
+    setError(null);
+    const { data, error: e } = await supabase.rpc('request_payment', { p_company: active.company_id, p_report_ids: list.map((r) => r.id) });
+    setBusy(false);
+    if (e) return setError(errorText(e));
+    sendPending();
+    setInfo(`${data} rapor ödeme sorumlusuna aktarıldı. Ödeme yapılınca arşive kalkar, çalışana bildirim gider.`);
+    setSelected(new Set());
+    load();
+  }
+
   const toggle = (id: string) => {
     const n = new Set(selected);
     if (n.has(id)) n.delete(id);
@@ -140,6 +164,18 @@ export default function AccountingDesk() {
             Onayları tamamlanan formlar burada. Forma dokunup fişleri kontrol edin; sonra döküm ekranından Excel ya da Luca dosyasını alıp "Aktarıldı" deyin. Aktarılan formlar "Ödeme bekleyen"e geçer.
           </Text>
           <Button icon="inbox" title="Döküm al ve aktar" onPress={() => router.push('/export')} disabled={!rows.length} />
+          {hasPayer && (
+            <View style={styles.row}>
+              <Button
+                variant="secondary"
+                title={chosen.length ? `Finans: ödeme sorumlusuna aktar (${chosen.length})` : 'Ödemeye aktarmak için form seçin'}
+                disabled={!chosen.length}
+                loading={busy}
+                onPress={sendToPayer}
+              />
+              <Button variant="plain" title="Hepsini seç" onPress={() => setSelected(new Set(rows.filter((r) => !r.payment_requested_at).map((r) => r.id)))} disabled={!rows.length} />
+            </View>
+          )}
         </View>
       )}
       {tab === 'pay' && (
@@ -156,6 +192,9 @@ export default function AccountingDesk() {
               loading={busy}
               onPress={() => confirm('Ödendi işaretlensin mi?', `${chosen.length} form arşive kalkar.`, 'Ödendi', markPaid, false)}
             />
+            {hasPayer && (
+              <Button variant="secondary" title="Finans: ödeme sorumlusuna aktar" disabled={!chosen.length} loading={busy} onPress={sendToPayer} />
+            )}
             <Button variant="plain" title="Hepsini seç" onPress={() => setSelected(new Set(rows.map((r) => r.id)))} disabled={!rows.length} />
           </View>
         </View>
@@ -172,11 +211,11 @@ export default function AccountingDesk() {
               subtitle={
                 tab === 'archive'
                   ? `Ödendi ${dateText(r.paid_at)}${r.paid_note ? `, ${r.paid_note}` : ''}`
-                  : `Onay ${dateText(r.approved_at)}${r.alcohol ? `, ${r.alcohol} fişte alkol kararı bekliyor` : ''}`
+                  : `Onay ${dateText(r.approved_at)}${r.alcohol ? `, ${r.alcohol} fişte alkol kararı bekliyor` : ''}${r.payment_requested_at ? `, ödeme sorumlusunda (${dateText(r.payment_requested_at)})` : ''}`
               }
               value={money(r.total)}
               right={
-                tab === 'pay' ? (
+                tab === 'pay' || (tab === 'check' && hasPayer && !r.payment_requested_at) ? (
                   <Pressable onPress={() => toggle(r.id)} hitSlop={10} style={[styles.check, { borderColor: on ? c.pen : c.faint, backgroundColor: on ? c.pen : 'transparent' }]}>
                     {on && <Icon name="check" size={13} color={c.onPen} />}
                   </Pressable>

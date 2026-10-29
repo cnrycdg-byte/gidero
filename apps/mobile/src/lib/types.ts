@@ -106,5 +106,6 @@ export const ROLE_LABEL: Record<string, string> = {
   accountant: 'Muhasebeci',
   admin: 'Şirket yöneticisi',
   auditor: 'Denetçi',
+  payer: 'Ödeme yetkilisi',
   cost_center_owner: 'Masraf merkezi sorumlusu',
 };

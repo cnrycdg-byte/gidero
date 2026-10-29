@@ -26,7 +26,7 @@ export function ApprovalTimeline({
   names,
   preview,
 }: {
-  report: Report & { flow_snapshot?: { name?: string }[] | null; current_step?: number | null; approved_at?: string | null; paid_at?: string | null };
+  report: Report & { flow_snapshot?: { name?: string }[] | null; current_step?: number | null; approved_at?: string | null; paid_at?: string | null; payment_requested_at?: string | null };
   actions: TimelineAction[];
   names: Map<string, string>;
   /** Gönderilmemiş raporda kimlerin onaylayacağı */
@@ -77,13 +77,13 @@ export function ApprovalTimeline({
     title: 'Muhasebe',
     who: finished ? (status === 'exported' || status === 'paid' ? 'Muhasebeye aktarıldı' : 'Muhasebe kontrol ediyor') : 'Onaylar bitince muhasebeye düşer',
     when: finished ? when(report.approved_at) : undefined,
-    state: status === 'exported' || status === 'paid' ? 'done' : finished ? 'current' : 'next',
+    state: status === 'exported' || status === 'paid' || report.payment_requested_at ? 'done' : finished ? 'current' : 'next',
   });
   nodes.push({
     title: 'Ödeme',
-    who: status === 'paid' ? 'Ödendi' : 'Muhasebe ödeyince işaretlenir',
-    when: status === 'paid' ? when(report.paid_at) : undefined,
-    state: status === 'paid' ? 'done' : 'next',
+    who: status === 'paid' ? 'Ödendi' : report.payment_requested_at ? 'Ödeme sorumlusunda, ödeme bekleniyor' : 'Muhasebe ödemeye aktarınca ödenir',
+    when: status === 'paid' ? when(report.paid_at) : report.payment_requested_at ? when(report.payment_requested_at) : undefined,
+    state: status === 'paid' ? 'done' : report.payment_requested_at ? 'current' : 'next',
   });
 
   const look = (s: State) =>
