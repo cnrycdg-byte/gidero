@@ -90,7 +90,10 @@ body { background: var(--paper); overflow-x: hidden; }
 .jstep p { color: var(--muted); font-size: 1.1rem; max-width: 46ch; margin: 0; }
 .jstep ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); }
 .jstep ul li { margin-bottom: 4px; }
-.jphone { position: sticky; top: calc(50vh - 310px); }
+.jphone { position: sticky; top: max(24px, calc(50vh - 310px)); }
+.jhead { padding-top: max(0px, calc(50vh - 430px)); }
+#yolculuk { padding-top: 0; }
+@media (max-height: 700px) { .jphone .dev.phone { transform: scale(.85); transform-origin: top center; } }
 .jphone .dev.phone { margin: 0 auto; }
 @media (max-width: 900px) { .journey { grid-template-columns: 1fr; gap: 0; } .jphone { order: -1; top: 0; z-index: 3; height: 400px; padding-top: 56px; background: linear-gradient(var(--paper) 88%, transparent); } .jphone .dev.phone { transform: scale(.55); transform-origin: top center; } .jstep { min-height: 75vh; justify-content: flex-end; padding-bottom: 6vh; } .jstep h3 { font-size: 1.5rem; } }
 
@@ -225,10 +228,10 @@ body { background: var(--paper); overflow-x: hidden; }
 <!-- 3. Yolculuk -->
 <section class="act" id="yolculuk" data-title="Fişin yolculuğu" style="display:block">
   <div class="wrap">
-    <span class="eyenum">02 · Bir fişin yolculuğu</span>
-    <h2 class="t">Veli Mahmut İzmir fuarında müşteriyle yemek yedi</h2>
     <div class="journey">
       <div class="jsteps">
+        <div class="jhead"><span class="eyenum">02 · Bir fişin yolculuğu</span>
+        <h2 class="t">Veli Mahmut İzmir fuarında müşteriyle yemek yedi</h2></div>
         <div class="jstep" data-scene="0"><span class="who">Çalışan · telefonda</span><h3>Rapor açar, onaylayacak kişileri baştan görür</h3><p>"İzmir fuarı" yazar. Raporun önce bölge müdürüne, sonra satış direktörüne gideceği şemadan gelir; kimse sormaz.</p></div>
         <div class="jstep" data-scene="1"><span class="who">Çalışan · masada</span><h3>Fişi çeker; Gidero okur</h3><p>Tutar, tarih, satıcı, vergi numarası, KDV oranları. e-Arşiv faturasında karekod doğrudan okunur.</p></div>
         <div class="jstep" data-scene="6"><span class="who">Çalışan · gün sonunda</span><h3>Beş fişi tek fotoğrafta çeker</h3><p>Fişleri masaya yan yana koyar, bir kez çeker. Gidero her fişi ayrı okur, beş ayrı kayıt açar.</p><ul><li>Bir fotoğrafta en çok 5 fiş</li><li>Kart slibi ayrı fiş sayılmaz</li><li>Bilgisayardan 20 fotoğraf birden de eklenir</li></ul></div>
