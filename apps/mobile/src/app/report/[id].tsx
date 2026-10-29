@@ -1,6 +1,6 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +42,7 @@ export default function ReportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [approvers, setApprovers] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,8 +55,17 @@ export default function ReportScreen() {
         .order('created_at', { ascending: true }),
       supabase.from('approval_actions').select('id, action, note, created_at').eq('report_id', id).order('created_at'),
     ]);
-    setReport((r.data as Report) ?? null);
+    const rep = (r.data as Report) ?? null;
+    setReport(rep);
     setExpenses((e.data ?? []) as Expense[]);
+    // Onaylayacak kişiler: gönderilmiş raporda o anki zincir, taslakta önizleme
+    const snap = ((rep as unknown as { flow_snapshot?: { name?: string }[] } | null)?.flow_snapshot ?? []) as { name?: string }[];
+    if (rep && snap.length && !['draft', 'returned'].includes(rep.status)) {
+      setApprovers(snap.map((x) => x.name ?? 'Onaylayıcı'));
+    } else if (rep && rep.owner_user_id === rep.created_by) {
+      const { data: ap } = await supabase.rpc('my_approvers', { p_company: rep.company_id });
+      setApprovers((((ap ?? []) as { name?: string }[]) || []).map((x) => x.name ?? 'Onaylayıcı'));
+    } else setApprovers([]);
     setActions((a.data ?? []) as Action[]);
     setLoading(false);
   }, [id]);
@@ -93,6 +103,19 @@ export default function ReportScreen() {
   const alcoholPending = expenses.filter((e) => e.alcohol_present && !e.alcohol_decision).length;
   const zeroTotals = expenses.filter((e) => Number(e.total) === 0 && !stillReading.has(e.id)).length;
   const lastReturn = [...actions].reverse().find((a) => a.action === 'returned');
+  // Fiş kontrolü: çalışan her fişi açıp doğru olduğunu onaylar (büro firmalarında muhasebeci kayda alırken kontrol eder)
+  const needsCheck = !active?.bureau_account_id;
+  const unchecked = needsCheck ? expenses.filter((e) => !e.checked_at && !stillReading.has(e.id)) : [];
+  const checkedCount = expenses.filter((e) => !!e.checked_at).length;
+  const proxyReport = report.owner_user_id !== userId || !!active?.bureau_account_id;
+
+  async function toggleCheck(e: Expense) {
+    setError(null);
+    if (!e.checked_at && Number(e.total) <= 0) return setError('Fişin tutarı yok. Fişe dokunup tutarı yazın, sonra doğru olarak işaretleyin.');
+    const { error: err } = await supabase.rpc('check_expense', { p_expense: e.id, p_checked: !e.checked_at });
+    if (err) return setError(errorText(err));
+    setExpenses((list) => list.map((x) => (x.id === e.id ? { ...x, checked_at: e.checked_at ? null : new Date().toISOString() } : x)));
+  }
 
   async function addFromGallery() {
     if (!report || !userId) return;
@@ -103,6 +126,9 @@ export default function ReportScreen() {
   function confirmSubmit() {
     if (reading.length) return setError('Fişlerin okunması bitsin, sonra gönderin.');
     if (zeroTotals > 0) return setError(`${zeroTotals} fişin tutarı yok. Fişe dokunup tutarı yazın.`);
+    if (unchecked.length) {
+      return setError(`${unchecked.length} fiş kontrol bekliyor. Fişi açıp bilgileri kontrol edin; doğruysa "Doğru" deyin, yanlışsa düzeltip kaydedin.`);
+    }
     const proxy = !!report && (report.owner_user_id !== userId || !!active?.bureau_account_id);
     confirm(proxy ? 'Rapor kayda alınsın mı?' : 'Onaya gönderilsin mi?', `${expenses.length} fiş, toplam ${money(report?.total)}`, proxy ? 'Kayda al' : 'Gönder', submit, false);
   }
@@ -163,6 +189,14 @@ export default function ReportScreen() {
             <Text style={[type.title, { color: c.ink, flex: 1 }]}>{report.title}</Text>
             <Stamp status={report.status} />
           </View>
+          <Text style={[type.small, { color: c.muted, marginTop: 2 }]}>{`Oluşturma: ${dateText(report.created_at)}`}</Text>
+          {!proxyReport || approvers.length ? (
+            <Text style={[type.small, { color: approvers.length ? c.muted : c.red, marginTop: 2 }]}>
+              {approvers.length
+                ? `Onaylayacak: ${approvers.join(' → ')}`
+                : 'Onaylayacak kimse tanımlı değil. Yöneticinizden onay zincirinde sizi birinin altına bağlamasını isteyin.'}
+            </Text>
+          ) : null}
           <Text style={[type.display, { color: c.ink, marginTop: space.sm }]} adjustsFontSizeToFit numberOfLines={1}>
             {money(report.total)}
           </Text>
@@ -188,6 +222,7 @@ export default function ReportScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={[type.small, { color: c.muted }]}>
               {expenses.length} fiş{reading.length ? `, ${reading.length} okunuyor` : ''}
+              {needsCheck && expenses.length ? `, ${checkedCount}/${expenses.length} kontrol edildi` : ''}
             </Text>
             {warnCount > 0 ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -261,12 +296,19 @@ export default function ReportScreen() {
                                   : 'Alkol: muhasebe kararı bekliyor'
                               : null,
                             warns.filter((f) => f.code !== 'alcohol').length ? `${warns.filter((f) => f.code !== 'alcohol').length} uyarı` : null,
+                            needsCheck && !e.checked_at && editable ? 'kontrol bekliyor' : null,
                           ]
                             .filter(Boolean)
                             .join(', ')
                   }
                   value={isReading ? undefined : noTotal ? '—' : money(e.total)}
-                  right={isReading ? <ActivityIndicator color={c.muted} /> : undefined}
+                  right={
+                    isReading ? (
+                      <ActivityIndicator color={c.muted} />
+                    ) : needsCheck && (editable || e.checked_at) ? (
+                      <CheckToggle on={!!e.checked_at} disabled={!editable} onPress={() => toggleCheck(e)} />
+                    ) : undefined
+                  }
                   onPress={() => router.push({ pathname: '/expense/[id]', params: { id: e.id } })}
                 />
               );
@@ -310,16 +352,42 @@ export default function ReportScreen() {
             onPress={() => router.push({ pathname: '/camera', params: { reportId: report.id, companyId: report.company_id, from: 'report' } })}
             style={{ flex: 1 }}
           />
-          {expenses.length > 0 && (
-            <Button icon="send" title={isOwner && !active?.bureau_account_id ? 'Onaya gönder' : 'Kayda al'} onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
-          )}
+          {expenses.length > 0 &&
+            (unchecked.length ? (
+              <Button
+                icon="check"
+                title={`Fişleri kontrol et (${unchecked.length})`}
+                onPress={() => router.push({ pathname: '/expense/[id]', params: { id: unchecked[0].id, review: '1' } })}
+                style={{ flex: 1.3 }}
+              />
+            ) : (
+              <Button icon="send" title={isOwner && !active?.bureau_account_id ? 'Onaya gönder' : 'Kayda al'} onPress={confirmSubmit} loading={busy === 'submit'} style={{ flex: 1.3 }} />
+            ))}
         </SafeAreaView>
       )}
     </View>
   );
 }
 
+/** Fişin yanındaki kontrol düğmesi: boş daire "kontrol bekliyor", dolu tik "doğru" */
+function CheckToggle({ on, disabled, onPress }: { on: boolean; disabled?: boolean; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={10}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: on, disabled }}
+      accessibilityLabel={on ? 'Doğru olarak işaretli; geri almak için dokunun' : 'Doğru olarak işaretle'}
+      style={[styles.check, { borderColor: on ? c.pen : c.faint, backgroundColor: on ? c.pen : 'transparent' }]}>
+      {on && <Icon name="check" size={13} color={c.onPen} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   bar: {
     position: 'absolute',
     left: 0,

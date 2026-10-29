@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -6,15 +6,27 @@ import { Text } from '@/components/text';
 import { radius, type, useColors } from '@/constants/theme';
 import { Button, Field, Notice } from '@/components/ui';
 import { space } from '@/constants/theme';
-import { currentPeriod } from '@/lib/format';
+import { currentPeriod, dateText } from '@/lib/format';
+import { useQueue } from '@/lib/queue';
+import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 
 export default function NewReport() {
   const c = useColors();
   const { userId, active, hasRole } = useSession();
+  const { then } = useLocalSearchParams<{ then?: 'camera' | 'gallery' }>();
+  const { enqueue } = useQueue();
   const def = currentPeriod();
   const [title, setTitle] = useState('');
+  // Raporu kim onaylayacak: çalışan rapor açarken görür
+  const [approvers, setApprovers] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    supabase.rpc('my_approvers', { p_company: active.company_id }).then(({ data }) => {
+      setApprovers(((data ?? []) as { name?: string }[]).map((x) => x.name ?? 'Onaylayıcı'));
+    });
+  }, [active]);
   // Muhasebeci başkası adına rapor açabilir; o rapor onaysız kayda alınır
   const accountant = hasRole('accountant');
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
@@ -48,7 +60,15 @@ export default function NewReport() {
     setBusy(false);
     if (e) return setError(errorText(e));
     router.dismiss();
+    if (then === 'camera') {
+      router.push({ pathname: '/camera', params: { reportId: data.id, companyId: active.company_id } });
+      return;
+    }
     router.push({ pathname: '/report/[id]', params: { id: data.id } });
+    if (then === 'gallery') {
+      const uris = await pickFromLibrary();
+      uris.forEach((uri) => enqueue({ reportId: data.id, companyId: active.company_id, userId, uri }));
+    }
   }
 
   return (
@@ -59,8 +79,27 @@ export default function NewReport() {
         onChangeText={setTitle}
         autoFocus
         placeholder="Örnek: İstanbul fuarı"
-        hint={`Aylık fişleriniz zaten “${def.title}” raporuna gidiyor. Bir iş ya da seyahat için ayrı rapor açın.`}
+        hint="Fişler bu raporun içine eklenir. Bir ay için tek rapor ya da her iş ve seyahat için ayrı rapor açabilirsiniz."
       />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+        {[def.title, 'Seyahat masrafları', 'Müşteri ziyareti'].map((t) => (
+          <Pressable key={t} onPress={() => setTitle(t)} style={{ borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: title === t ? c.pen : c.paper }}>
+            <Text style={{ color: title === t ? c.onPen : c.ink }}>{t}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={{ gap: 4, padding: space.md, borderRadius: radius.md, backgroundColor: c.paper }}>
+        <Text style={[type.small, { color: c.muted }]}>{`Oluşturma tarihi: ${dateText(new Date().toISOString())}`}</Text>
+        {!forOther && approvers !== null ? (
+          approvers.length ? (
+            <Text style={[type.body, { color: c.ink }]}>{`Onaylayacak: ${approvers.join(' → ')}`}</Text>
+          ) : (
+            <Text style={[type.body, { color: c.red }]}>
+              Raporunuzu onaylayacak kimse tanımlı değil. Fiş ekleyebilirsiniz; göndermeden önce yöneticinizden onay zincirinde sizi birinin altına bağlamasını isteyin.
+            </Text>
+          )
+        ) : null}
+      </View>
       {accountant && (
         <View style={{ gap: space.sm }}>
           <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Kimin masrafı?</Text>
@@ -79,7 +118,13 @@ export default function NewReport() {
         </View>
       )}
       {error && <Notice tone="bad" text={error} />}
-      <Button size="large" title="Raporu aç" onPress={create} loading={busy} />
+      <Button
+        size="large"
+        icon={then === 'camera' ? 'camera' : undefined}
+        title={then === 'camera' ? 'Raporu aç ve fiş çek' : then === 'gallery' ? 'Raporu aç ve fiş seç' : 'Raporu aç'}
+        onPress={create}
+        loading={busy}
+      />
     </ScrollView>
   );
 }

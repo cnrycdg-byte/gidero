@@ -22,6 +22,11 @@ begin
   raise exception 'BAŞARISIZ: % (hata bekleniyordu)', p_msg;
 end $$;
 
+-- Fiş kontrolü: testlerde rapor göndermeden önce bütün fişler kontrol edilmiş sayılır
+create function test.check_all() returns void language sql security definer as $$
+  update public.expenses set checked_at = now() where checked_at is null;
+$$;
+grant execute on function test.check_all() to authenticated;
 create function test.affected(p_sql text) returns int language plpgsql as $$
 declare n int;
 begin execute p_sql; get diagnostics n = row_count; return n; end $$;
@@ -121,6 +126,7 @@ select test.ok((select count(*) from public.tax_parameters where year = 2026) > 
 select test.expect_error($q$insert into public.tax_parameters (year, key, value) values (2026,'x','1')$q$, 'Vergi parametreleri yazılamaz');
 select test.ok((select count(*) from public.audit_log) = 0, 'Çalışan denetim izini göremez');
 
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000a1') = 'pending', 'Rapor onaya gider');
 select test.ok((select current_approver_ids from public.reports where id = '40000000-0000-0000-0000-0000000000a1')
                = array['00000000-0000-0000-0000-0000000000a2']::uuid[], 'İlk onaylayıcı çalışanın yöneticisi');
@@ -134,6 +140,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title) va
   '00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a1','Fuar');
 insert into public.expenses (company_id, report_id, created_by, total) values
  ('20000000-0000-0000-0000-00000000000a','40000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a1', 30000);
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000a2') = 'pending', 'Büyük rapor onaya gider');
 select test.ok((select jsonb_array_length(flow_snapshot) from public.reports where id = '40000000-0000-0000-0000-0000000000a2') = 2,
   '25.000 TL üstü rapor iki adımlı');
@@ -168,6 +175,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title) va
   '00000000-0000-0000-0000-0000000000a3','00000000-0000-0000-0000-0000000000a3','GM seyahat');
 insert into public.expenses (company_id, report_id, created_by, total) values
  ('20000000-0000-0000-0000-00000000000a','40000000-0000-0000-0000-0000000000a3','00000000-0000-0000-0000-0000000000a3', 1000);
+select test.check_all();
 select test.expect_error($q$select public.submit_report('40000000-0000-0000-0000-0000000000a3')$q$,
   'Onaylayıcı bulunamazsa kendi kendine onay yerine hata verir');
 reset role;
@@ -185,6 +193,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title) va
   '00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a4','Çalışan adına');
 insert into public.expenses (company_id, report_id, created_by, total) values
  ('20000000-0000-0000-0000-00000000000a','40000000-0000-0000-0000-0000000000a4','00000000-0000-0000-0000-0000000000a4', 250);
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000a4') = 'approved', 'Muhasebecinin başkası adına girdiği rapor onaysız kaydedilir');
 select test.ok(exists (select 1 from public.approval_actions where report_id = '40000000-0000-0000-0000-0000000000a4'
                        and action = 'booked_without_approval'), 'Onaysız kayıt denetim izine düşer');
@@ -194,6 +203,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title) va
   '00000000-0000-0000-0000-0000000000a4','00000000-0000-0000-0000-0000000000a4','Muhasebeci kendi');
 insert into public.expenses (company_id, report_id, created_by, total) values
  ('20000000-0000-0000-0000-00000000000a','40000000-0000-0000-0000-0000000000a5','00000000-0000-0000-0000-0000000000a4', 400);
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000a5') = 'pending', 'Muhasebecinin kendi masrafı onaya gider (görevler ayrılığı)');
 reset role;
 
@@ -207,6 +217,7 @@ insert into public.reports (id, company_id, owner_user_id, created_by, title) va
   '00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000c2','Büro girişi');
 insert into public.expenses (company_id, report_id, created_by, total) values
  ('20000000-0000-0000-0000-00000000000c','40000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-0000000000c2', 120);
+select test.check_all();
 select test.ok(public.submit_report('40000000-0000-0000-0000-0000000000c2') = 'approved', 'Büro müşteri adına girdiğinde onaysız kaydedilir');
 select test.expect_error($q$insert into public.bureau_assignments (account_id, user_id, company_id)
   values ('10000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c3','20000000-0000-0000-0000-00000000000c')$q$,

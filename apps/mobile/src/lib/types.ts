@@ -57,6 +57,7 @@ export type Expense = {
   attendees: string[];
   image_path: string | null;
   created_at: string;
+  checked_at?: string | null;
   alcohol_present?: boolean;
   alcohol_amount?: number | null;
   alcohol_items?: string[];

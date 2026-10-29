@@ -17,7 +17,7 @@ import { accountStatus, daysLeft, type AccountStatus } from '@/lib/billing';
 import { fetchUsage, usageState, type Usage } from '@/lib/limits';
 import { unreadCount } from '@/lib/notifications';
 import { useQueue } from '@/lib/queue';
-import { ensureMonthReport, pickFromLibrary } from '@/lib/receipts';
+import { pickFromLibrary } from '@/lib/receipts';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
 import { ROLE_LABEL, type Report } from '@/lib/types';
@@ -56,6 +56,9 @@ function Home() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
+  // Fişler hangi rapora girecek: açık (taslak ya da iade edilmiş) raporlardan biri
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [choosing, setChoosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { period, title: monthTitle } = currentPeriod();
 
@@ -131,9 +134,15 @@ function Home() {
       router.push('/new-report');
       return;
     }
+    const target = openReports.find((r) => r.id === targetId) ?? openReports[0];
+    if (!target) {
+      // Önce rapor açılır: başlık, tarih ve onaylayıcı görünür; sonra fiş çekilir
+      router.push({ pathname: '/new-report', params: { then: source } });
+      return;
+    }
     setOpening(source);
     try {
-      const reportId = await ensureMonthReport(active.company_id, userId);
+      const reportId = target.id;
       if (source === 'camera') {
         router.push({ pathname: '/camera', params: { reportId, companyId: active.company_id } });
       } else {
@@ -148,6 +157,8 @@ function Home() {
     }
   }
 
+  const openReports = reports.filter((r) => r.owner_user_id === userId && (r.status === 'draft' || r.status === 'returned'));
+  const target = openReports.find((r) => r.id === targetId) ?? openReports[0] ?? null;
   const monthTotal = reports.filter((r) => r.period === period).reduce((a, r) => a + Number(r.total), 0);
   const inFlight = items.filter((i) => i.status === 'waiting' || i.status === 'uploading' || i.status === 'reading').length;
   const monthName = monthTitle.replace(' masrafları', '');
@@ -240,9 +251,61 @@ function Home() {
             <Stat value={pendingCount} label="onayda" />
           </View>
           <Perforation color="rgba(255,255,255,0.18)" />
+          {target ? (
+            <Pressable onPress={() => setChoosing((v) => !v)} hitSlop={6} style={{ gap: 2 }}>
+              <Text style={[type.small, { color: c.onDeepMuted }]}>Fişler bu rapora eklenir</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <Text style={[type.bodyStrong, { color: c.onDeep, flexShrink: 1 }]} numberOfLines={1}>
+                  {target.title}
+                </Text>
+                <Text style={{ color: c.gold, fontWeight: '700', fontSize: 13 }}>{choosing ? 'Kapat' : 'Değiştir'}</Text>
+              </View>
+            </Pressable>
+          ) : (
+            <Text style={[type.small, { color: c.onDeepMuted }]}>Fiş eklemeden önce bir rapor açın: başlığını yazın, kimin onaylayacağını görün.</Text>
+          )}
+          {choosing && (
+            <View style={{ gap: 4 }}>
+              {openReports.map((r) => {
+                const on = r.id === target?.id;
+                return (
+                  <Pressable
+                    key={r.id}
+                    onPress={() => {
+                      setTargetId(r.id);
+                      setChoosing(false);
+                    }}
+                    style={[styles.pick, { backgroundColor: on ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)' }]}>
+                    <Text style={{ color: c.onDeep, flex: 1 }} numberOfLines={1}>
+                      {r.title}
+                    </Text>
+                    <Text style={{ color: c.onDeepMuted, fontSize: 12 }}>{dateText(r.created_at)}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => {
+                  setChoosing(false);
+                  router.push('/new-report');
+                }}
+                style={[styles.pick, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+                <Icon name="plus" size={13} color={c.onDeep} />
+                <Text style={{ color: c.onDeep, fontWeight: '600' }}>Yeni rapor aç</Text>
+              </Pressable>
+            </View>
+          )}
           <View style={{ gap: space.sm, marginTop: space.xs, flexDirection: wide ? 'row' : 'column' }}>
-            <Button size="large" variant="light" icon="camera" title="Fiş çek" onPress={() => capture('camera')} loading={opening === 'camera'} />
-            <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
+            <Button
+              size="large"
+              variant="light"
+              icon={target ? 'camera' : 'plus'}
+              title={target ? 'Fiş çek' : 'Yeni rapor aç'}
+              onPress={() => (target ? capture('camera') : router.push({ pathname: '/new-report', params: { then: 'camera' } }))}
+              loading={opening === 'camera'}
+            />
+            {target ? (
+              <Button variant="ghostLight" icon="gallery" title="Galeriden ekle" onPress={() => capture('gallery')} loading={opening === 'gallery'} />
+            ) : null}
           </View>
         </Slip>
 
@@ -314,7 +377,7 @@ function Home() {
           <Empty
             icon="receipt"
             title="Henüz rapor yok"
-            text="“Fiş çek”e dokunun; bu ayın raporu kendiliğinden açılır ve fişleriniz içine eklenir."
+            text="“Yeni rapor aç”a dokunun, başlığını yazın ve fişleri çekin. Fişler raporun içine eklenir; göndermeden önce her birini kontrol edersiniz."
           />
         ) : (
           <Group>
@@ -375,6 +438,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  pick: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 10 },
   bell: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl * 2 },

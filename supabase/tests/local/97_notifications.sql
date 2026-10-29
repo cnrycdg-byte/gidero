@@ -12,7 +12,9 @@ values ('20000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-0000000
 -- Çalışan gönderir → yöneticisi (a2) bildirim alır
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1"}', false);
 set role authenticated;
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-0000000000f1');
+select test.check_all();
 select public.submit_report('50000000-0000-0000-0000-0000000000f2');
 select test.ok((select count(*) from public.notifications where user_id <> '00000000-0000-0000-0000-0000000000a1') = 0, 'Çalışan yöneticisinin bildirimlerini göremez');
 select test.expect_error($q$insert into public.notifications (user_id, company_id, kind, title, body) values ('00000000-0000-0000-0000-0000000000a2', '20000000-0000-0000-0000-00000000000a', 'approved', 'x', 'y')$q$,
