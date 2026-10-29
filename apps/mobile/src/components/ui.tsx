@@ -274,7 +274,8 @@ export function Notice({ text, tone = 'info' }: { text: string; tone?: 'info' | 
     ok: { bg: c.stampSoft, fg: c.stamp, icon: 'checkCircle' as IconName },
   }[tone];
   // Paket sınırı uyarılarında doğrudan paket satın alma ekranına git
-  const upgrade = (tone === 'bad' || tone === 'warn') && /paket(inizi|i)\s+(büyüt|yenile)/i.test(text);
+  // Telefonda satın alma yönlendirmesi yok (mağaza kuralı); yalnızca web panelinde gösterilir
+  const upgrade = Platform.OS === 'web' && (tone === 'bad' || tone === 'warn') && /paket(inizi|i)\s+(büyüt|yenile)/i.test(text);
   return (
     <View style={[styles.notice, { backgroundColor: map.bg, alignItems: upgrade ? 'center' : 'flex-start' }]}>
       <Icon name={map.icon} size={16} color={map.fg} />
