@@ -1,7 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
@@ -26,7 +26,41 @@ import { errorText, supabase } from '@/lib/supabase';
 type Period = 'month' | 'year';
 
 // Abonelik: mevcut paket ve kullanım, paket seçimi, kampanya kodu, kartla ödeme, sipariş geçmişi
+/**
+ * Mağaza kuralı: telefon uygulamasında satın alma yok (B2B, şirketlere doğrudan satılır; ödeme web sitesinden).
+ * Telefonda yalnızca paket durumu gösterilir; paket ve ödeme işlemleri web panelinden yapılır.
+ */
 export default function Subscription() {
+  return Platform.OS === 'web' ? <SubscriptionWeb /> : <SubscriptionStatus />;
+}
+
+function SubscriptionStatus() {
+  const c = useColors();
+  const params = useLocalSearchParams<{ account?: string }>();
+  const { active, bureaus } = useSession();
+  const accountId = params.account ?? bureaus.find((b) => b.role === 'owner')?.account_id ?? active?.billing_account_id ?? null;
+  const [st, setSt] = useState<AccountStatus | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (accountId) accountStatus(accountId).then(setSt).catch(() => setSt(null));
+    }, [accountId]),
+  );
+  return (
+    <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg }}>
+      {st ? (
+        <Group>
+          <Row title="Paket" value={st.plan_name ?? (st.status === 'trial' ? 'Deneme' : '-')} />
+          <Row title="Durum" value={st.active ? 'Aktif' : 'Süresi doldu'} />
+          {st.ends_at ? <Row title="Bitiş" value={dateText(st.ends_at)} /> : null}
+          {st.kind === 'bureau' ? <Row title="Firma" value={`${st.companies_used}/${st.max_companies ?? '∞'}`} /> : <Row title="Kullanıcı" value={`${st.users_used}/${st.max_users ?? '∞'}`} />}
+        </Group>
+      ) : null}
+      <Text style={[type.body, { color: c.muted }]}>Paket değişikliği ve ödeme işlemleri bilgisayardan, yönetim panelinden yapılır.</Text>
+    </ScrollView>
+  );
+}
+
+function SubscriptionWeb() {
   const c = useColors();
   const params = useLocalSearchParams<{ account?: string }>();
   const { active, bureaus, session } = useSession();
