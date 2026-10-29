@@ -33,6 +33,8 @@ export default function ExpenseScreen() {
   const { width: screenW, height: screenH } = useWindowDimensions();
   // Aynı raporda kontrol bekleyen diğer fişler (sıradaki fişe geçmek için)
   const [remaining, setRemaining] = useState<string[]>([]);
+  // Raporun bütün fişleri (muhasebeci ve onaylayıcı fişler arasında ileri geri geçer)
+  const [siblings, setSiblings] = useState<string[]>([]);
 
   const [exp, setExp] = useState<Expense | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -105,6 +107,12 @@ export default function ExpenseScreen() {
         .neq('id', e.id)
         .order('created_at', { ascending: true })
         .then(({ data: rest }) => setRemaining(((rest ?? []) as { id: string }[]).map((x) => x.id)));
+      supabase
+        .from('expenses')
+        .select('id')
+        .eq('report_id', e.report_id)
+        .order('created_at', { ascending: true })
+        .then(({ data: all }) => setSiblings(((all ?? []) as { id: string }[]).map((x) => x.id)));
       if (e.image_path) setImage(await receiptUrl(e.image_path));
     })();
   }, [id, reloadKey]);
@@ -497,6 +505,22 @@ export default function ExpenseScreen() {
         )}
       </ScrollView>
 
+      {!editable && siblings.length > 1 && (() => {
+        const at = siblings.indexOf(exp.id);
+        const prev = at > 0 ? siblings[at - 1] : null;
+        const next = at >= 0 && at < siblings.length - 1 ? siblings[at + 1] : null;
+        const go = (to: string) => router.replace({ pathname: '/expense/[id]', params: { id: to } });
+        return (
+          <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
+            <Button variant="secondary" title="Önceki fiş" onPress={() => prev && go(prev)} disabled={!prev} style={{ flex: 1 }} />
+            <Button
+              title={next ? `Sonraki fiş (${at + 2}/${siblings.length})` : 'Rapora dön'}
+              onPress={() => (next ? go(next) : router.back())}
+              style={{ flex: 1.4 }}
+            />
+          </SafeAreaView>
+        );
+      })()}
       {editable && (
         <SafeAreaView edges={['bottom']} style={[styles.bar, { backgroundColor: c.canvas, borderTopColor: c.paperLine }]}>
           {needsCheck && remaining.length > 0 ? (
