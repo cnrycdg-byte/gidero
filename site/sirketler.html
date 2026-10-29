@@ -179,25 +179,198 @@
   </div>
 </section>
 
-<section class="sec">
-  <div class="wrap grid2">
-    <div>
-      <h2>Çalışan fişi masa başında da kontrol eder</h2>
-      <p class="lead">Bilgisayarda fotoğraf sağda büyük durur, form solda. Okunamayan alanlar turuncudur; "Doğru, sıradaki fiş" ile bir sonrakine geçilir.</p>
+<section class="sec" id="toplu">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Bir ayın fişleri, bilgisayardan tek seferde</h2>
+      <p class="lead">Fişleri tek tek çekmek zorunda değilsiniz. Çalışan ay sonunda bilgisayarı açar, telefonundan aktardığı ya da taradığı fiş fotoğraflarını birlikte seçer; Gidero hepsini aynı anda okur. Sonra fotoğraf yanında, form solunda, fişleri sırayla onaylar.</p>
     </div>
-    <div class="shot"><img src="img/screens/fis-kontrol.webp" alt="Fiş kontrol ekranı: solda form, okunamayan alanlar turuncu; sağda fiş fotoğrafı" loading="lazy" width="1400" height="900"></div>
+    <div class="flow" data-flow aria-label="Çalışanın fişleri bilgisayardan toplu yüklemesi">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Bir ayın fişlerini tek seferde seçer</b><small>Telefondaki ya da bilgisayardaki fotoğraflardan 20'ye kadar fiş.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Gidero hepsini birlikte okur</b><small>Tutar, tarih, satıcı, KDV; okunamayan alan turuncu işaretlenir.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Fotoğraf yanında, form solunda</b><small>Fişe bakıp eksik alanı yazar, "Doğru, sıradaki fiş" ile geçer.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Raporu onaya gönderir</b><small>Bütün fişler kontrol edilince rapor onaylayıcıya düşer.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene appsc" data-dur="4600"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">Onaylayacak: Ali Çelik, sonra Selin Er</div>
+        <div class="card" style="text-align:center;color:var(--muted);padding:26px 12px">Bu raporda henüz fiş yok. Fiş çekin ya da fotoğraflardan seçin.</div>
+        <div class="row2"><div class="abtn alt">Fiş çek</div><div class="abtn" data-press="900">Fotoğraflardan ekle</div></div>
+        <div class="dlg" data-at="1300">
+          <b>Fişleri seçin</b>
+          <div class="grid">
+            <div class="ft"><i></i>IMG_2041.jpg<span class="ck" data-at="1600"></span></div>
+            <div class="ft"><i></i>IMG_2042.jpg<span class="ck" data-at="1750"></span></div>
+            <div class="ft"><i></i>IMG_2047.jpg<span class="ck" data-at="1900"></span></div>
+            <div class="ft"><i></i>IMG_2050.jpg<span class="ck" data-at="2050"></span></div>
+            <div class="ft"><i></i>IMG_2053.jpg<span class="ck" data-at="2200"></span></div>
+            <div class="ft"><i></i>IMG_2058.jpg<span class="ck" data-at="2350"></span></div>
+            <div class="ft"><i></i>IMG_2061.jpg<span class="ck" data-at="2500"></span></div>
+            <div class="ft"><i></i>IMG_2064.jpg<span class="ck" data-at="2650"></span></div>
+          </div>
+          <div class="foot2"><span class="muted" data-at="2800">8 fotoğraf seçildi</span><div class="abtn" style="padding:7px 16px" data-press="3600">Ekle</div></div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4800"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">8 fiş okunuyor</div>
+        <div class="rows">
+          <div class="rw" data-at="200"><span>Körfez Balık Lokantası</span><span>1.100,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="450"><span>Opet Karşıyaka</span><span>450,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="700"><span>Hilton Garden Inn</span><span>3.200,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="950"><span>İzmir Taksi</span><span>280,00</span><span class="flag w">Tarih okunamadı</span></div>
+          <div class="rw" data-at="1200"><span>Kordon Otopark</span><span>60,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="1450"><span>Simit Sarayı</span><span>85,00</span><span class="flag ok">Okundu</span></div>
+          <div class="rw" data-at="1700"><span>Kırtasiye</span><span>&nbsp;</span><span class="flag w">Tutar okunamadı</span></div>
+          <div class="rw" data-at="1950"><span>Shell Bornova</span><span>1.200,00</span><span class="flag ok">Okundu</span></div>
+        </div>
+        <div class="warnline" data-at="2700">8 fiş okundu. 2 fişte turuncu alanı fişe bakıp yazın.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5600"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <div class="kv"><h4>Fişi kontrol edin</h4><span class="muted">4 / 8</span></div>
+        <div class="split">
+          <div>
+            <div class="fl"><label>Satıcı</label><div class="v">İzmir Taksi</div></div>
+            <div class="fl"><label>Toplam tutar (₺)</label><div class="v">280,00</div></div>
+            <div class="fl miss" data-fix="1300" data-fixtext="26.10.2026"><label>Tarih</label><div class="v">Okunamadı, fişe bakıp yazın</div></div>
+            <div class="fl"><label>Gider grubu</label><div class="v">Ulaşım ve seyahat</div></div>
+            <div class="okline" data-at="3000" style="margin-top:8px">Kontrol edildi</div>
+          </div>
+          <div class="photo">
+            <div class="rcpt" style="width:170px">
+              <div class="c"><b>İZMİR TAKSİ</b><br>Plaka 35 T 4182</div>
+              <hr>
+              <div class="r"><span>26.10.26</span><span>18:05</span></div>
+              <div class="r"><span>Alsancak-Fuar</span><span>14 km</span></div>
+              <hr>
+              <div class="r"><b>TOPLAM</b><b>280,00</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="row2" style="justify-content:flex-end"><div class="abtn alt">Önceki</div><div class="abtn" data-press="3600">Doğru, sıradaki fiş</div></div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4400"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="it on">Raporlarım</div><div class="it">Bildirimler</div><div class="me">Veli Mahmut</div></div>
+      <div class="main">
+        <h4>Ekim masrafları</h4><div class="sub">8 fiş, 8'i kontrol edildi</div>
+        <div class="card"><div class="tot">₺6.455,00</div>
+          <div class="kv" style="margin-top:8px"><span>Konaklama</span><b>₺3.200,00</b></div>
+          <div class="kv"><span>Akaryakıt</span><b>₺1.650,00</b></div>
+          <div class="kv"><span>Müşteri ağırlama</span><b>₺1.100,00</b></div>
+          <div class="kv"><span>Ulaşım, otopark, diğer</span><b>₺505,00</b></div>
+        </div>
+        <div class="chain"><span>Ali Çelik</span><em>sonra</em><span>Selin Er, son onay</span></div>
+        <div class="abtn" data-press="1500" style="align-self:flex-end;padding:8px 18px">Onaya gönder</div>
+        <div class="toast" data-at="1900" style="left:auto;right:18px;width:300px">Rapor Ali Çelik'e gönderildi</div>
+      </div>
+    </div></div>
+  </div></div>
+</div>
   </div>
 </section>
 
-<section class="sec tint">
+<section class="sec tint" id="kurallar">
   <div class="wrap">
-    <div class="sec-head"><h2>Kurallar şirketinize göre</h2></div>
-    <div class="dl">
-      <div><h3>Gider grupları ve sınırlar</h3><p>Yemek, akaryakıt, konaklama; hesap kodlarıyla. Kişi başı aylık, 3 aylık ya da yıllık sınır koyun; aşım anında görünür.</p></div>
+    <div class="sec-head">
+      <h2>Kurallar şirketinize göre</h2>
+      <p class="lead">Şirket yöneticisi ayarları bir kez yapar; her fiş, her rapor bu kurallara göre işlenir. Değişiklikler kim, ne zaman, eski ve yeni değeriyle kaydedilir.</p>
+    </div>
+    <div class="flow" data-flow aria-label="Şirket ayarları: logo ve renkler, gider grupları ve sınırlar, alkol kuralı, araç ve plaka">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Logonuz ve renkleriniz</b><small>Şirketinize giren herkes uygulamayı kendi renklerinizle görür.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Gider grupları ve sınırlar</b><small>Hesap koduyla; kişi başı aylık, 3 aylık ya da yıllık sınır.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Alkollü içki kuralı</b><small>Ödenmez, KKEG ya da normal gider; muhasebe fiş bazında değiştirebilir.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Araç ve plaka</b><small>Akaryakıt fişindeki plaka çalışanın aracıyla eşleşmezse uyarı çıkar.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene appsc" data-dur="5600"><div class="app">
+      <div class="side">
+        <div class="lg">gidero</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it on">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div>
+        <div class="side alt" data-at="2600" style="padding:14px 10px;display:flex;flex-direction:column;gap:2px"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it on">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      </div>
+      <div class="main">
+        <h4>Logo ve renkler</h4>
+        <div class="logo-box"><div class="ph">Logo yok<b data-at="700">EGE<br>GIDA</b></div><div><div class="abtn alt" style="padding:6px 12px" data-press="400">Logo yükle</div><div class="muted" style="font-size:.75rem;margin-top:4px">PNG, JPG ya da WEBP; en fazla 1 MB</div></div></div>
+        <div class="fl"><label>Ana renk</label></div>
+        <div class="sw"><i style="background:#0B6E5F"><span data-out="1500"></span></i><i style="background:#1E3A8A"><span data-at="1500"></span></i><i style="background:#9F1239"></i><i style="background:#B45309"></i><i style="background:#334155"></i><span class="hexv" data-at="1500">#1E3A8A, logodan alındı</span></div>
+        <div class="prev"><b style="font-size:.75rem;color:var(--muted)">Çalışanlarınız böyle görecek</b><div class="kv"><span>Ekim masrafları</span><span class="flag ok">Onaylandı</span></div><div style="height:26px"></div><div class="pb">Fiş çek</div><div class="pb alt" data-at="2600">Fiş çek</div></div>
+        <div class="abtn" data-press="3600" style="align-self:flex-start;padding:7px 18px">Kaydet</div>
+        <div class="toast" data-at="3900" style="left:auto;right:18px;width:330px">Kaydedildi. Şirketinize giren herkes bu renkleri görür.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5800"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it">Logo ve renkler</div><div class="it on">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Gider grupları</h4>
+        <table class="ctab">
+          <tr class="sel"><td>Yemek</td><td>770.01</td><td data-at="2900">Aylık ₺4.000</td></tr>
+          <tr><td>Akaryakıt</td><td>770.03</td><td>Aylık ₺6.000</td></tr>
+          <tr><td>Konaklama</td><td>770.05</td><td>Sınırsız</td></tr>
+          <tr><td>Temsil ve ağırlama</td><td>760.02</td><td>3 aylık ₺15.000</td></tr>
+        </table>
+        <div class="card">
+          <div class="fl"><label>Yemek için sınır dönemi</label></div>
+          <div class="chips" style="margin-top:4px"><span>Sınırsız</span><span class="on">Aylık</span><span>3 aylık</span><span>Yıllık</span></div>
+          <div class="fl" style="margin-top:8px"><label>Aylık kişi başı sınır (₺)</label><div class="v" data-type="4.000" data-at="900"></div></div>
+        </div>
+        <div class="warnline" data-at="3700">Veli Mahmut bu ay yemekte sınırın %92'sine geldi.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="4800"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it">Ekip</div><div class="it">Logo ve renkler</div><div class="it on">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Alkollü içki kuralı</h4><div class="sub">Fişte alkol satırı olduğunda ne olsun?</div>
+        <div class="opts">
+          <div class="opt"><span class="rd"><i data-at="1300"></i></span><div><b>Ödenir, KKEG yazılır</b><small>Çalışan parasını alır; tutar vergiden düşülmez, KDV indirilmez.</small></div><span class="hl" data-at="1300"></span></div>
+          <div class="opt"><span class="rd"></span><div><b>Ödenmez</b><small>Alkol tutarı çalışana ödenmez; fişin yemek kısmı normal işlenir.</small></div></div>
+          <div class="opt"><span class="rd"></span><div><b>Ödenir, normal gider yazılır</b><small>İş amaçlı ağırlamalar için.</small></div></div>
+          <div class="opt"><span class="rd"><i data-out="1300"></i></span><div><b>Muhasebe her fişte karar verir</b><small>Karar verilene kadar rapor aktarılamaz.</small></div><span class="hl" data-out="1300"></span></div>
+        </div>
+        <div class="okline" data-at="2400">Bundan sonra gelen fişlerde alkol satırları bu kurala göre ayrılır.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5400"><div class="app">
+      <div class="side" style="background:#1E3A8A"><div class="lg"><em>EG</em>Ege Gıda</div><div class="it">Raporlar</div><div class="it on">Ekip</div><div class="it">Logo ve renkler</div><div class="it">Gider grupları</div><div class="me">Şirket yöneticisi</div></div>
+      <div class="main">
+        <h4>Veli Mahmut</h4><div class="sub">Satış Temsilcisi, Ali Çelik'e bağlı</div>
+        <div class="card">
+          <div class="fl"><label>Araçları</label></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="plate" data-type="35 ABC 123" data-at="500"></span><span class="muted" style="font-size:.75rem" data-at="1500">Şirket aracı, binek</span></div>
+        </div>
+        <div class="card" data-at="2300">
+          <div class="kv"><b>Opet Karşıyaka, 27.10</b><b>₺1.200,00</b></div>
+          <div class="kv"><span>Fişteki plaka</span><span class="plate">35 KL 908</span></div>
+        </div>
+        <div class="warnline" data-at="3000">Fişteki plaka Veli Mahmut'un araçlarıyla eşleşmiyor. Onaylayıcı ve muhasebe bu uyarıyı görür.</div>
+      </div>
+    </div></div>
+  </div></div>
+</div>
+    <div class="dl" style="margin-top:56px">
       <div><h3>Vergi uyarıları</h3><p>Fatura gereken tutar, mükerrer fiş, şirket adına kesilmemiş belge, binek araç kısıtı, geçersiz KDV oranı: her fişte 29 kontrol.</p></div>
-      <div><h3>Alkollü içki</h3><p>Ödenmez, ödenir ama vergiden düşülmez (KKEG) ya da normal gider. Siz seçersiniz; muhasebe fiş bazında değiştirebilir.</p></div>
-      <div><h3>Araç ve plaka</h3><p>Çalışanın araçlarını girin; akaryakıt fişindeki plaka eşleşmezse uyarı çıkar.</p></div>
-      <div><h3>Logonuz ve renkleriniz</h3><p>Şirketinize giren herkes uygulamayı kendi kurumsal renklerinizle görür.</p></div>
       <div><h3>Kim ödedi</h3><p>Şirket kartı, avans ya da kasa ile ödenenler çalışana ödenmez; muhasebede doğru hesaba yazılır.</p></div>
     </div>
   </div>

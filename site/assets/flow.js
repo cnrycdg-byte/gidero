@@ -1,6 +1,6 @@
 // Akan ekran: [data-flow] içindeki sahneleri sırayla oynatır, soldaki adımlarla eşler.
 // Sahne: .scene[data-dur]. İçindeki öğeler: data-at (ms sonra görünür), data-type (yazılır),
-// data-press (ms'de basılır), data-fix + data-fixtext (eksik alan elle doldurulur).
+// data-out (ms sonra kaybolur), data-press (ms'de basılır), data-fix + data-fixtext (eksik alan elle doldurulur).
 // Hareket azaltma tercihinde kendiliğinden oynamaz; adımlara tıklayınca sahne doğrudan açılır.
 (function () {
   var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -20,7 +20,7 @@
       })();
     }
     function show(i, animate) {
-      clear(); cur = i;
+      clear(); cur = i; fit();
       var sc = scenes[i], dur = Number(sc.getAttribute('data-dur')) || 4000;
       scenes.forEach(function (s, k) { s.classList.toggle('on', k === i); });
       steps.forEach(function (li, k) {
@@ -30,6 +30,7 @@
         if (bar) { bar.style.transition = 'none'; bar.style.transform = 'scaleX(0)'; }
       });
       sc.querySelectorAll('[data-at]').forEach(function (el) { el.classList.remove('in'); });
+      sc.querySelectorAll('[data-out]').forEach(function (el) { el.classList.remove('gone'); });
       sc.querySelectorAll('[data-press]').forEach(function (el) { el.classList.remove('press'); });
       sc.querySelectorAll('[data-fix]').forEach(function (el) {
         el.classList.remove('fixed'); var v = el.querySelector('.v');
@@ -40,6 +41,7 @@
 
       if (!animate) {
         sc.querySelectorAll('[data-at]').forEach(function (el) { el.classList.add('in'); });
+        sc.querySelectorAll('[data-out]').forEach(function (el) { el.classList.add('gone'); });
         sc.querySelectorAll('[data-fix]').forEach(function (el) { el.classList.add('fixed'); el.querySelector('.v').textContent = el.getAttribute('data-fixtext'); });
         return;
       }
@@ -50,6 +52,9 @@
         later(t, function () { el.classList.add('in'); if (el.hasAttribute('data-type')) typeInto(el, el.getAttribute('data-type')); });
       });
       sc.querySelectorAll('[data-type]:not([data-at])').forEach(function (el) { typeInto(el, el.getAttribute('data-type')); });
+      sc.querySelectorAll('[data-out]').forEach(function (el) {
+        later(Number(el.getAttribute('data-out')), function () { el.classList.add('gone'); });
+      });
       sc.querySelectorAll('[data-press]').forEach(function (el) {
         var t = Number(el.getAttribute('data-press'));
         later(t, function () { el.classList.add('press'); });
@@ -73,6 +78,14 @@
       if (still) pauseBtn.hidden = true;
       pauseBtn.addEventListener('click', function () { setPlaying(!playing); });
     }
+    // Dar ekranda masaüstü penceresi orantılı küçülür
+    function fit() {
+      root.querySelectorAll('.dev.desk').forEach(function (d) {
+        var w = root.clientWidth; if (w) d.style.zoom = w < 640 ? (w / 640).toFixed(3) : '';
+      });
+    }
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(root); else window.addEventListener('resize', fit);
     show(0, false);
     if (still) return;
     var io = new IntersectionObserver(function (en) {
