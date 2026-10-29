@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { DragNode, dragSupported } from '@/components/drag-node';
+import { PersonEditor } from '@/components/person-editor';
 import { Text } from '@/components/text';
 import { Button, Field, Notice } from '@/components/ui';
 import { fonts, radius, space, type, useColors } from '@/constants/theme';
@@ -20,6 +21,7 @@ type Person = {
   roles: string[];
   manager_user_id: string | null;
   final_approver: boolean;
+  vehicle_plates: string[];
 };
 
 const ROOT = '__root__';
@@ -55,6 +57,7 @@ export default function ApprovalChain() {
   const [zoom, setZoom] = useState(1);
   const [viewW, setViewW] = useState(0);
   const [q, setQ] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +69,7 @@ export default function ApprovalChain() {
     try {
       const { data, error: e } = await supabase
         .from('memberships')
-        .select('user_id, roles, manager_user_id, title, final_approver')
+        .select('user_id, roles, manager_user_id, title, final_approver, vehicle_plates')
         .eq('company_id', active.company_id)
         .eq('status', 'active');
       if (e) throw e;
@@ -183,28 +186,9 @@ export default function ApprovalChain() {
             <Switch value={sel.final_approver} disabled={busy} onValueChange={(v) => saveDetails(sel, { final_approver: v })} />
           </View>
 
-          <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Kime bağlı?</Text>
-          {people.length > 12 && <Field label="Kişi ara" value={q} onChangeText={setQ} placeholder="Ad ya da ünvan" />}
-          <View style={styles.chips}>
-            <Pressable onPress={() => move(sel.user_id, null)} style={[styles.chip, { backgroundColor: !sel.manager_user_id ? c.pen : c.canvas }]}>
-              <Text style={{ color: !sel.manager_user_id ? c.onPen : c.ink, fontSize: 13 }}>Kimseye (en üst)</Text>
-            </Pressable>
-            {people
-              .filter((p) => p.user_id !== sel.user_id && !below.has(p.user_id))
-              .filter((p) => {
-                const t = q.trim().toLocaleLowerCase('tr-TR');
-                return !t || p.user_id === sel.manager_user_id || `${p.full_name} ${p.title ?? ''}`.toLocaleLowerCase('tr-TR').includes(t);
-              })
-              .map((p) => {
-                const on = sel.manager_user_id === p.user_id;
-                return (
-                  <Pressable key={p.user_id} onPress={() => move(sel.user_id, p.user_id)} style={[styles.chip, { backgroundColor: on ? c.pen : c.canvas }]}>
-                    <Text style={{ color: on ? c.onPen : c.ink, fontSize: 13 }}>{p.full_name}</Text>
-                  </Pressable>
-                );
-              })}
-          </View>
-
+          <Text style={[type.small, { color: c.muted }]}>
+            {`Bağlı olduğu kişi: ${sel.manager_user_id ? byId.get(sel.manager_user_id)?.full_name ?? '—' : 'kimse (en üstte)'}. Değiştirmek için kişi kartını açın ya da şemada sürükleyin.`}
+          </Text>
           <View style={[styles.path, { backgroundColor: c.canvas }]}>
             <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{`${sel.full_name.split(' ')[0]} masraf gönderince`}</Text>
             {chain.length === 0 ? (
@@ -228,6 +212,7 @@ export default function ApprovalChain() {
           </View>
 
           <View style={styles.chips}>
+            <Button title="Kişi kartını düzenle" onPress={() => setEditing(sel.user_id)} />
             <Button variant="secondary" icon="personAdd" title="Altına kişi ekle" onPress={() => router.push({ pathname: '/team', params: { manager: sel.user_id } })} />
             {!dragSupported && (
               <Button variant="secondary" title={moving === sel.user_id ? 'Taşımayı bırak' : 'Başkasının altına taşı'} onPress={() => setMoving(moving === sel.user_id ? null : sel.user_id)} />
@@ -335,13 +320,26 @@ export default function ApprovalChain() {
                               </Text>
                               <View style={{ flexDirection: 'row', gap: 4, marginTop: 2 }}>
                                 {p.final_approver && <Badge text="Son onay" bg="#FDF1DC" fg="#9A5B00" />}
+                                {p.roles.includes('approver') && !p.final_approver && <Badge text="Onaylayıcı" bg={c.penSoft} fg={c.pen} />}
                                 {p.roles.includes('accountant') && <Badge text="Muhasebe" bg={c.canvas} fg={c.muted} />}
                               </View>
                             </View>
-                            {step >= 0 && (
+                            {step >= 0 ? (
                               <View style={[styles.stepBadge, { backgroundColor: GOLD }]}>
                                 <Text style={{ color: '#fff', fontSize: 11, fontFamily: fonts.bold }}>{step + 1}</Text>
                               </View>
+                            ) : (
+                              <Pressable
+                                onPress={() => {
+                                  setSelected(p.user_id);
+                                  setTitle(p.title ?? '');
+                                  setEditing(p.user_id);
+                                }}
+                                hitSlop={6}
+                                accessibilityLabel={`${p.full_name} kişisini düzenle`}
+                                style={({ pressed }) => [styles.edit, { borderColor: c.paperLine, backgroundColor: pressed ? c.penSoft : c.paper }]}>
+                                <Text style={{ color: c.pen, fontSize: 12, fontFamily: fonts.semibold }}>Düzenle</Text>
+                              </Pressable>
                             )}
                           </Pressable>
                         </DragNode>
@@ -371,6 +369,20 @@ export default function ApprovalChain() {
           {panel}
         </ScrollView>
       </View>
+      {editing && byId.get(editing) && active && (
+        <PersonEditor
+          person={byId.get(editing)!}
+          people={people}
+          companyId={active.company_id}
+          me={userId}
+          onClose={() => setEditing(null)}
+          onSaved={(msg) => {
+            setEditing(null);
+            setInfo(msg);
+            load();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -400,6 +412,7 @@ const styles = StyleSheet.create({
   rootZone: { borderWidth: 2, borderStyle: 'dashed', borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: space.lg, alignItems: 'center' },
   node: { height: NODE_H, flexDirection: 'row', alignItems: 'center', borderRadius: 12, overflow: 'hidden', paddingRight: 8 },
   stripe: { width: 5, alignSelf: 'stretch' },
+  edit: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   stepBadge: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   toAcc: { position: 'absolute', borderRadius: 999, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
   panel: { borderRadius: radius.lg, padding: space.lg, gap: space.md, borderWidth: StyleSheet.hairlineWidth },
