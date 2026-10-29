@@ -9,6 +9,7 @@ import { Icon } from '@/components/icon';
 import { QueueProgress } from '@/components/queue-progress';
 import { ReportSummary } from '@/components/report-summary';
 import { ApprovalTimeline, type TimelineAction } from '@/components/approval-timeline';
+import { PrintPanel } from '@/components/print-panel';
 import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Slip, Stamp } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
 import { dateText, money } from '@/lib/format';
@@ -382,6 +383,8 @@ export default function ReportScreen() {
             </Group>
           </>
         )}
+
+        {expenses.length > 0 && <PrintPanel reportId={report.id} receiptCount={expenses.length} />}
 
         {report.status === 'draft' && (isOwner || isCreator) && (
           <Button variant="plain" title="Taslak raporu sil" onPress={remove} />
