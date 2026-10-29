@@ -65,6 +65,14 @@ export type Expense = {
   alcohol_items?: string[];
   alcohol_decision?: 'accepted' | 'rejected' | 'kkeg' | null;
   alcohol_decided_by?: string | null;
+  /** Bilgi fişi: çalışanın e-Arşiv faturası onayı */
+  einvoice_confirmed_at?: string | null;
+  einvoice_confirmed_by?: string | null;
+  ettn?: string | null;
+  /** Tek fotoğrafta birden çok fiş: bu kaydın sırası ve fotoğraftaki fiş sayısı */
+  photo_part?: number | null;
+  photo_parts?: number | null;
+  photo_position?: string | null;
   expense_vat_lines?: VatLine[];
   expense_flags?: Flag[];
 };
@@ -91,6 +99,7 @@ export const DOC_TYPE_LABEL: Record<string, string> = {
   bilet: 'Bilet',
   yurtdisi_fatura: 'Yurt dışı fatura',
   dekont: 'Banka dekontu',
+  bilgi_fisi: 'Bilgi fişi (asıl belge e-Arşiv fatura)',
   no_document: 'Belgesiz',
   unknown: 'Belge türü belirsiz',
 };

@@ -124,3 +124,9 @@ test('Alkol KKEG: tutar 689 hesabına yazılır, KDV indirilmez, çalışana tam
   assert.equal(by['335.0042'], -1100);
   assert.deepEqual(totals(en), { debit: 1100, credit: 1100 });
 });
+
+test('bilgi fişinin e-Defter belge türü faturadır (asıl belge e-Arşiv)', async () => {
+  const { eDefterDocType } = await import('../journal.ts');
+  assert.equal(eDefterDocType('bilgi_fisi'), 'Fatura');
+  assert.equal(eDefterDocType('okc_fis'), 'Diğer');
+});

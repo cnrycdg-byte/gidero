@@ -322,6 +322,8 @@ export default function ReportScreen() {
                         ? 'Tutar okunamadı, dokunup yazın'
                         : [
                             dateText(e.doc_date),
+                            e.photo_parts && e.photo_parts > 1 ? `fotoğraftaki ${e.photo_part}/${e.photo_parts}. fiş` : null,
+                            e.doc_type === 'bilgi_fisi' ? (e.einvoice_confirmed_at ? 'bilgi fişi, e-Arşiv onaylı' : 'bilgi fişi, e-Arşiv onayı bekliyor') : null,
                             e.payment_method && e.payment_method !== 'personal' ? PAYMENT_LABEL[e.payment_method] : null,
                             e.alcohol_present
                               ? e.alcohol_decision === 'accepted'
@@ -332,7 +334,7 @@ export default function ReportScreen() {
                                   ? `Alkol reddedildi (${money(Number(e.alcohol_amount ?? 0))})`
                                   : 'Alkol: muhasebe kararı bekliyor'
                               : null,
-                            warns.filter((f) => f.code !== 'alcohol').length ? `${warns.filter((f) => f.code !== 'alcohol').length} uyarı` : null,
+                            warns.filter((f) => f.code !== 'alcohol' && f.code !== 'info_slip').length ? `${warns.filter((f) => f.code !== 'alcohol' && f.code !== 'info_slip').length} uyarı` : null,
                             needsCheck && !e.checked_at && editable ? 'kontrol bekliyor' : null,
                           ]
                             .filter(Boolean)

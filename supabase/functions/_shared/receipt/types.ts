@@ -2,7 +2,7 @@
 
 export type DocType =
   | "e_fatura" | "e_arsiv" | "okc_fis" | "akaryakit_okc" | "serbest_meslek" | "gider_pusulasi"
-  | "bilet" | "yurtdisi_fatura" | "dekont" | "no_document" | "unknown";
+  | "bilet" | "yurtdisi_fatura" | "dekont" | "bilgi_fisi" | "no_document" | "unknown";
 
 export type FieldSource = "qr" | "ai" | "user";
 
@@ -31,6 +31,8 @@ export interface ReceiptFields {
   other_taxes: { type: "konaklama" | "otv" | "diger"; amount: number }[];
   confidence: { total: number; date: number; doc_no: number; vat: number };
   /** Alkollü içki satırları (bira, şarap, rakı...): KDV dahil toplamı ve kalemler. Okunamazsa yok. */
+  /** Fotoğrafta birden çok belge varsa bu belgenin yeri ("sol üst" gibi) */
+  position?: string | null;
   alcohol?: { present: boolean; amount: number | null; items: string[]; decision?: "accepted" | "rejected" | "kkeg" | null; auto?: boolean };
 }
 
@@ -61,6 +63,8 @@ export interface TaxContext {
   read_total: number | null;               // okunan tutar
   company_tax_number: string;
   company: { car_kkeg_vat_deductible: boolean; okc_vat_policy: "cautious" | "flexible" };
+  /** Bilgi fişinde çalışanın e-Arşiv faturası onayı */
+  einvoice_confirmed?: boolean;
   category: { tax_rule: TaxRule; attendees_required: boolean } | null;
   attendees: string[];
   params: Record<string, unknown>;         // tax_parameters: key -> value (belge yılı)

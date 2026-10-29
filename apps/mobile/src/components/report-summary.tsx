@@ -77,6 +77,9 @@ export function ReportSummary({ expenses, onOpen }: { expenses: Row[]; onOpen: (
                 <Fact label="Kim ödedi" value={PAYMENT_LABEL[e.payment_method] ?? 'Kendi cebinden'} />
                 {e.attendees?.length ? <Fact label="Kimlerle" value={e.attendees.join(', ')} /> : null}
                 {e.plate ? <Fact label="Plaka" value={formatPlate(e.plate)} /> : null}
+                {e.doc_type === 'bilgi_fisi' ? (
+                  <Fact label="e-Arşiv fatura" value={e.einvoice_confirmed_at ? 'Çalışan şirket adına geldiğini onayladı' : 'Çalışan henüz onaylamadı'} />
+                ) : null}
                 {e.description ? <Fact label="Açıklama" value={e.description} /> : null}
               </View>
               {alcohol ? <Text style={[type.small, { color: e.alcohol_decision === 'rejected' ? c.red : c.amber, fontWeight: '600' }]}>{alcohol}</Text> : null}

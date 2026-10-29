@@ -150,7 +150,7 @@ export default function ExpenseScreen() {
   })();
   const showPlate =
     exp.doc_type === 'akaryakit_okc' || !!exp.plate || ['fuel', 'car_running'].includes(category?.tax_rule ?? '');
-  const flags: Flag[] = (exp.expense_flags ?? []).filter((f) => f.code !== 'alcohol' && f.code !== 'alcohol_decided');
+  const flags: Flag[] = (exp.expense_flags ?? []).filter((f) => f.code !== 'alcohol' && f.code !== 'alcohol_decided' && f.code !== 'info_slip');
   const order = { critical: 0, warning: 1, info: 2 } as const;
   flags.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -331,6 +331,17 @@ export default function ExpenseScreen() {
                 : 'Bilgiler fotoğraftan okundu. Tutarı ve tarihi fişle karşılaştırın.'
             }
           />
+        ) : null}
+
+        {exp.photo_parts && exp.photo_parts > 1 ? (
+          <Notice
+            tone="info"
+            text={`Bu fotoğrafta ${exp.photo_parts} fiş var; bu kayıt ${exp.photo_part}. fiş${exp.photo_position ? ` (${exp.photo_position})` : ''}. Diğer fişler rapora ayrı kayıt olarak eklendi.`}
+          />
+        ) : null}
+
+        {exp.doc_type === 'bilgi_fisi' ? (
+          <InfoSlipCard expense={exp} editable={editable} onChanged={() => setReloadKey((k) => k + 1)} />
         ) : null}
 
         {exp.alcohol_present ? (
@@ -640,6 +651,73 @@ function AlcoholCard({ expense, canDecide, onDecided }: { expense: Expense; canD
             />
           ))}
         </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Bilgi fişi: asıl belge e-Arşiv fatura. Çalışan faturanın şirket adına geldiğini onaylar; onay muhasebede görünür. */
+function InfoSlipCard({ expense, editable, onChanged }: { expense: Expense; editable: boolean; onChanged: () => void }) {
+  const c = useColors();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [who, setWho] = useState<string | null>(null);
+  const confirmed = !!expense.einvoice_confirmed_at;
+
+  useEffect(() => {
+    if (!expense.einvoice_confirmed_by) return setWho(null);
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', expense.einvoice_confirmed_by)
+      .maybeSingle()
+      .then(({ data }) => setWho((data as { full_name: string | null } | null)?.full_name ?? null));
+  }, [expense.einvoice_confirmed_by]);
+
+  async function send(value: boolean) {
+    setBusy(true);
+    setError(null);
+    const { error: e } = await supabase.rpc('confirm_einvoice', { p_expense: expense.id, p_confirmed: value });
+    if (!e) await recheckExpense(expense.id);
+    setBusy(false);
+    if (e) return setError(errorText(e));
+    onChanged();
+  }
+
+  const when = expense.einvoice_confirmed_at
+    ? new Date(expense.einvoice_confirmed_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '';
+  const tone = confirmed ? c.pen : c.amber;
+
+  return (
+    <View style={[styles.flag, { backgroundColor: c.paper, borderLeftColor: tone, gap: space.sm }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon name={confirmed ? 'check' : 'warning'} size={13} color={tone} />
+        <Text style={[type.small, { color: tone, fontWeight: '700' }]}>Bilgi fişi</Text>
+      </View>
+      {confirmed ? (
+        <Text style={[type.body, { color: c.ink }]}>
+          {`e-Arşiv faturasının şirket adına geldiği onaylandı${who ? `: ${who}` : ''}, ${when}.`}
+        </Text>
+      ) : (
+        <Text style={[type.body, { color: c.ink }]}>
+          {editable
+            ? 'Bu fiş tek başına gider belgesi değil; asıl belge, satıcının e-postanıza gönderdiği e-Arşiv faturası. Faturada şirketin unvanı ve vergi numarası yazdığını kontrol edip onaylayın.'
+            : 'Bu bir bilgi fişi. Çalışan, e-Arşiv faturasının şirket adına geldiğini henüz onaylamadı.'}
+        </Text>
+      )}
+      {expense.doc_no || expense.ettn ? (
+        <Text style={[type.small, { color: c.muted }]}>
+          {[expense.doc_no ? `Fatura no ${expense.doc_no}` : null, expense.ettn ? `ETTN ${expense.ettn}` : null].filter(Boolean).join(' · ')}
+        </Text>
+      ) : null}
+      {error ? <Notice tone="bad" text={error} /> : null}
+      {editable ? (
+        confirmed ? (
+          <Button title="Onayı geri al" variant="secondary" onPress={() => send(false)} disabled={busy} />
+        ) : (
+          <Button title="e-Arşiv faturası şirket adına geldi" icon="check" onPress={() => send(true)} loading={busy} />
+        )
       ) : null}
     </View>
   );
