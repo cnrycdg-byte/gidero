@@ -1,0 +1,78 @@
+<div class="flow" data-flow aria-label="Büroda firmalar arasında geçiş, muhasebeciye firma bağlama ve firmaya kendi girişini açma">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Firma değiştir, devam et</b><small>Bir firmanın fişlerini bitirin, üstten diğerine geçin. Her firmanın verisi ayrıdır.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Muhasebecilerinize firma bağlayın</b><small>Muhasebeci yalnızca kendisine bağlı firmaları görür; büro sahibi hepsini.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>İsterseniz firmaya kendi girişi</b><small>Müşteriniz fişlerini telefonla çeker, kendi onay zincirinden geçirir. Muhasebe ve aktarım sizde kalır.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene appsc" data-dur="5600">
+      <div class="app">
+        <div class="side"><div class="lg">gidero</div><div class="firm"><small>Çalıştığınız firma</small><b>Ege Gıda Dağıtım Ltd.</b><span data-press="900">Firma değiştir</span></div><div class="it on">Firma ekranı</div><div class="it">Fiş yükle</div><div class="it">Döküm ve aktarım</div><div class="me">Demir Mali Müşavirlik</div></div>
+        <div class="main">
+          <h4>Ege Gıda Dağıtım Ltd.</h4><div class="sub">Ekim 2026</div>
+          <div class="card"><div class="kv"><span>Kayda alınan fiş</span><b>36</b></div><div class="kv"><span>Ekim toplamı</span><b>₺84.300,00</b></div><div class="kv"><span>Bekleyen fiş</span><b>0</b></div></div>
+          <div class="okline">Bu firmanın ekim fişleri tamam. Luca dosyası indirildi.</div>
+          <div class="pick" data-at="1200" data-out="2900">
+            <b>Firma seçin</b>
+            <div class="pi cur">Ege Gıda Dağıtım Ltd.<small>Şu an açık</small></div>
+            <div class="pi">Kordon Lojistik A.Ş.<small>22 yeni belge</small><span class="hl" data-at="2000"></span></div>
+            <div class="pi">Alsancak Mimarlık<small>5 yeni belge</small></div>
+            <div class="pi">Bornova Tekstil<small>Belge yok</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="app over" data-at="3000">
+        <div class="side"><div class="lg">gidero</div><div class="firm"><small>Çalıştığınız firma</small><b>Kordon Lojistik A.Ş.</b><span>Firma değiştir</span></div><div class="it on">Firma ekranı</div><div class="it">Fiş yükle</div><div class="it">Döküm ve aktarım</div><div class="me">Demir Mali Müşavirlik</div></div>
+        <div class="main">
+          <h4>Kordon Lojistik A.Ş.</h4><div class="sub">Ekim 2026</div>
+          <div class="card"><div class="kv"><span>Kayda alınan fiş</span><b>0</b></div><div class="kv"><span>Ekim toplamı</span><b>₺0,00</b></div><div class="kv" style="color:var(--warn)"><span style="color:inherit">Bekleyen fiş</span><b>22</b></div></div>
+          <div class="abtn" style="align-self:flex-start;padding:8px 16px">Fiş yükle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene appsc" data-dur="5200"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="firm"><small>Çalıştığınız firma</small><b>Kordon Lojistik A.Ş.</b><span>Firma değiştir</span></div><div class="it">Firma ekranı</div><div class="it">Fiş yükle</div><div class="it on">Firmalar ve ekip</div><div class="me">Demir Mali Müşavirlik</div></div>
+      <div class="main">
+        <h4>Büro ekibi</h4><div class="sub">Ekibe kişi eklemek ücretsiz</div>
+        <div class="card">
+          <div class="kv"><b>Mert Yıldız</b><span class="muted">Muhasebeci</span></div>
+          <div class="fl" style="margin-top:8px"><label>Baktığı firmalar</label></div>
+          <div class="chips wrapc" style="margin-top:4px">
+            <span>Ege Gıda</span>
+            <span class="on">Kordon Lojistik</span>
+            <span>Alsancak Mimarlık<em class="onl" data-at="1200">Alsancak Mimarlık</em></span>
+            <span>Bornova Tekstil<em class="onl" data-at="1900">Bornova Tekstil</em></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="kv"><b>Ayşe Demir</b><span class="muted">Muhasebeci</span></div>
+          <div class="chips wrapc" style="margin-top:8px"><span class="on">Ege Gıda</span><span>Kordon Lojistik</span><span>Alsancak Mimarlık</span><span>Bornova Tekstil</span></div>
+        </div>
+        <div class="okline" data-at="2800">Mert Yıldız yalnızca bu 3 firmayı görür. Büro sahibi bütün firmaları görür.</div>
+      </div>
+    </div></div>
+
+    <div class="scene appsc" data-dur="5600"><div class="app">
+      <div class="side"><div class="lg">gidero</div><div class="firm"><small>Çalıştığınız firma</small><b>Kordon Lojistik A.Ş.</b><span>Firma değiştir</span></div><div class="it">Firma ekranı</div><div class="it">Fiş yükle</div><div class="it on">Firmalar ve ekip</div><div class="me">Demir Mali Müşavirlik</div></div>
+      <div class="main">
+        <h4>Müşteri firmalar</h4><div class="sub">4 / 12 firma</div>
+        <div class="card">
+          <div class="kv"><b>Bornova Tekstil</b><span class="muted">Vergi no 1290045512</span></div>
+          <div style="margin-top:8px;font-weight:600">Firmanın kendi girişi</div>
+          <div class="muted" style="font-size:.75rem">Açarsanız firmanın yetkilisi ve çalışanları Gidero'ya kendileri girer. Muhasebe, kontrol ve aktarım sizde kalır.</div>
+          <div class="kv" style="margin-top:10px;align-items:center">
+            <span class="swl"><span data-out="1500">Fişleri yalnızca büro giriyor</span><span class="b" data-at="1500">Firma kendi girişini kullanıyor</span></span>
+            <span class="tg"><span class="on" data-at="1500"></span><i data-out="1500"></i><i class="r" data-at="1500"></i></span>
+          </div>
+        </div>
+        <div class="abtn" data-at="2200" data-press="3600" style="align-self:flex-start;padding:8px 16px">Firmaya yetkili ya da çalışan ekle</div>
+        <div class="okline" data-at="2700">Bornova Tekstil fişlerini telefonla çeker, kendi onay zincirinden geçirir. Siz kayda alır, aktarırsınız.</div>
+      </div>
+    </div></div>
+  </div></div>
+</div>
