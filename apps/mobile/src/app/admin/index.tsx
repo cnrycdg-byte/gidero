@@ -189,15 +189,6 @@ export default function AdminHome() {
   const toneColor = (t: Todo['tone']) => (t === 'bad' ? c.red : t === 'warn' ? c.amber : c.pen);
   const toneBg = (t: Todo['tone']) => (t === 'bad' ? c.redSoft : t === 'warn' ? c.amberSoft : c.penSoft);
 
-  const actions: { icon: IconName; label: string; to: string; primary?: boolean }[] = [
-    { icon: 'personAdd', label: 'Müşteri ekle', to: '/admin/new-customer', primary: true },
-    { icon: 'receipt', label: 'Fiyatlar', to: '/admin/plans' },
-    { icon: 'inbox', label: 'Siparişler', to: '/admin/orders' },
-    { icon: 'doc', label: 'Gelir ve gider', to: '/admin/finance' },
-    { icon: 'plus', label: 'Kampanyalar', to: '/admin/campaigns' },
-    { icon: 'send', label: 'Site sohbetleri', to: '/admin/chats' },
-    { icon: 'team', label: 'Test sürüşü', to: '/test' },
-  ];
 
   const todoBlock = (
     <View style={[styles.card, { backgroundColor: c.paper }]}>
@@ -266,19 +257,6 @@ export default function AdminHome() {
             <Text style={{ color: c.ink, fontWeight: '600' }}>Kendi şirket ekranıma geç</Text>
           </Pressable>
         )}
-      </View>
-
-      <View style={styles.actions}>
-        {actions.map((a) => (
-          <Pressable
-            key={a.to}
-            onPress={() => router.push(a.to as never)}
-            style={({ pressed }) => [styles.action, { backgroundColor: a.primary ? c.pen : c.paper, opacity: pressed ? 0.8 : 1 }]}>
-            <Icon name={a.icon} size={15} color={a.primary ? c.onPen : c.pen} />
-            <Text style={{ color: a.primary ? c.onPen : c.ink, fontWeight: '600' }}>{a.label}</Text>
-            {a.to === '/admin/orders' && s.orders.length ? <Text style={{ color: c.red, fontWeight: '700' }}>{String(s.orders.length)}</Text> : null}
-          </Pressable>
-        ))}
       </View>
 
       <View style={styles.kpis}>
@@ -362,8 +340,6 @@ function Kpi({ label, value, hint, strong, warn }: { label: string; value: strin
 
 const styles = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexWrap: 'wrap' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10 },
   kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   kpi: { flexGrow: 1, flexBasis: 160, borderRadius: radius.lg, padding: space.lg, gap: 2 },
   card: { borderRadius: radius.lg, padding: space.lg, gap: space.sm, overflow: 'hidden' },

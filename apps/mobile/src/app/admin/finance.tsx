@@ -208,9 +208,9 @@ export default function AdminFinance() {
 function Kpi({ label, value, hint, big, tone }: { label: string; value: string; hint?: string; big?: boolean; tone?: 'bad' | 'good' }) {
   const c = useColors();
   return (
-    <View style={[styles.kpi, { backgroundColor: big ? c.deep : c.paper, flexBasis: big ? '100%' : '30%' }]}>
+    <View style={[styles.kpi, { backgroundColor: big ? c.deep : c.paper, flexBasis: big ? '100%' : 150, flexGrow: 1 }]}>
       <Text style={[type.small, { color: big ? c.onDeepMuted : c.muted }]}>{label}</Text>
-      <Text style={{ fontFamily: fonts.displayHeavy, fontSize: big ? 34 : 24, color: big ? c.onDeep : tone === 'bad' ? c.red : c.ink }}>{value}</Text>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontFamily: fonts.displayHeavy, fontSize: big ? 34 : 24, color: big ? c.onDeep : tone === 'bad' ? c.red : c.ink }}>{value}</Text>
       {hint ? <Text style={[type.small, { color: c.muted }]}>{hint}</Text> : null}
     </View>
   );
