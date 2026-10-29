@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { QueueProgress } from '@/components/queue-progress';
+import { ReportSummary } from '@/components/report-summary';
 import { ApprovalTimeline, type TimelineAction } from '@/components/approval-timeline';
 import { Button, Empty, Field, Group, Notice, Perforation, Row, SectionTitle, Slip, Stamp } from '@/components/ui';
 import { space, type, useColors } from '@/constants/theme';
@@ -45,6 +46,8 @@ export default function ReportScreen() {
   const [note, setNote] = useState('');
   const [approvers, setApprovers] = useState<string[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
+  // Görünüm: onaylayıcı ve muhasebe için özet (bütün fişlerin ayrıntısı tek ekranda), sahibi için fiş listesi
+  const [view, setView] = useState<'summary' | 'list' | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,7 +55,7 @@ export default function ReportScreen() {
       supabase.from('reports').select('*').eq('id', id).maybeSingle(),
       supabase
         .from('expenses')
-        .select('*, expense_flags(id, code, severity, message, legal_ref)')
+        .select('*, categories(name), expense_vat_lines(rate, base, vat), expense_flags(id, code, severity, message, legal_ref)')
         .eq('report_id', id)
         .order('created_at', { ascending: true }),
       supabase.from('approval_actions').select('id, action, note, created_at, actor_user_id, step_position').eq('report_id', id).order('created_at'),
@@ -97,6 +100,14 @@ export default function ReportScreen() {
   }
 
   const isOwner = report.owner_user_id === userId;
+  // Onay akışı: rapor sahibi için üstte, onaylayıcı ve muhasebe için fiş özetinin altında
+  const timeline = (
+    <>
+      <SectionTitle title="Onay akışı" />
+      <ApprovalTimeline report={report} actions={actions} names={names} preview={approvers} />
+    </>
+  );
+  const mode = view ?? (isOwner && (report.status === 'draft' || report.status === 'returned') ? 'list' : 'summary');
   const isCreator = report.created_by === userId;
   const editable =
     (report.status === 'draft' || report.status === 'returned') && (isOwner || (isCreator && hasRole('accountant')));
@@ -244,8 +255,7 @@ export default function ReportScreen() {
           </View>
         </Slip>
 
-        <SectionTitle title="Onay akışı" />
-        <ApprovalTimeline report={report} actions={actions} names={names} preview={approvers} />
+        {isOwner && timeline}
 
         {report.status === 'returned' && lastReturn?.note && <Notice tone="bad" text={`İade nedeni: ${lastReturn.note}`} />}
         {error && <Notice tone="bad" text={error} />}
@@ -254,7 +264,18 @@ export default function ReportScreen() {
         <SectionTitle
           title="Fişler"
           action={
-            editable ? (
+            !editable && expenses.length ? (
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                {(['summary', 'list'] as const).map((v) => {
+                  const on = mode === v;
+                  return (
+                    <Pressable key={v} onPress={() => setView(v)} style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, backgroundColor: on ? c.pen : c.paper }}>
+                      <Text style={{ color: on ? c.onPen : c.ink, fontWeight: '600', fontSize: 13 }}>{v === 'summary' ? 'Özet' : 'Liste'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : editable ? (
               <Text onPress={addFromGallery} style={{ color: c.pen, fontWeight: '600', fontSize: 15 }}>
                 Galeriden ekle
               </Text>
@@ -264,7 +285,9 @@ export default function ReportScreen() {
 
         <QueueProgress reportId={id} />
 
-        {expenses.length === 0 && failed.length === 0 ? (
+        {mode === 'summary' && expenses.length > 0 ? (
+          <ReportSummary expenses={expenses} onOpen={(eid) => router.push({ pathname: '/expense/[id]', params: { id: eid } })} />
+        ) : expenses.length === 0 && failed.length === 0 ? (
           reading.length ? null : <Empty icon="camera" title="Bu raporda fiş yok" text="“Fiş çek”e dokunun; fişleri arka arkaya çekebilirsiniz." />
         ) : (
           <Group>
@@ -329,6 +352,8 @@ export default function ReportScreen() {
             })}
           </Group>
         )}
+
+        {!isOwner && timeline}
 
         {iApprove && (
           <View style={{ gap: space.md }}>
