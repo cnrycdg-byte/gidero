@@ -23,27 +23,32 @@ export function clients(req: Request): { admin: SupabaseClient; asCaller: Supaba
   return { admin, asCaller };
 }
 
-/**
- * Kişiyi açar (yoksa) ve tek kullanımlık şifre belirleme anahtarı üretir. E-posta gönderilmez.
- * GÜVENLİK: Anahtar yalnızca hiç giriş yapmamış kişi için kullanılabilir (signedIn=false). Daha önce giriş yapmış
- * birinin anahtarı başkasına verilirse hesabı ele geçirilir; çağıranlar bu durumda bağlantı döndürmez.
- */
-export async function ensureUserLink(
-  admin: SupabaseClient,
-  email: string,
-  fullName: string,
-  type: 'recovery' | 'magiclink' = 'recovery',
-): Promise<{ userId: string; tokenHash: string; created: boolean; signedIn: boolean }> {
-  const { error: createErr } = await admin.auth.admin.createUser({
+/** Kişiyi açar (e-posta doğrulanmış, şifresiz). E-posta gönderilmez. */
+export async function createUser(admin: SupabaseClient, email: string, fullName: string): Promise<string> {
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: fullName ? { full_name: fullName } : {},
   });
-  const created = !createErr;
-  if (createErr && !/already|registered|exists/i.test(createErr.message)) throw new Error(createErr.message);
-  const { data, error } = await admin.auth.admin.generateLink({ type, email });
-  if (error || !data?.user) throw new Error(error?.message ?? 'Bağlantı üretilemedi');
-  return { userId: data.user.id, tokenHash: data.properties.hashed_token, created, signedIn: !!data.user.last_sign_in_at };
+  if (error || !data?.user) throw new Error(error?.message ?? 'Kişi açılamadı');
+  return data.user.id;
+}
+
+/**
+ * Tek kullanımlık şifre belirleme anahtarı. GÜVENLİK: yalnızca veritabanının izin verdiği kişi için çağrılır
+ * (yeni açılan ya da can_issue_invite onaylı); başka birinin anahtarı verilirse hesabı ele geçirilir.
+ */
+export async function recoveryToken(admin: SupabaseClient, email: string): Promise<string> {
+  const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
+  if (error || !data) throw new Error(error?.message ?? 'Bağlantı üretilemedi');
+  return data.properties.hashed_token;
+}
+
+export type InviteTarget = { user_id: string | null; has_password: boolean; pending_owner_invite: boolean };
+export async function inviteTarget(admin: SupabaseClient, email: string): Promise<InviteTarget> {
+  const { data, error } = await admin.rpc('invite_target', { p_email: email });
+  if (error) throw new Error(error.message);
+  return data as InviteTarget;
 }
 
 export const inviteUrl = (tokenHash: string) =>

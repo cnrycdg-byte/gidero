@@ -10,7 +10,7 @@ export async function addPerson(p: {
   email: string;
   roles: string[];
   managerId: string | null;
-}): Promise<{ user_id: string; email: string; link: string | null; demo: boolean }> {
+}): Promise<{ user_id: string; email: string; link: string | null; demo: boolean; warning?: string | null }> {
   const { data, error } = await supabase.functions.invoke('people', {
     body: { action: 'add', company_id: p.companyId, full_name: p.fullName, title: p.title, email: p.email, roles: p.roles, manager_id: p.managerId },
   });

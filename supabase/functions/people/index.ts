@@ -1,13 +1,13 @@
 // people: şirkete kişi ekleme ve ilk giriş (davet) bağlantısı.
 //
 // POST (Authorization: Bearer <oturum>)
-//   { action: 'add', company_id, full_name, title, email?, roles, manager_id? } → { user_id, link }
+//   { action: 'add', company_id, full_name, title, email?, roles, manager_id? } → { user_id, link|null }
 //   { action: 'link', company_id, user_id }                                   → { link }
-//   { action: 'owner_link', account_id, full_name? }                           → { link, email }   (Gidero yöneticisi)
-// Bağlantı WhatsApp'tan iletilir; kişi tıklayınca kendi şifresini belirler. Yetki kontrolleri veritabanında,
-// çağıranın kendi oturumuyla yapılır (şirket yöneticisi / Gidero yöneticisi).
+//   { action: 'owner_link', account_id, full_name? }                           → { link|null, email }   (Gidero yöneticisi)
+// Bağlantı yalnızca yeni açılan kişiye ya da şifresini hiç belirlememiş ve yalnızca çağıranın yönettiği
+// şirketlerde olan kişiye verilir (veritabanı: can_issue_invite). Başkasının hesabına bağlantı verilmez.
 
-import { clients, cors, EMAIL_RE, ensureUserLink, inviteUrl, json } from '../_shared/auth/clients.ts';
+import { clients, cors, createUser, EMAIL_RE, inviteTarget, inviteUrl, json, recoveryToken } from '../_shared/auth/clients.ts';
 
 type Body = {
   action?: string;
@@ -40,16 +40,25 @@ Deno.serve(async (req) => {
       const name = String(b.full_name ?? '').trim();
       if (name.length < 2) return json(400, { error: 'Ad soyad yazın.' });
 
-      const { data: co } = await admin.from('companies').select('account_id').eq('id', company).single();
-      const { data: acc } = co ? await admin.from('accounts').select('is_demo').eq('id', co.account_id).single() : { data: null };
+      const { data: co } = await admin.from('companies').select('account_id, bureau_account_id').eq('id', company).single();
+      const { data: acc } = co
+        ? await admin.from('accounts').select('is_demo').eq('id', co.bureau_account_id ?? co.account_id).single()
+        : { data: null };
       const demo = !!acc?.is_demo;
       let email = String(b.email ?? '').trim().toLowerCase();
       if (!email && demo) email = `kisi-${crypto.randomUUID().slice(0, 8)}@test.gidero.app`;
       if (!EMAIL_RE.test(email)) return json(400, { error: 'Kişinin e-postasını yazın; giriş bu e-postayla yapılır.' });
 
-      const { userId, tokenHash, created, signedIn } = await ensureUserLink(admin, email, name);
-      if (demo && !created && !email.endsWith('@test.gidero.app')) {
-        return json(400, { error: 'Test müşterisine gerçek bir kullanıcı eklenemez; uydurma bir e-posta yazın ya da boş bırakın.' });
+      // Önce kontrol, sonra kişi açma
+      const target = await inviteTarget(admin, email);
+      if (target.pending_owner_invite) {
+        return json(400, { error: 'Bu e-posta bir müşteri hesabının sahibi olarak davet edilmiş; başka bir e-posta kullanın.' });
+      }
+      let userId = target.user_id;
+      let created = false;
+      if (!userId) {
+        userId = await createUser(admin, email, name);
+        created = true;
       }
       const roles = Array.isArray(b.roles) && b.roles.length ? b.roles : ['employee'];
       const { error: addErr } = await asCaller.rpc('add_member', {
@@ -58,35 +67,50 @@ Deno.serve(async (req) => {
         p_roles: roles,
         p_manager: b.manager_id ?? null,
       });
-      if (addErr) return json(400, { error: addErr.message });
-      await asCaller.rpc('set_member_details', { p_company: company, p_user: userId, p_title: b.title ?? '', p_final_approver: false });
-      // İsim boşsa (yeni kişi) yöneticinin yazdığı ad kullanılır; başka şirkette de çalışan kişinin adı değişmez
-      await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
-      // Daha önce giriş yapmış kişiye bağlantı verilmez: kendi şifresiyle girer
-      return json(200, { user_id: userId, email, link: signedIn ? null : inviteUrl(tokenHash), demo });
+      if (addErr) {
+        if (created) await admin.auth.admin.deleteUser(userId);
+        return json(400, { error: addErr.message });
+      }
+      const { error: detErr } = await asCaller.rpc('set_member_details', {
+        p_company: company,
+        p_user: userId,
+        p_title: b.title ?? '',
+        p_final_approver: false,
+      });
+      if (!created) await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
+
+      let link: string | null = null;
+      if (!demo) {
+        const { data: may } = await asCaller.rpc('can_issue_invite', { p_company: company, p_user: userId });
+        if (created || may === true) link = inviteUrl(await recoveryToken(admin, email));
+      }
+      return json(200, { user_id: userId, email, link, demo, warning: detErr ? 'Ünvan kaydedilemedi; kişiye dokunup tekrar yazın.' : null });
     }
 
     if (b.action === 'link') {
-      const { data: email, error } = await asCaller.rpc('member_email', { p_company: b.company_id, p_user: b.user_id });
-      if (error || !email) return json(403, { error: error?.message ?? 'Kişi bulunamadı.' });
-      const { tokenHash, signedIn } = await ensureUserLink(admin, String(email), '');
-      if (signedIn) {
-        return json(400, { error: 'Bu kişi daha önce giriş yaptı. Şifresini unuttuysa giriş ekranındaki "Şifremi unuttum"u kullansın.' });
+      const { data: may } = await asCaller.rpc('can_issue_invite', { p_company: b.company_id, p_user: b.user_id });
+      if (may !== true) {
+        return json(400, {
+          error: 'Bu kişiye bağlantı verilemez: şifresini belirlemiş ya da başka bir şirkette de çalışıyor. Şifresini unuttuysa giriş ekranındaki "Şifremi unuttum"u kullansın.',
+        });
       }
-      return json(200, { link: inviteUrl(tokenHash) });
+      const { data: u, error } = await admin.auth.admin.getUserById(String(b.user_id));
+      if (error || !u?.user?.email) return json(400, { error: 'Kişi bulunamadı.' });
+      return json(200, { link: inviteUrl(await recoveryToken(admin, u.user.email)) });
     }
 
     if (b.action === 'owner_link') {
       const { data: email, error } = await asCaller.rpc('admin_owner_email', { p_account: b.account_id });
       if (error || !email) return json(403, { error: error?.message ?? 'Hesap sahibi bulunamadı.' });
       const name = String(b.full_name ?? '').trim();
-      // Kişi yoksa açılır; bekleyen davet veritabanı tetikleyicisiyle hesaba bağlanır
-      const { userId, tokenHash, signedIn } = await ensureUserLink(admin, String(email), name);
-      if (name) await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
-      if (signedIn) {
-        return json(200, { link: null, email, note: 'Hesap sahibi daha önce giriş yaptı; kendi şifresiyle girer.' });
+      const target = await inviteTarget(admin, String(email));
+      if (target.has_password) {
+        return json(200, { link: null, email, note: 'Hesap sahibi şifresini belirlemiş; kendi şifresiyle girer.' });
       }
-      return json(200, { link: inviteUrl(tokenHash), email });
+      // Kişi yoksa açılır; bekleyen davet veritabanı tetikleyicisiyle hesaba bağlanır
+      const userId = target.user_id ?? (await createUser(admin, String(email), name));
+      if (name) await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
+      return json(200, { link: inviteUrl(await recoveryToken(admin, String(email))), email });
     }
 
     return json(400, { error: 'Bilinmeyen işlem.' });

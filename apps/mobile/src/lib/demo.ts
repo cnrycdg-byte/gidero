@@ -21,17 +21,37 @@ export async function fetchDemoPeople(): Promise<DemoAccount[]> {
   return (data ?? []) as DemoAccount[];
 }
 
-/** Şifresiz geçiş: sunucu tek kullanımlık anahtar üretir, burada oturuma çevrilir. */
-export async function switchTo(userId: string) {
-  const { data: cur } = await supabase.auth.getSession();
-  const home = await AsyncStorage.getItem(HOME_KEY).catch(() => null);
-  if (!home && cur.session) {
-    // İlk geçiş: yöneticinin oturumu saklanır (yalnızca bu cihazda)
+/**
+ * Gidero yöneticisinin oturumuna döner (test kişisindeyken saklı oturumla). Şifresiz geçiş ve sıfırlama yalnızca
+ * yönetici oturumuyla yapılabilir; test kişisinin oturumu bu işlemlere yetmez.
+ */
+async function asFounder() {
+  const raw = await AsyncStorage.getItem(HOME_KEY).catch(() => null);
+  if (!raw) {
+    const { data: cur } = await supabase.auth.getSession();
+    if (!cur.session) throw new Error('Oturum bulunamadı. Yeniden giriş yapın.');
     await AsyncStorage.setItem(
       HOME_KEY,
       JSON.stringify({ access_token: cur.session.access_token, refresh_token: cur.session.refresh_token, email: cur.session.user.email }),
     );
+    return;
   }
+  const home = JSON.parse(raw) as { access_token: string; refresh_token: string; email?: string };
+  const { data, error } = await supabase.auth.setSession({ access_token: home.access_token, refresh_token: home.refresh_token });
+  if (error || !data.session) {
+    await AsyncStorage.removeItem(HOME_KEY).catch(() => {});
+    throw new Error('Yönetici oturumunuzun süresi dolmuş. Çıkış yapıp kendi hesabınızla yeniden girin.');
+  }
+  // Yenilenen anahtarlar saklanır (eski yenileme anahtarı bir daha kullanılamaz)
+  await AsyncStorage.setItem(
+    HOME_KEY,
+    JSON.stringify({ access_token: data.session.access_token, refresh_token: data.session.refresh_token, email: data.session.user.email }),
+  );
+}
+
+/** Şifresiz geçiş: yönetici oturumuyla sunucu tek kullanımlık anahtar üretir, burada oturuma çevrilir. */
+export async function switchTo(userId: string) {
+  await asFounder();
   const { data, error } = await supabase.functions.invoke('demo-login', { body: { action: 'login', user_id: userId } });
   if (error) throw await functionError(error);
   const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: (data as { token_hash: string }).token_hash, type: 'magiclink' });
@@ -84,6 +104,7 @@ export async function homeEmail(): Promise<string | null> {
 }
 
 export async function resetDemoData(): Promise<{ accounts: number; companies: number; users: number }> {
+  await asFounder();
   const { data, error } = await supabase.functions.invoke('demo-login', { body: { action: 'reset' } });
   if (error) throw await functionError(error);
   return data as { accounts: number; companies: number; users: number };
