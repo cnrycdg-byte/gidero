@@ -2,7 +2,9 @@
 """Tanıtım sitesini üretir: ortak üst menü, alt bilgi ve sohbet kutusu her sayfaya aynı yerleştirilir.
 Marka adı tek yerde (BRAND). Kullanım: python3 site-src/build.py
 - site-src/pages/<ad>.html dosyaları: ilk satırlar 'title:' ve 'description:', sonra '---' ve sayfa gövdesi
+- Sayfa gövdesinde <!--PART:ad--> yazan yere site-src/parts/ad.html konur (ad-solo: girişteki tek telefon sürümü)
 - site/*.html içindeki diğer sayfalarda (yasal sayfalar) yalnızca üst menü ve alt bilgi güncellenir
+- Tek dosyalık (internetsiz açılan) sürüm için: python3 site-src/bundle.py <çıktı.html>
 """
 import pathlib, re
 
@@ -21,11 +23,11 @@ FOOT = f'''<footer class="foot">
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="index.html" style="color:#fff"><span class="brand-mark" aria-hidden="true"></span>{BRAND}</a>
+        <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span>{BRAND}</a>
         <p style="margin-top:12px">Fişi çek, onaya gönder, muhasebeye aktar, öde. Şirketler ve muhasebe büroları için masraf yönetimi.</p>
-        <p class="legal-id"><span data-company="unvan">[Şirket unvanı]</span><br>Adres: <span data-company="adres">[Açık adres]</span><br>Vergi dairesi / no: <span data-company="vkn">[Vergi dairesi – VKN]</span><br>MERSİS: <span data-company="mersis">[MERSİS no]</span><br>E-posta: <a href="mailto:destek@gidero.tr">destek@gidero.tr</a> · Telefon: <span data-company="tel">[Telefon]</span></p>
+        <p class="legal-id"><span data-company="unvan">[Şirket unvanı]</span><br>Adres: <span data-company="adres">[Açık adres]</span><br>Vergi dairesi / no: <span data-company="vkn">[Vergi dairesi – VKN]</span><br>MERSİS: <span data-company="mersis">[MERSİS no]</span><br>E-posta: <a href="mailto:destek@gidero.tr">destek@gidero.tr</a><br>Telefon: <span data-company="tel">[Telefon]</span></p>
       </div>
-      <div><h4>Ürün</h4><ul><li><a href="sirketler.html">Şirketler için</a></li><li><a href="burolar.html">Muhasebe büroları için</a></li><li><a href="sirketler.html#fiyat">Şirket fiyatları</a></li><li><a href="burolar.html#fiyat">Büro fiyatları</a></li><li><a href="index.html#guvenlik">Güvenlik</a></li><li><a href="index.html#sss">Sık sorulanlar</a></li></ul></div>
+      <div><h4>Ürün</h4><ul><li><a href="sirketler.html">Şirketler için</a></li><li><a href="burolar.html">Muhasebe büroları için</a></li><li><a href="sirketler.html#fiyat">Şirket fiyatları</a></li><li><a href="burolar.html#buro-fiyat">Büro fiyatları</a></li><li><a href="index.html#guvenlik">Güvenlik</a></li><li><a href="index.html#sss">Sık sorulanlar</a></li></ul></div>
       <div><h4>Kurumsal</h4><ul><li><a href="hakkimizda.html">Hakkımızda</a></li><li><a href="iletisim.html">İletişim</a></li><li><a href="{APP}">Giriş yap</a></li></ul></div>
       <div><h4>Sözleşmeler</h4><ul><li><a href="kullanim-kosullari.html">Kullanım koşulları</a></li><li><a href="mesafeli-satis.html">Mesafeli satış sözleşmesi</a></li><li><a href="on-bilgilendirme.html">Ön bilgilendirme formu</a></li><li><a href="iptal-iade.html">İptal, iade ve cayma</a></li><li><a href="gizlilik.html">Gizlilik politikası</a></li><li><a href="kvkk.html">KVKK aydınlatma metni</a></li><li><a href="cerez.html">Çerez politikası</a></li></ul></div>
     </div>
@@ -36,7 +38,18 @@ FOOT = f'''<footer class="foot">
 
 CHAT = (SRC / 'parts' / 'chat.html').read_text()
 
-def page(title, desc, body, scripts):
+def part(m):
+    name = m.group(1)
+    solo = name.endswith('-solo')
+    html = (SRC / 'parts' / f"{name.removesuffix('-solo')}.html").read_text().strip()
+    return html.replace('class="flow"', 'class="flow solo"', 1) if solo else html
+
+def nav_for(name):
+    if name == 'index.html':
+        return NAV
+    return NAV.replace(f'<a href="{name}">', f'<a href="{name}" aria-current="page">', 1)
+
+def page(title, desc, body, scripts, name='index.html'):
     return f'''<!doctype html>
 <html lang="tr">
 <head>
@@ -52,7 +65,7 @@ def page(title, desc, body, scripts):
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-{NAV}
+{nav_for(name)}
 <main>
 {body}
 </main>
@@ -73,7 +86,8 @@ for f in sorted((SRC / 'pages').glob('*.html')):
     inline = ''
     if '<!--SCRIPT-->' in body:
         body, inline = body.split('<!--SCRIPT-->', 1)
-    (SITE / f.name).write_text(page(meta['title'].strip(), meta['description'].strip(), body.strip(), scripts + inline.strip()))
+    body = re.sub(r'<!--PART:([a-z-]+)-->', part, body)
+    (SITE / f.name).write_text(page(meta['title'].strip(), meta['description'].strip(), body.strip(), scripts + inline.strip(), f.name))
     built.add(f.name)
 
 # Yasal ve kurumsal sayfalar: üst menü ve alt bilgi ortak sürüme çekilir

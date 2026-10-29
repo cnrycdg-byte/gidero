@@ -15,101 +15,140 @@
 <body>
 <header class="nav"><div class="wrap">
   <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span>gidero</a>
-  <nav class="nav-links" aria-label="Ana menü"><a href="sirketler.html">Şirketler için</a><a href="burolar.html">Muhasebe büroları için</a><a href="index.html#guvenlik">Güvenlik</a><a href="index.html#sss">Sorular</a></nav>
+  <nav class="nav-links" aria-label="Ana menü"><a href="sirketler.html">Şirketler için</a><a href="burolar.html" aria-current="page">Muhasebe büroları için</a><a href="index.html#guvenlik">Güvenlik</a><a href="index.html#sss">Sorular</a></nav>
   <a class="btn btn-primary" href="https://gidero.expo.app">Giriş yap</a>
 </div></header>
 <main>
-<section class="intro">
+<section class="hero text">
   <div class="wrap">
     <div>
       <p class="crumb"><a href="index.html">Ana sayfa</a> / Muhasebe büroları için</p>
       <h1>Müşterinizin fişleri WhatsApp'tan gelsin, kayda Gidero geçirsin.</h1>
       <p class="lead">Fiş fotoğraflarını tek tek yazmayı bırakın. Sohbeti dışa aktarıp yükleyin; Gidero fişleri ayıklar, okur, vergi riskini işaretler ve yevmiye kaydını hazırlar. Siz kontrol edip "Kayda al" dersiniz.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="https://gidero.expo.app">14 gün ücretsiz deneyin</a>
-        <a class="btn btn-ghost" href="#fiyat" style="color:#fff">Firma sayınıza göre fiyat</a>
+        <a class="btn btn-primary" href="https://gidero.expo.app">14 gün ücretsiz deneyin</a>
+        <a class="btn btn-line" href="#buro-fiyat">Firma sayınıza göre fiyat</a>
       </div>
     </div>
-    <div class="shot"><img src="img/screens/buro-home.webp" alt="Büro firma ekranı: çalışılan firma, aylık toplam, fiş yükleme ve döküm" width="1440" height="900"></div>
   </div>
 </section>
 
-<section class="sec">
-  <div class="wrap grid2">
-    <div>
-      <div class="kicker">WhatsApp'tan kayda</div>
-      <h2>Bir ayın fişleri, birkaç dakikada</h2>
-      <ol class="steps">
-        <li><div><b>Müşteri her zamanki gibi gönderir</b><span>Fotoğraf, PDF, e-Fatura XML; hepsi WhatsApp sohbetinde.</span></div></li>
-        <li><div><b>Sohbeti ZIP olarak dışa aktarırsınız</b><span>Firmayı seçip "Fiş yükle" deyin; ZIP içindeki bütün belgeler ayıklanır.</span></div></li>
-        <li><div><b>Gidero okur ve uyarır</b><span>Tutar, tarih, satıcı, KDV oranları; fatura sınırı, mükerrer fiş, şirket adına kesilmemiş belge, alkol, binek araç.</span></div></li>
-        <li><div><b>Kayda alır, aktarırsınız</b><span>Onay yok; kontrol edip kayda alırsınız. Döküm ekranından Excel, Logo ya da Luca dosyası iner.</span></div></li>
-      </ol>
+<section class="sec" id="akis">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Bir firmanın ekim ayı, birkaç dakikada</h2>
+      <p class="lead">Ege Gıda'nın 38 belgesi WhatsApp'tan geldi. Gidero'da kayda böyle geçer; bir adıma tıklayıp o ekrana geçebilirsiniz.</p>
     </div>
-    <div class="wa" aria-label="WhatsApp sohbetinden yükleme örneği">
-      <div class="bubble">Bu ayın fişleri ekte</div>
-      <div class="bubble">IMG_2041.jpg · IMG_2042.jpg · fatura.pdf · ...</div>
-      <div class="bubble me">Tamam, yüklüyorum.</div>
-      <div class="zip"><div><b>WhatsApp Sohbeti – Ege Gıda.zip</b><br>38 belge bulundu · 36'sı okundu · 2'sinde tutar elle yazılacak · 1 mükerrer fiş ayrıldı</div></div>
+    <div class="flow" data-flow aria-label="Muhasebe bürosunda WhatsApp'tan gelen fişlerin kayda alınması">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Müşteri fişleri WhatsApp'tan atar</b><small>Fotoğraf, PDF, e-Arşiv; her zamanki gibi.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Sohbeti ZIP olarak yüklersiniz</b><small>İçindeki bütün belgeler tek seferde ayıklanır.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Gidero okur ve işaretler</b><small>Alkol, fatura gereken tutar, yanlış alıcı, mükerrer fiş.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Yevmiye kaydı hazır gelir</b><small>Gider, KDV ve karşı hesap satırları ayrılmış olarak.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="5"><b>Programınıza aktarırsınız</b><small>Excel, Logo ya da Luca dosyası; sonra sıradaki firma.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev desk" aria-hidden="true"><div class="chrome"><span>gidero.expo.app</span></div><div class="glass">
+    <div class="scene" data-dur="4600">
+      <div class="wa-s">
+        <div class="bub" data-at="200">Caner Bey merhaba, ekim fişleri ekte<small>Ege Gıda, 09:14</small></div>
+        <div class="bub" data-at="700"><div class="thumbs"><i></i><i></i><i></i><i></i></div><small>36 fotoğraf</small></div>
+        <div class="bub" data-at="1100">fatura_ekim.pdf<small>e-Arşiv, 2 belge</small></div>
+        <div class="bub me" data-at="1700">Tamam, bugün kayda alıyorum<small>09:20</small></div>
+        <div class="menu-x" data-at="2500"><div>Sohbeti dışa aktar</div><div class="hl">Medya ekle</div><div>Medya olmadan</div></div>
+      </div>
     </div>
+
+    <div class="scene" data-dur="4400">
+      <div class="s-top">Ege Gıda A.Ş.<small>Ekim 2026</small></div>
+      <div class="drop" data-at="200"><b>WhatsApp Sohbeti – Ege Gıda.zip</b>Bırakıldı, belgeler ayıklanıyor<div class="prog"><i data-at="500"></i></div></div>
+      <div class="card" data-at="1900">
+        <div class="kv"><span>Bulunan belge</span><b>38</b></div>
+        <div class="kv"><span>Okunan</span><b>36</b></div>
+        <div class="kv" data-at="2500" style="color:var(--warn)"><span style="color:inherit">Tutarı elle yazılacak</span><b>2</b></div>
+        <div class="kv" data-at="2900"><span>Mükerrer, ayrıldı</span><b>1</b></div>
+      </div>
+    </div>
+
+    <div class="scene" data-dur="5000">
+      <div class="s-top">Fişler<small>36 okundu, 4 uyarı</small></div>
+      <div class="dl-rows">
+        <div class="rw" data-at="200"><span>Körfez Balık Lokantası</span><span>1.240,00</span><span class="flag w">Alkol satırı, KKEG'ye ayrıldı</span></div>
+        <div class="rw" data-at="450"><span>Opet Karşıyaka</span><span>450,00</span><span class="flag ok">Uygun</span></div>
+        <div class="rw" data-at="700"><span>Bauhaus Çiğli</span><span>38.400,00</span><span class="flag w">Fatura gereken tutar, fiş gelmiş</span></div>
+        <div class="rw" data-at="950"><span>Teknosa Alsancak</span><span>6.499,00</span><span class="flag w">Fatura başka VKN'ye kesilmiş</span></div>
+        <div class="rw" data-at="1200"><span>Shell Bornova</span><span>1.200,00</span><span class="flag w">Aynı fiş ikinci kez geldi</span></div>
+        <div class="rw" data-at="1450"><span>Simit Sarayı</span><span>85,00</span><span class="flag ok">Uygun</span></div>
+      </div>
+      <div class="abtn" data-at="2600" data-press="3900" style="margin-top:auto;align-self:flex-end;padding:9px 18px">Kontrol ettim, kayda al</div>
+    </div>
+
+    <div class="scene" data-dur="4400">
+      <div class="s-top">Yevmiye<small>Körfez Balık Lokantası, 27.10.2026</small></div>
+      <div class="card">
+        <table class="jr">
+          <tr><td style="color:var(--faint)">Hesap</td><td style="color:var(--faint)">Borç</td><td style="color:var(--faint)">Alacak</td></tr>
+          <tr data-at="300"><td>770.01 Genel yönetim, yemek</td><td>1.000,00</td><td></td></tr>
+          <tr data-at="600"><td>191.10 İndirilecek KDV %10</td><td>100,00</td><td></td></tr>
+          <tr data-at="900"><td>689 KKEG, alkollü içki</td><td>140,00</td><td></td></tr>
+          <tr data-at="1200"><td>100 Kasa</td><td></td><td>1.240,00</td></tr>
+        </table>
+      </div>
+      <div class="okline" data-at="2200">36 fişin yevmiye kaydı hazır, borç ve alacak eşit</div>
+    </div>
+
+    <div class="scene" data-dur="4200">
+      <div class="s-top">Döküm ve aktarım<small>Ege Gıda, Ekim 2026</small></div>
+      <div class="card">
+        <div class="fl"><label>Dosya biçimi</label></div>
+        <div class="files" style="margin-top:6px"><span>Excel</span><span>Logo</span><span class="hl">Luca</span></div>
+      </div>
+      <div class="toast" data-at="900" style="left:auto;right:20px;width:320px">Ege_Gida_Ekim_2026_Luca.xlsx indirildi</div>
+      <div class="card" data-at="2000"><div class="kv"><span>Sıradaki firma</span><b>Körfez Turizm Ltd.</b></div><div class="muted" style="font-size:.75rem">22 yeni belge bekliyor</div></div>
+    </div>
+  </div></div>
+</div>
   </div>
 </section>
 
-<section class="sec paper">
+<section class="sec tint">
   <div class="wrap grid2">
     <div class="shot"><img src="img/screens/buro-firmalar.webp" alt="Müşteri firmalar ve büro ekibi ekranı" loading="lazy" width="1440" height="900"></div>
     <div>
-      <div class="kicker">Firmalar ve ekip</div>
       <h2>Her firma ayrı, ekibiniz düzenli</h2>
       <ol class="steps">
         <li><div><b>Firma değiştir, devam et</b><span>Bir firmanın fişlerini bitirin, üstten diğerine geçin. Her firmanın verisi ayrıdır.</span></div></li>
         <li><div><b>Muhasebecilerinize firma bağlayın</b><span>Muhasebeci yalnızca kendisine bağlı firmaları görür; büro sahibi hepsini.</span></div></li>
-        <li><div><b>İsterseniz firmaya kendi girişi</b><span>Müşteriniz kendi fişlerini telefonla çeker, kendi onay zincirinden geçirir, giderlerini görür. Muhasebe ve aktarım sizde kalır; açıp kapatmak sizin elinizde.</span></div></li>
+        <li><div><b>İsterseniz firmaya kendi girişi</b><span>Müşteriniz fişlerini telefonla çeker, kendi onay zincirinden geçirir. Muhasebe ve aktarım sizde kalır; açıp kapatmak sizin elinizde.</span></div></li>
       </ol>
     </div>
   </div>
 </section>
 
 <section class="sec">
-  <div class="wrap grid2">
-    <div>
-      <div class="kicker">Aktarım</div>
-      <h2>Yevmiye kaydı hazır gelir</h2>
-      <p class="lead">Her fiş Tekdüzen Hesap Planı'na göre gider, KDV ve karşı hesap satırlarına ayrılır. Yazar kasa fişinde indirilemeyen KDV, binek araçta kabul edilmeyen pay ve alkol kararları ayrı satırda.</p>
-      <p class="muted">Excel dökümü bugün hazır ve her programa aktarılabilir. Logo ve Luca biçimleri pilot bürolarla doğrulanıyor; Mikro, Netsis, Zirve ya da ETA kullanıyorsanız örnek aktarım dosyanızı gönderin, biçimi sizin programınıza göre ekleyelim.</p>
-    </div>
-    <div class="pbox" style="overflow-x:auto">
-      <p style="margin:0 0 10px;font-weight:700">Örnek: 1.100 TL restoran faturası, %10 KDV, çalışan ödedi</p>
-      <table style="width:100%;border-collapse:collapse;font-size:15px">
-        <thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--line)">Hesap</th><th style="text-align:right;padding:8px;border-bottom:1px solid var(--line)">Borç</th><th style="text-align:right;padding:8px;border-bottom:1px solid var(--line)">Alacak</th></tr></thead>
-        <tbody>
-          <tr><td style="padding:8px">770.01 Genel yönetim, yemek</td><td style="text-align:right;padding:8px">1.000,00</td><td></td></tr>
-          <tr><td style="padding:8px">191.10 İndirilecek KDV %10</td><td style="text-align:right;padding:8px">100,00</td><td></td></tr>
-          <tr><td style="padding:8px">335.0042 Personele borçlar</td><td></td><td style="text-align:right;padding:8px">1.100,00</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section class="sec paper">
-  <div class="wrap">
-    <div class="sec-head"><div class="kicker">Vergi kontrolü</div><h2>Riskli belgeyi kayda girmeden görün</h2></div>
-    <div class="grid3">
-      <div class="feat"><h3>Fatura sınırı</h3><p>Aynı gün aynı satıcıdan yazar kasa fişiyle sınırı aşan harcama işaretlenir; sınır yıl bazında güncellenir.</p></div>
-      <div class="feat"><h3>Mükerrer belge</h3><p>Aynı görsel, aynı ETTN ya da aynı satıcı ve belge numarası ikinci kez gelirse ayrılır.</p></div>
-      <div class="feat"><h3>Şirket adına mı?</h3><p>Faturadaki alıcı VKN'si firmanınkiyle karşılaştırılır.</p></div>
-      <div class="feat"><h3>Binek araç</h3><p>Kabul edilmeyen pay ve KDV'si ayrı satıra yazılır; oran şirket ayarından.</p></div>
-      <div class="feat"><h3>Alkol</h3><p>Alkol satırları ayrılır; firmanın kuralına göre ödenmez, KKEG ya da normal gider.</p></div>
-      <div class="feat"><h3>KDV oranı ve süre</h3><p>Geçersiz oranlar ve indirim süresi geçmiş belgeler uyarı verir.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="fiyat">
   <div class="wrap">
     <div class="sec-head">
-      <div class="kicker">Fiyat</div>
+      <h2>Riskli belgeyi kayda girmeden görün</h2>
+      <p class="lead">Her fiş Tekdüzen Hesap Planı'na göre gider, KDV ve karşı hesap satırlarına ayrılır. Sorunlu olanlar listede işaretli gelir.</p>
+    </div>
+    <div class="dl">
+      <div><h3>Fatura gereken tutar</h3><p>Aynı gün aynı satıcıdan fişle sınırı aşan harcama işaretlenir; sınır yıl bazında güncellenir.</p></div>
+      <div><h3>Mükerrer belge</h3><p>Aynı görsel, aynı ETTN ya da aynı satıcı ve belge numarası ikinci kez gelirse ayrılır.</p></div>
+      <div><h3>Şirket adına mı</h3><p>Faturadaki alıcı VKN'si firmanınkiyle karşılaştırılır.</p></div>
+      <div><h3>Binek araç</h3><p>Kabul edilmeyen pay ve KDV'si ayrı satıra yazılır; oran firma ayarından.</p></div>
+      <div><h3>Alkol</h3><p>Alkol satırları ayrılır; firmanın kuralına göre ödenmez, KKEG ya da normal gider.</p></div>
+      <div><h3>KDV oranı ve süre</h3><p>Geçersiz oranlar ve indirim süresi geçmiş belgeler uyarı verir.</p></div>
+    </div>
+    <p class="muted" style="margin-top:28px;max-width:72ch">Excel dökümü bugün hazır ve her programa aktarılabilir. Logo ve Luca biçimleri pilot bürolarla doğrulanıyor; Mikro, Netsis, Zirve ya da ETA kullanıyorsanız örnek aktarım dosyanızı gönderin, biçimi programınıza göre ekleyelim.</p>
+  </div>
+</section>
+
+<section class="sec tint" id="buro-fiyat">
+  <div class="wrap">
+    <div class="sec-head">
       <h2>Kaç firmanız varsa onu ödeyin</h2>
       <p class="lead">Firma başı fiyat, firma sayınız arttıkça kademeli düşer; yıllık tek ödemede daha da düşer. Büro personeli ücretsiz, her firmada 3 çalışan dahil.</p>
     </div>
@@ -117,9 +156,9 @@
   </div>
 </section>
 
-<section class="sec paper">
+<section class="sec">
   <div class="wrap">
-    <div class="sec-head"><div class="kicker">Sorular</div><h2>Büroların sorduğu</h2></div>
+    <div class="sec-head"><h2>Büroların sorduğu</h2></div>
     <div class="faq">
       <details><summary>Müşterim de giriş yapmak zorunda mı?</summary><p>Hayır. Varsayılan olarak firmalara giriş açılmaz; fişleri siz yüklersiniz. İsterseniz bir firmaya kendi girişini açabilirsiniz.</p></details>
       <details><summary>Firma sayım değişirse?</summary><p>Firma sınırına gelince uyarı ve "Paketi büyüt" düğmesi çıkar; paket ekranında kaydırıcıyla yeni firma sayınızı seçip ödersiniz.</p></details>
@@ -130,12 +169,10 @@
   </div>
 </section>
 
-<section class="sec">
+<section class="close">
   <div class="wrap">
-    <div class="cta">
-      <div><h2>İlk firmanızın fişlerini bugün yükleyin</h2><p>14 gün ücretsiz. Kurulum yok, kart istenmez.</p></div>
-      <a class="btn btn-light" href="https://gidero.expo.app">Hemen başlayın</a>
-    </div>
+    <div><h2>İlk firmanızın fişlerini bugün yükleyin</h2><p>14 gün ücretsiz. Kurulum yok, kart istenmez.</p></div>
+    <div class="cta-row"><a class="btn btn-light" href="https://gidero.expo.app">Ücretsiz başlayın</a></div>
   </div>
 </section>
 </main>
@@ -143,11 +180,11 @@
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="index.html" style="color:#fff"><span class="brand-mark" aria-hidden="true"></span>gidero</a>
+        <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span>gidero</a>
         <p style="margin-top:12px">Fişi çek, onaya gönder, muhasebeye aktar, öde. Şirketler ve muhasebe büroları için masraf yönetimi.</p>
-        <p class="legal-id"><span data-company="unvan">[Şirket unvanı]</span><br>Adres: <span data-company="adres">[Açık adres]</span><br>Vergi dairesi / no: <span data-company="vkn">[Vergi dairesi – VKN]</span><br>MERSİS: <span data-company="mersis">[MERSİS no]</span><br>E-posta: <a href="mailto:destek@gidero.tr">destek@gidero.tr</a> · Telefon: <span data-company="tel">[Telefon]</span></p>
+        <p class="legal-id"><span data-company="unvan">[Şirket unvanı]</span><br>Adres: <span data-company="adres">[Açık adres]</span><br>Vergi dairesi / no: <span data-company="vkn">[Vergi dairesi – VKN]</span><br>MERSİS: <span data-company="mersis">[MERSİS no]</span><br>E-posta: <a href="mailto:destek@gidero.tr">destek@gidero.tr</a><br>Telefon: <span data-company="tel">[Telefon]</span></p>
       </div>
-      <div><h4>Ürün</h4><ul><li><a href="sirketler.html">Şirketler için</a></li><li><a href="burolar.html">Muhasebe büroları için</a></li><li><a href="sirketler.html#fiyat">Şirket fiyatları</a></li><li><a href="burolar.html#fiyat">Büro fiyatları</a></li><li><a href="index.html#guvenlik">Güvenlik</a></li><li><a href="index.html#sss">Sık sorulanlar</a></li></ul></div>
+      <div><h4>Ürün</h4><ul><li><a href="sirketler.html">Şirketler için</a></li><li><a href="burolar.html">Muhasebe büroları için</a></li><li><a href="sirketler.html#fiyat">Şirket fiyatları</a></li><li><a href="burolar.html#buro-fiyat">Büro fiyatları</a></li><li><a href="index.html#guvenlik">Güvenlik</a></li><li><a href="index.html#sss">Sık sorulanlar</a></li></ul></div>
       <div><h4>Kurumsal</h4><ul><li><a href="hakkimizda.html">Hakkımızda</a></li><li><a href="iletisim.html">İletişim</a></li><li><a href="https://gidero.expo.app">Giriş yap</a></li></ul></div>
       <div><h4>Sözleşmeler</h4><ul><li><a href="kullanim-kosullari.html">Kullanım koşulları</a></li><li><a href="mesafeli-satis.html">Mesafeli satış sözleşmesi</a></li><li><a href="on-bilgilendirme.html">Ön bilgilendirme formu</a></li><li><a href="iptal-iade.html">İptal, iade ve cayma</a></li><li><a href="gizlilik.html">Gizlilik politikası</a></li><li><a href="kvkk.html">KVKK aydınlatma metni</a></li><li><a href="cerez.html">Çerez politikası</a></li></ul></div>
     </div>
@@ -176,6 +213,7 @@
   <p class="chat-note">Yazdıklarınız size yanıt vermek ve geri dönmek için kaydedilir. <a href="kvkk.html">Aydınlatma metni</a></p>
 </section>
 <script src="assets/pricing.js"></script>
+<script src="assets/flow.js"></script>
 
 <script src="assets/chat.js"></script>
 </body>
