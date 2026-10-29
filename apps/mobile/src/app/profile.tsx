@@ -177,7 +177,7 @@ export default function Profile() {
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>
             <Text style={[type.bodyStrong, { color: c.ink }]}>E-posta bildirimleri</Text>
-            <Text style={[type.small, { color: c.muted }]}>Onayınızı bekleyen rapor, iade, onay ve ödeme haberleri e-postanıza da gelsin.</Text>
+            <Text style={[type.small, { color: c.muted }]}>Onayınızı bekleyen rapor, geri gönderme, onay ve ödeme haberleri e-postanıza da gelsin.</Text>
           </View>
           <Switch value={notifyEmail} onValueChange={toggleNotify} />
         </View>

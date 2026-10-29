@@ -35,7 +35,7 @@ export function ApprovalTimeline({
   const c = useColors();
   const name = (id: string | undefined) => (id ? names.get(id) || 'İsimsiz' : undefined);
   const status = report.status;
-  // Son gönderimden sonraki hareketler (iade edilip yeniden gönderilen raporda önceki tur ayrı gösterilir)
+  // Son gönderimden sonraki hareketler (geri gönderilip yeniden gönderilen raporda önceki tur ayrı gösterilir)
   const lastSubmit = [...actions].reverse().find((a) => a.action === 'submitted');
   const cycle = lastSubmit ? actions.filter((a) => a.created_at >= lastSubmit.created_at) : [];
   const booked = actions.find((a) => a.action === 'booked_without_approval');
@@ -61,7 +61,7 @@ export function ApprovalTimeline({
       if (ok) {
         nodes.push({ title: s.name ?? `Onay ${i + 1}`, who: `Onayladı: ${name(ok.actor_user_id)}`, when: when(ok.created_at), note: ok.note, state: 'done' });
       } else if (back) {
-        nodes.push({ title: s.name ?? `Onay ${i + 1}`, who: `İade etti: ${name(back.actor_user_id)}`, when: when(back.created_at), note: back.note, state: 'returned' });
+        nodes.push({ title: s.name ?? `Onay ${i + 1}`, who: `Geri gönderdi: ${name(back.actor_user_id)}`, when: when(back.created_at), note: back.note, state: 'returned' });
       } else if (status === 'pending' && report.current_step === i) {
         const waiting = report.current_approver_ids.map((id) => name(id)).join(', ');
         nodes.push({ title: s.name ?? `Onay ${i + 1}`, who: `Onay bekliyor${waiting ? `: ${waiting}` : ''}`, state: 'current' });

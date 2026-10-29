@@ -78,7 +78,7 @@ function Home() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
-  // Fişler hangi rapora girecek: açık (taslak ya da iade edilmiş) raporlardan biri
+  // Fişler hangi rapora girecek: açık (taslak ya da geri gönderilmiş) raporlardan biri
   const [targetId, setTargetId] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -363,7 +363,7 @@ function Home() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[type.bodyStrong, { color: c.ink }]}>Onayınızı bekleyen rapor</Text>
-              <Text style={[type.small, { color: c.muted }]}>İnceleyip onaylayın ya da iade edin</Text>
+              <Text style={[type.small, { color: c.muted }]}>İnceleyip onaylayın ya da geri gönderin</Text>
             </View>
             <Icon name="chevron" size={13} color={c.muted} />
           </Pressable>

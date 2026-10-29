@@ -17,7 +17,7 @@ import { imageSize, type Density } from './layout';
 const ACTION_LABEL: Record<string, string> = {
   submitted: 'Onaya gönderildi',
   approved: 'Onaylandı',
-  returned: 'İade edildi',
+  returned: 'Geri gönderildi',
   auto_approved: 'Kendiliğinden onaylandı',
   booked_without_approval: 'Onaysız kayda alındı',
 };

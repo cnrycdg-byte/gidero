@@ -7,9 +7,10 @@ import { Logo } from '@/components/logo';
 import { Text } from '@/components/text';
 import { fonts, radius, space, useColors, useScheme } from '@/constants/theme';
 import { logoUrl } from '@/lib/brand';
+import { useNavCounts } from '@/lib/nav-counts';
 import { useSession } from '@/lib/session';
 
-type Item = { href: string; label: string; icon: IconName };
+type Item = { href: string; label: string; icon: IconName; count?: number; alert?: boolean };
 
 /** Bilgisayarda soldaki menü: kişinin rolüne göre ekranlar, üstte çalışılan firma, altta hesap. */
 export function Sidebar() {
@@ -17,6 +18,7 @@ export function Sidebar() {
   const scheme = useScheme();
   const path = usePathname();
   const { session, active, bureaus, platformAdmin, hasRole } = useSession();
+  const n = useNavCounts();
   const bureauFirm = !!active?.bureau_account_id && !active.roles.includes('employee');
 
   const groups: { title?: string; items: Item[] }[] = [];
@@ -30,11 +32,11 @@ export function Sidebar() {
       ],
     });
   } else if (active) {
-    const main: Item[] = [{ href: '/', label: 'Raporlarım', icon: 'receipt' }];
-    if (hasRole('approver') || hasRole('admin')) main.push({ href: '/approvals', label: 'Onayımı bekleyenler', icon: 'checkCircle' });
-    if (hasRole('accountant')) main.push({ href: '/accounting', label: 'Muhasebe masası', icon: 'inbox' });
+    const main: Item[] = [{ href: '/', label: 'Raporlarım', icon: 'receipt', count: n.returned, alert: true }];
+    if (hasRole('approver') || hasRole('admin')) main.push({ href: '/approvals', label: 'Onayımı bekleyenler', icon: 'checkCircle', count: n.approvals });
+    if (hasRole('accountant')) main.push({ href: '/accounting', label: 'Muhasebe masası', icon: 'inbox', count: n.accounting });
     if (hasRole('accountant')) main.push({ href: '/bulk', label: 'Toplu yükleme', icon: 'gallery' });
-    if (hasRole('payer')) main.push({ href: '/payments', label: 'Ödemeler', icon: 'receipt' });
+    if (hasRole('payer')) main.push({ href: '/payments', label: 'Ödemeler', icon: 'receipt', count: n.payments });
     groups.push({ items: main });
     const admin: Item[] = [];
     if (hasRole('admin'))
@@ -93,13 +95,15 @@ export function Sidebar() {
               return (
                 <Pressable
                   key={it.href + it.label}
+                  accessibilityLabel={it.count ? `${it.label}, ${it.count} ${it.alert ? 'geri gönderilen rapor' : 'bekleyen'}` : it.label}
                   onPress={() => router.navigate(it.href as Href)}
                   style={({ hovered, pressed }: { hovered?: boolean; pressed: boolean }) => [
                     styles.item,
                     { backgroundColor: on ? '#FFFFFF' : pressed || hovered ? 'rgba(255,255,255,0.10)' : 'transparent' },
                   ]}>
                   <Icon name={it.icon} size={15} color={on ? c.deep : 'rgba(255,255,255,0.75)'} />
-                  <Text style={[styles.itemText, { color: on ? c.deep : '#FFFFFF', fontFamily: on ? fonts.semibold : fonts.medium }]}>{it.label}</Text>
+                  <Text style={[styles.itemText, { flex: 1, color: on ? c.deep : '#FFFFFF', fontFamily: on ? fonts.semibold : fonts.medium }]}>{it.label}</Text>
+                  <Badge n={it.count} alert={it.alert} on={on} />
                 </Pressable>
               );
             })}
@@ -109,7 +113,8 @@ export function Sidebar() {
       <View style={styles.bottom}>
         <Pressable onPress={() => router.push('/notifications')} style={styles.item}>
           <Icon name="inbox" size={15} color="rgba(255,255,255,0.75)" />
-          <Text style={[styles.itemText, { color: '#FFFFFF' }]}>Bildirimler</Text>
+          <Text style={[styles.itemText, { flex: 1, color: '#FFFFFF' }]}>Bildirimler</Text>
+          <Badge n={n.notifications} on={false} />
         </Pressable>
         <Pressable onPress={() => router.push('/profile')} style={[styles.me, isOn('/profile') && { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
           <View style={styles.avatar}>
@@ -132,7 +137,21 @@ export function Sidebar() {
   );
 }
 
+/** Menü satırındaki sayı: sarı = sizi bekleyen iş, kırmızı = geri gönderilen rapor */
+function Badge({ n, alert, on }: { n?: number; alert?: boolean; on: boolean }) {
+  const c = useColors();
+  if (!n) return null;
+  const bg = alert ? '#E5484D' : on ? c.deep : '#F2A93B';
+  const fg = alert || on ? '#FFFFFF' : '#1B1300';
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Text style={{ color: fg, fontFamily: fonts.bold, fontSize: 12, lineHeight: 16 }}>{n > 99 ? '99+' : String(n)}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   firmLogo: { height: 44, borderRadius: 8, backgroundColor: '#FFFFFF', padding: 6, marginBottom: 6 },
   rail: { width: 248, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: 'rgba(0,0,0,0.2)' },
   firm: { borderRadius: radius.md, padding: space.md, gap: 2 },

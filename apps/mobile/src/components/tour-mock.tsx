@@ -109,7 +109,7 @@ export function TourMock({ kind }: { kind: MockKind }) {
           <Row l="Müşteri ağırlama" r="₺1.100,00" c={c} />
           <Row l="Akaryakıt" r="₺450,00" c={c} />
           <View style={{ flexDirection: 'row', gap: space.sm }}>
-            <View style={{ flex: 1 }}>{btn('İade et', 'undo', true)}</View>
+            <View style={{ flex: 1 }}>{btn('Geri gönder', 'undo', true)}</View>
             <View style={{ flex: 1.3 }}>{btn('Onayla', 'check')}</View>
           </View>
         </View>

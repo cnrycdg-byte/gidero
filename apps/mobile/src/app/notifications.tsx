@@ -61,7 +61,7 @@ export default function NotificationsScreen() {
       )}
       {rows.length === 0 && !loading ? (
         <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>
-          Henüz bildirim yok. Rapor onaya gittiğinde, onaylandığında ya da iade edildiğinde burada görünür.
+          Henüz bildirim yok. Rapor onaya gittiğinde, onaylandığında ya da geri gönderildiğinde burada görünür.
         </Text>
       ) : (
         <Group>

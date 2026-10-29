@@ -41,7 +41,9 @@ select test.ok((select count(*) from public.notifications where user_id = '00000
                 and report_id = '50000000-0000-0000-0000-0000000000f1') = 1,
  'Onaylanan rapor muhasebeciye bildirilir');
 select test.ok((select body from public.notifications where user_id = '00000000-0000-0000-0000-0000000000a1' and kind = 'returned' and report_id = '50000000-0000-0000-0000-0000000000f2') like '%Gerekçe: Fatura eksik',
- 'İade bildiriminde gerekçe yazar');
+ 'Geri gönderme bildiriminde gerekçe yazar');
+select test.ok((select title from public.notifications where user_id = '00000000-0000-0000-0000-0000000000a1' and kind = 'returned' and report_id = '50000000-0000-0000-0000-0000000000f2') = 'Raporunuz geri gönderildi',
+ 'Bildirim başlığı "geri gönderildi" der');
 
 -- Başka şirket bildirimleri göremez; kullanıcı yalnızca okundu bilgisini değiştirebilir
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b2"}', false);
