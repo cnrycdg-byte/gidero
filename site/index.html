@@ -349,7 +349,7 @@ input[type=range] { width: 100%; accent-color: var(--pen); height: 28px; cursor:
     <div class="price">
       <div class="pbox">
         <div class="seg" role="group" aria-label="Müşteri türü"><button type="button" data-kind="company" aria-pressed="true">Şirketim için</button><button type="button" data-kind="bureau" aria-pressed="false">Muhasebe büromuz için</button></div>
-        <div class="prow" id="planrow"><label>Paket</label><div class="seg" id="plans" role="group" aria-label="Paket"></div><p id="plandesc" style="color:var(--muted);font-size:15px;margin:0"></p></div>
+        <div class="prow" id="planrow"><div class="seg" id="plans" role="group" aria-label="Paket" hidden></div><p id="plandesc" style="color:var(--muted);font-size:15px;margin:0"></p></div>
         <div class="prow">
           <label for="qty" id="qtylabel">Çalışan sayısı</label>
           <div class="qty"><output id="qtyout" for="qty">10</output><span id="qtyunit" style="color:var(--muted)">kişi</span></div>
@@ -505,12 +505,10 @@ var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // ---------- Fiyat hesaplayıcı (sunucudaki fiyat ve kademelerle aynı; açılamazsa yedek liste) ----------
 (function () {
   var FALLBACK = [
-    { id: 'sirket_baslangic', kind: 'company', name: 'Başlangıç', description: 'Fiş okuma, tek adımlı onay, Excel çıktısı', unit: 'user', price_monthly: 179, price_yearly_monthly: 149, min_seats: 3, bands: [{min_qty:10,factor:.92},{min_qty:25,factor:.85},{min_qty:50,factor:.78},{min_qty:100,factor:.70},{min_qty:250,factor:.62}] },
-    { id: 'sirket_standart', kind: 'company', name: 'Standart', description: 'Çok adımlı onay, sınırlar, muhasebe programı aktarımı', unit: 'user', price_monthly: 299, price_yearly_monthly: 249, min_seats: 3, bands: [{min_qty:10,factor:.92},{min_qty:25,factor:.85},{min_qty:50,factor:.78},{min_qty:100,factor:.70},{min_qty:250,factor:.62}] },
-    { id: 'sirket_pro', kind: 'company', name: 'Pro', description: 'Masraf merkezi, proje, denetçi rolü, öncelikli destek', unit: 'user', price_monthly: 479, price_yearly_monthly: 399, min_seats: 10, bands: [{min_qty:25,factor:.90},{min_qty:50,factor:.82},{min_qty:100,factor:.74},{min_qty:250,factor:.65}] },
+    { id: 'sirket', kind: 'company', name: 'Şirket', description: 'Bütün özellikler dahil; çalışan sayısı arttıkça kişi başı fiyat düşer', unit: 'user', price_monthly: 299, price_yearly_monthly: 249, min_seats: 3, bands: [{min_qty:10,factor:.92},{min_qty:25,factor:.85},{min_qty:50,factor:.78},{min_qty:100,factor:.70},{min_qty:250,factor:.62}] },
     { id: 'buro_esnek', kind: 'bureau', name: 'Büro', description: 'Firma başı 3 çalışan dahil, büro personeli sınırsız', unit: 'company', price_monthly: 199, price_yearly_monthly: 165, min_seats: 1, users_per_company: 3, bands: [{min_qty:5,factor:.90},{min_qty:10,factor:.80},{min_qty:25,factor:.70},{min_qty:50,factor:.60},{min_qty:100,factor:.50},{min_qty:150,factor:.45}] }
   ];
-  var plans = FALLBACK, kind = 'company', planId = 'sirket_standart', period = 'year';
+  var plans = FALLBACK, kind = 'company', planId = 'sirket', period = 'year';
   var fmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   var tl = function (n) { return fmt.format(Math.round(n * 100) / 100) + ' TL'; };
   var $ = function (id) { return document.getElementById(id); };
@@ -523,7 +521,7 @@ var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var list = plans.filter(function (p) { return p.kind === kind; });
     if (!list.some(function (p) { return p.id === planId; })) planId = (list[Math.min(1, list.length - 1)] || list[0]).id;
     $('plans').innerHTML = list.map(function (p) { return '<button type="button" data-plan="' + p.id + '" aria-pressed="' + (p.id === planId) + '">' + p.name + '</button>'; }).join('');
-    $('planrow').hidden = list.length < 2;
+    $('plans').hidden = list.length < 2;
     $('plans').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { planId = b.dataset.plan; renderPlans(); calc(); }); });
     var p = list.find(function (x) { return x.id === planId; });
     $('plandesc').textContent = p ? p.description : '';
