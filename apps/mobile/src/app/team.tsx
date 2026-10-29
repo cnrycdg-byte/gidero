@@ -80,6 +80,7 @@ export default function Team() {
       setInfo(`${fullName.trim()} eklendi. Masraflarını ${manager && manager !== userId ? nameOf(manager) : 'siz'} onaylayacak; onay zincirini "Onay zinciri" ekranından düzenleyebilirsiniz.`);
       if (!r.demo && r.link) setInvite({ link: r.link, name: fullName.trim() });
       if (!r.demo && !r.link) setInfo(`${fullName.trim()} zaten Gidero kullanıyor; kendi şifresiyle girer ve şirketinizi görür.`);
+      if (r.warning) setError(r.warning);
       setManager(null);
       setEmail('');
       setFullName('');

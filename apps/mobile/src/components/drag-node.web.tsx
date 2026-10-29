@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 const TYPE = 'text/gidero-person';
 
 /** Bilgisayarda sürükle bırak: bir kişiyi başka bir kişinin üstüne bırakınca onun altına bağlanır. */
-export function DragNode({ id, draggable = true, onDropOn, children }: { id: string; draggable?: boolean; onDropOn: (sourceId: string) => void; children: ReactNode }) {
+export function DragNode({ id, draggable = dragSupported, onDropOn, children }: { id: string; draggable?: boolean; onDropOn: (sourceId: string) => void; children: ReactNode }) {
   const [over, setOver] = useState(false);
   return (
     <div
@@ -41,4 +41,5 @@ export function DragNode({ id, draggable = true, onDropOn, children }: { id: str
   );
 }
 
-export const dragSupported = true;
+// Dokunmatik tarayıcılarda (telefon, tablet) sürükle bırak çalışmaz; orada "Altına taşı" kullanılır
+export const dragSupported = typeof window === 'undefined' || !window.matchMedia?.('(pointer: coarse)').matches;

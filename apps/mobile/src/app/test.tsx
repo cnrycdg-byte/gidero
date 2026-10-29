@@ -160,8 +160,7 @@ export default function TestDrive() {
             run('reset', async () => {
               const r = await resetDemoData();
               setInfo(`${r.accounts} test müşterisi, ${r.companies} firma ve ${r.users} kişi silindi.`);
-              if (demo.me) await backHome();
-              else load();
+              await backHome();
             }),
           )
         }
