@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gidero | Masraf, fişten ödemeye tek akışta</title>
+<style>
+/*SITECSS*/
+
+/* ================= Sunum ================= */
+:root { --night: #08221E; --night2: #0E2F29; }
+html { scroll-behavior: smooth; }
+body { background: var(--paper); overflow-x: hidden; }
+.act { position: relative; min-height: 100vh; padding: clamp(72px, 10vh, 120px) 0; display: flex; align-items: center; }
+.act > .wrap { width: min(1180px, 100% - 48px); min-width: 0; }
+.act, .act[id] { scroll-margin-top: 0; overflow-x: clip; }
+.act.dark { background: var(--night); color: #DDEBE7; }
+.act.dark h1, .act.dark h2, .act.dark h3 { color: #fff; }
+.act.tint { background: var(--canvas); }
+.eyenum { font: 500 .875rem var(--mono); color: var(--pen); margin-bottom: 14px; display: block; }
+.act.dark .eyenum { color: #7FE0C9; }
+.big { font-size: clamp(2.6rem, 6.4vw, 5.2rem); line-height: 1.04; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 24px; max-width: 14ch; }
+.act h2.t { font-size: clamp(2rem, 4.4vw, 3.4rem); letter-spacing: -0.03em; line-height: 1.08; max-width: 18ch; }
+.lead2 { font-size: clamp(1.1rem, 1.6vw, 1.35rem); line-height: 1.5; color: var(--muted); max-width: 52ch; }
+.act.dark .lead2 { color: #A9C9C1; }
+
+/* İlerleme ve bölüm noktaları */
+.progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; background: transparent; }
+.progress i { display: block; height: 100%; background: #7FE0C9; transform-origin: left; transform: scaleX(0); }
+.dots { position: fixed; right: 18px; top: 50%; transform: translateY(-50%); z-index: 50; display: grid; gap: 10px; }
+.dots a { display: flex; align-items: center; justify-content: flex-end; gap: 10px; text-decoration: none; }
+.dots a span { font-size: .75rem; color: var(--muted); opacity: 0; transform: translateX(6px); transition: opacity var(--m150), transform var(--m150); white-space: nowrap; background: rgba(255,255,255,.92); padding: 2px 8px; border-radius: 6px; }
+.dots a:hover span, .dots a:focus-visible span { opacity: 1; transform: none; }
+.dots a i { width: 9px; height: 9px; border-radius: 50%; background: #B9C6C1; transition: transform var(--m150), background-color var(--m150); }
+.dots a.on i { background: var(--pen); transform: scale(1.5); }
+.on-dark .dots a i { background: #4C6B64; }
+.on-dark .dots a.on i { background: #7FE0C9; }
+@media (max-width: 900px) { .dots { display: none; } }
+.keys { position: fixed; left: 18px; bottom: 16px; z-index: 50; font-size: .75rem; color: var(--faint); display: flex; gap: 8px; align-items: center; }
+.keys kbd { font: 500 .75rem var(--mono); border: 1px solid #C7D2CE; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; background: #fff; color: var(--ink); }
+.on-dark .keys { color: #6E8C85; }
+@media (max-width: 900px) { .keys { display: none; } }
+.brandtop { position: fixed; left: 24px; top: 18px; z-index: 50; display: flex; align-items: center; gap: 10px; font: 600 1.15rem var(--sans); color: var(--deep); letter-spacing: -0.03em; }
+.on-dark .brandtop { color: #fff; }
+.on-dark .brandtop .brand-mark { background: #7FE0C9; }
+
+/* Giriş: fiş yağmuru */
+.hero1 { overflow: hidden; }
+.hero1 .wrap { position: relative; z-index: 2; }
+.rain { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.slip { position: absolute; top: -40%; width: 92px; padding: 10px 8px 16px; background: #FDFDFB; display: grid; gap: 5px; box-shadow: 0 10px 22px rgba(0,0,0,.35);
+  clip-path: polygon(0 0,100% 0,100% calc(100% - 6px),90% 100%,80% calc(100% - 6px),70% 100%,60% calc(100% - 6px),50% 100%,40% calc(100% - 6px),30% 100%,20% calc(100% - 6px),10% 100%,0 calc(100% - 6px));
+  animation: drop 1.6s cubic-bezier(.3,.8,.4,1) forwards; animation-delay: var(--d); opacity: .92; }
+.slip b { font: 500 .75rem var(--mono); color: #2B2F2E; text-align: center; }
+.slip i { display: block; height: 4px; background: #DADFDD; }
+.slip em { font: 500 .75rem var(--mono); font-style: normal; text-align: right; border-top: 1px dashed #9AA19F; padding-top: 3px; color: #14201D; }
+@keyframes drop { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(var(--y)) rotate(var(--r)); } }
+.hero1 .hint { margin-top: 48px; color: #7FA59C; font-size: .94rem; display: flex; gap: 10px; align-items: center; }
+.hero1 .hint b { color: #fff; font-weight: 500; }
+.chev { width: 22px; height: 22px; border-right: 2px solid #7FE0C9; border-bottom: 2px solid #7FE0C9; transform: rotate(45deg); animation: nudge 1.6s ease-in-out infinite; margin-top: -8px; }
+@keyframes nudge { 50% { transform: translateY(6px) rotate(45deg); } }
+
+/* Sorun kartları: dağınık masa, sonra süpürülür */
+.mess { position: relative; height: min(560px, 70vh); margin-top: 40px; }
+.pain { position: absolute; width: min(300px, 44vw); background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; box-shadow: 0 18px 40px -18px rgba(11,61,53,.35);
+  transform: translateY(40px) rotate(var(--r)) scale(.96); opacity: 0; transition: transform 600ms cubic-bezier(.2,.9,.3,1.2), opacity 300ms; }
+.pain b { display: block; font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
+.pain span { color: var(--muted); font-size: .94rem; }
+.pain small { display: block; font: 500 .75rem var(--mono); color: var(--warn); margin-bottom: 8px; }
+.mess.in .pain { opacity: 1; transform: translateY(0) rotate(var(--r)); }
+.mess.gone .pain { opacity: 0; transform: translateY(160px) rotate(calc(var(--r) * 4)) scale(.9); transition: transform 700ms cubic-bezier(.6,0,.8,.4), opacity 500ms 200ms; }
+.mess .pain:nth-child(1) { left: 0; top: 0; --r: -4deg; transition-delay: 0ms; }
+.mess .pain:nth-child(2) { left: 34%; top: 4%; --r: 3deg; transition-delay: 120ms; }
+.mess .pain:nth-child(3) { right: 0; top: 10%; --r: -2deg; transition-delay: 240ms; }
+.mess .pain:nth-child(4) { left: 6%; top: 46%; --r: 2.5deg; transition-delay: 360ms; }
+.mess .pain:nth-child(5) { left: 40%; top: 52%; --r: -3.5deg; transition-delay: 480ms; }
+.mess .pain:nth-child(6) { right: 3%; top: 56%; --r: 4deg; transition-delay: 600ms; }
+.verdict { margin-top: 28px; font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 600; letter-spacing: -0.02em; max-width: 30ch; opacity: 0; transform: translateY(10px); transition: opacity var(--m300), transform var(--m300); }
+.verdict.in { opacity: 1; transform: none; }
+.verdict em { font-style: normal; color: var(--pen); }
+@media (max-width: 760px) { .mess { height: auto; display: grid; gap: 12px; } .pain { position: relative; inset: auto !important; width: 100%; } }
+
+/* Fişin yolculuğu: yapışkan telefon, kayan adımlar */
+.journey { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: clamp(32px, 6vw, 96px); align-items: start; }
+.jsteps { display: grid; }
+.jstep { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; opacity: .28; transition: opacity var(--m300); }
+.jstep.on { opacity: 1; }
+.jstep .who { font: 500 .8125rem var(--mono); color: var(--kase); margin-bottom: 10px; }
+.jstep h3 { font-size: clamp(1.6rem, 3vw, 2.4rem); letter-spacing: -0.025em; line-height: 1.12; margin-bottom: 14px; max-width: 18ch; }
+.jstep p { color: var(--muted); font-size: 1.1rem; max-width: 46ch; margin: 0; }
+.jstep ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); }
+.jstep ul li { margin-bottom: 4px; }
+.jphone { position: sticky; top: calc(50vh - 310px); }
+.jphone .dev.phone { margin: 0 auto; }
+@media (max-width: 900px) { .journey { grid-template-columns: 1fr; gap: 0; } .jphone { order: -1; top: 0; z-index: 3; height: 400px; padding-top: 56px; background: linear-gradient(var(--paper) 88%, transparent); } .jphone .dev.phone { transform: scale(.55); transform-origin: top center; } .jstep { min-height: 75vh; justify-content: flex-end; padding-bottom: 6vh; } .jstep h3 { font-size: 1.5rem; } }
+
+/* Kamera: beş fiş */
+.cam5 { position: absolute; inset: 0; background: #2A2F2D; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 8px; padding: 60px 14px 110px; }
+.cam5 .ms { position: relative; width: 70px; background: #FDFDFB; padding: 7px 6px 10px; display: grid; gap: 4px; transform: rotate(var(--r)); }
+.cam5 .ms b { font: 500 .6875rem/1.1 var(--mono); color: #2B2F2E; text-align: center; }
+.cam5 .ms i { display: block; height: 3px; background: #DADFDD; }
+.cam5 .ms em { font: 500 .6875rem var(--mono); font-style: normal; text-align: right; }
+.cam5 .mb { position: absolute; top: -9px; left: -9px; width: 22px; height: 22px; border-radius: 50%; background: var(--kase); color: #fff; font: 600 .75rem/22px var(--sans); text-align: center; box-shadow: 0 0 0 2px #2A2F2D; }
+.scene .cam5 .mb[data-at] { transform: scale(1.4); }
+.scene .cam5 .mb[data-at].in { transform: none; transition-duration: var(--m150); }
+
+/* Vergi kalkanı */
+.shield { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
+.chk { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 12px; opacity: 0; transform: translateY(24px) rotate(var(--r, 0deg)); transition: opacity 400ms, transform 600ms cubic-bezier(.2,.9,.3,1.15); }
+.shield.in .chk { opacity: 1; transform: none; }
+.shield .chk:nth-child(2) { transition-delay: 120ms; } .shield .chk:nth-child(3) { transition-delay: 240ms; }
+.shield .chk:nth-child(4) { transition-delay: 360ms; } .shield .chk:nth-child(5) { transition-delay: 480ms; } .shield .chk:nth-child(6) { transition-delay: 600ms; }
+.chk .rc { font: .75rem/1.45 var(--mono); background: #FDFDFB; border: 1px dashed #C7D2CE; border-radius: 6px; padding: 10px; color: #2B2F2E; }
+.chk .rc .r { display: flex; justify-content: space-between; }
+.verd { font-size: .94rem; border-radius: 10px; padding: 10px 12px; opacity: 0; transform: scale(.9); transition: opacity var(--m200), transform var(--m200); }
+.shield.in .verd { opacity: 1; transform: none; }
+.shield .chk:nth-child(1) .verd { transition-delay: 900ms; } .shield .chk:nth-child(2) .verd { transition-delay: 1100ms; } .shield .chk:nth-child(3) .verd { transition-delay: 1300ms; }
+.shield .chk:nth-child(4) .verd { transition-delay: 1500ms; } .shield .chk:nth-child(5) .verd { transition-delay: 1700ms; } .shield .chk:nth-child(6) .verd { transition-delay: 1900ms; }
+.verd.ok { background: var(--pen-soft); color: var(--pen); }
+.verd.w { background: var(--warn-soft); color: var(--warn); }
+.verd.bad { background: #FDE8E6; color: var(--red); }
+.verd.k { background: var(--kase-soft); color: var(--kase); }
+.chk h4 { margin: 0; font-size: 1rem; font-weight: 600; }
+@media (max-width: 900px) { .shield { grid-template-columns: 1fr; } }
+
+/* Roller: çevrilen kartlar */
+.roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 44px; perspective: 1400px; }
+.role { position: relative; height: 340px; cursor: pointer; border: 0; padding: 0; background: none; font: inherit; text-align: left; }
+.role .face { position: absolute; inset: 0; border-radius: 18px; padding: 22px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform 700ms cubic-bezier(.3,.8,.3,1); display: flex; flex-direction: column; gap: 10px; }
+.role .front { background: var(--night2); color: #fff; }
+.role .front .n { font: 500 .8125rem var(--mono); color: #7FE0C9; }
+.role .front h3 { color: #fff; font-size: 1.6rem; letter-spacing: -0.02em; margin: auto 0 0; }
+.role .front p { color: #A9C9C1; margin: 0; }
+.role .back { background: #fff; border: 1px solid var(--line); transform: rotateY(180deg); color: var(--ink); }
+.role .back h4 { margin: 0 0 4px; font-size: 1.05rem; }
+.role .back ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 6px; font-size: .94rem; }
+.role.flip .front { transform: rotateY(-180deg); }
+.role.flip .back { transform: rotateY(0); }
+.role .tap { margin-top: auto; font-size: .8125rem; color: #7FA59C; }
+@media (max-width: 1000px) { .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .roles { grid-template-columns: 1fr; } }
+
+/* Muhasebe: yevmiye ve A4 */
+.acc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: center; margin-top: 40px; }
+.jcard { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.jcard table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+.jcard td { padding: 9px 6px; border-bottom: 1px solid #E3E9E6; }
+.jcard td:not(:first-child) { text-align: right; font-family: var(--mono); font-size: .875rem; }
+.jcard tr { opacity: 0; transform: translateX(-10px); transition: opacity var(--m300), transform var(--m300); }
+.acc.in .jcard tr { opacity: 1; transform: none; }
+.acc.in .jcard tr:nth-child(2) { transition-delay: 150ms; } .acc.in .jcard tr:nth-child(3) { transition-delay: 300ms; }
+.acc.in .jcard tr:nth-child(4) { transition-delay: 450ms; } .acc.in .jcard tr:nth-child(5) { transition-delay: 600ms; } .acc.in .jcard tr:nth-child(6) { transition-delay: 750ms; }
+.exps { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.exps span { border: 1px solid #C7D2CE; border-radius: 8px; padding: 6px 12px; background: #fff; font-weight: 500; }
+.sheet4 { width: min(300px, 100%); aspect-ratio: 210/297; margin: 0 auto; background: #fff; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px rgba(11,61,53,.5); padding: 14px; position: relative; }
+.sheet4 .hd { font-size: .75rem; color: var(--faint); margin-bottom: 8px; }
+.sheet4 .g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sheet4 .g > div { display: flex; flex-direction: column; gap: 6px; }
+.sheet4 .g i { display: block; border: 1px solid #DDE3E0; background: repeating-linear-gradient(#FDFDFB 0 5px, #ECEFEE 5px 6px); opacity: 0; transform: translate(var(--fx), var(--fy)) rotate(var(--fr)); transition: opacity 300ms, transform 700ms cubic-bezier(.2,.9,.3,1.1); }
+.acc.in .sheet4 .g i { opacity: 1; transform: none; }
+.sheet-cap { text-align: center; color: var(--muted); margin-top: 14px; }
+@media (max-width: 900px) { .acc { grid-template-columns: 1fr; } }
+
+/* Güvenlik ve başlangıç */
+.locks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: rgba(255,255,255,.12); border-radius: 18px; overflow: hidden; margin-top: 44px; }
+.locks > div { background: var(--night); padding: 24px; }
+.locks h3 { font-size: 1.15rem; margin-bottom: 6px; }
+.locks p { color: #A9C9C1; margin: 0; }
+@media (max-width: 900px) { .locks { grid-template-columns: 1fr; } }
+.start { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 44px; counter-reset: st; }
+.start > div { position: relative; padding-top: 22px; border-top: 2px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity var(--m300), transform var(--m300); }
+.start.in > div { opacity: 1; transform: none; }
+.start.in > div:nth-child(2) { transition-delay: 150ms; } .start.in > div:nth-child(3) { transition-delay: 300ms; } .start.in > div:nth-child(4) { transition-delay: 450ms; }
+.start > div::before { content: ''; position: absolute; top: -7px; left: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--pen); }
+.start .when { font: 500 .8125rem var(--mono); color: var(--pen); }
+.start h3 { margin: 6px 0; font-size: 1.15rem; }
+.start p { color: var(--muted); margin: 0; }
+@media (max-width: 900px) { .start { grid-template-columns: 1fr 1fr; } }
+.final .big { max-width: 16ch; }
+.final .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.final .contact { margin-top: 48px; color: #A9C9C1; display: grid; gap: 4px; }
+.final .contact b { color: #fff; font-weight: 500; font-size: 1.1rem; }
+
+/* Hareket azaltma: her şey yerinde görünür */
+@media (prefers-reduced-motion: reduce) {
+  .slip { animation: none; transform: translateY(var(--y)) rotate(var(--r)); }
+  .pain, .chk, .verd, .jcard tr, .sheet4 .g i, .start > div, .verdict { opacity: 1 !important; transform: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><i id="bar"></i></div>
+<div class="brandtop" aria-hidden="true"><span class="brand-mark"></span>gidero</div>
+<nav class="dots" id="dots" aria-label="Bölümler"></nav>
+<div class="keys" aria-hidden="true"><kbd>↓</kbd><kbd>↑</kbd> bölümler <kbd>F</kbd> tam ekran</div>
+
+<!-- 1. Giriş -->
+<section class="act dark hero1" id="giris" data-title="Giriş">
+  <div class="rain" id="rain"></div>
+  <div class="wrap">
+    <span class="eyenum">Gidero</span>
+    <h1 class="big">Masraf, fişten ödemeye tek akışta.</h1>
+    <p class="lead2">Çalışan fişi telefonla çeker. Gidero okur, sizin onay zincirinizden geçirir, vergi riskini o an söyler, muhasebe programınıza aktarır ve ödemesini takip eder.</p>
+    <div class="hint"><span class="chev" aria-hidden="true"></span><span>Aşağı kaydırın ya da <b>↓</b> tuşuna basın</span></div>
+  </div>
+</section>
+
+<!-- 2. Bugün -->
+<section class="act tint" id="bugun" data-title="Bugün nasıl">
+  <div class="wrap">
+    <span class="eyenum">01 · Ay sonu</span>
+    <h2 class="t">Bugün masraf ay sonunda böyle toplanıyor</h2>
+    <div class="mess" id="mess">
+      <div class="pain"><small>Kaybolan</small><b>Fişler cüzdanda, araçta</b><span>Ay sonuna kadar soluyor, kayboluyor; harcanan para geri istenemiyor.</span></div>
+      <div class="pain"><small>Elle yazılan</small><b>Excel'e tek tek</b><span>Tutar, tarih, KDV; çalışan da muhasebe de aynı fişi yeniden yazıyor.</span></div>
+      <div class="pain"><small>Bekleyen</small><b>"Rapor kimde kaldı?"</b><span>Onay masada, e-postada, WhatsApp'ta. Kimin elinde olduğu belli değil.</span></div>
+      <div class="pain"><small>Yanan KDV</small><b>Fatura gereken yere fiş</b><span>Şirket adına kesilmemiş belge, sınırı aşan fiş: KDV indirilemiyor.</span></div>
+      <div class="pain"><small>Kaçak</small><b>Aynı fiş iki kez</b><span>Mükerrer fiş, başka aracın yakıtı, kendi masrafını onaylayan yönetici.</span></div>
+      <div class="pain"><small>Ödeme</small><b>"IBAN'ın neydi?"</b><span>Çalışan parasını ne zaman alacağını bilmiyor, finans kovalanıyor.</span></div>
+    </div>
+    <p class="verdict" id="verdict">Gidero bu altısını <em>tek akışta</em> kapatır. Bir fişin yolculuğunu izleyin.</p>
+  </div>
+</section>
+
+<!-- 3. Yolculuk -->
+<section class="act" id="yolculuk" data-title="Fişin yolculuğu" style="display:block">
+  <div class="wrap">
+    <span class="eyenum">02 · Bir fişin yolculuğu</span>
+    <h2 class="t">Veli Mahmut İzmir fuarında müşteriyle yemek yedi</h2>
+    <div class="journey">
+      <div class="jsteps">
+        <div class="jstep" data-scene="0"><span class="who">Çalışan · telefonda</span><h3>Rapor açar, onaylayacak kişileri baştan görür</h3><p>"İzmir fuarı" yazar. Raporun önce bölge müdürüne, sonra satış direktörüne gideceği şemadan gelir; kimse sormaz.</p></div>
+        <div class="jstep" data-scene="1"><span class="who">Çalışan · masada</span><h3>Fişi çeker; Gidero okur</h3><p>Tutar, tarih, satıcı, vergi numarası, KDV oranları. e-Arşiv faturasında karekod doğrudan okunur.</p></div>
+        <div class="jstep" data-scene="6"><span class="who">Çalışan · gün sonunda</span><h3>Beş fişi tek fotoğrafta çeker</h3><p>Fişleri masaya yan yana koyar, bir kez çeker. Gidero her fişi ayrı okur, beş ayrı kayıt açar.</p><ul><li>Bir fotoğrafta en çok 5 fiş</li><li>Kart slibi ayrı fiş sayılmaz</li><li>Bilgisayardan 20 fotoğraf birden de eklenir</li></ul></div>
+        <div class="jstep" data-scene="2"><span class="who">Çalışan · kontrol</span><h3>Okunamayan alan turuncu; elle yazar, onaylar</h3><p>Fiş kontrol edilmeden onaya gidemez. "Kimlerle" gibi zorunlu bilgiler burada istenir; 29 vergi kontrolü anında çalışır.</p></div>
+        <div class="jstep" data-scene="3"><span class="who">Yönetici · telefonda</span><h3>Fotoğraflara bakmadan, tek ekranda onaylar</h3><p>Hangi gider grubunda ne kadar, kimlerle, hangi uyarılar. Onayladığında rapor bir üstteki kişiye geçer; kimde olduğu herkese görünür.</p></div>
+        <div class="jstep" data-scene="4"><span class="who">Muhasebe · bilgisayarda</span><h3>Yevmiye kaydı hazır gelir</h3><p>Gider, KDV ve karşı hesap satırları Tekdüzen Hesap Planı'na göre ayrılmış. Excel, Logo ya da Luca dosyası tek tıkla iner.</p></div>
+        <div class="jstep" data-scene="5"><span class="who">Ödeme yetkilisi</span><h3>IBAN kopyalanır, ödenir; çalışana haber gider</h3><p>Ödenecek tutar, IBAN ve açıklama hazır. "Ödeme yapıldı" denince rapor arşive kalkar, çalışan bildirimi alır.</p></div>
+      </div>
+      <div class="jphone">
+        <div class="dev phone" aria-hidden="true"><div class="glass" id="phone">
+<!--SCENES-->
+          <div class="scene" data-dur="6000">
+            <div class="cam5">
+              <div class="ms" style="--r:-4deg"><b>SİMİT SARAYI</b><i></i><i></i><em>85,00</em><span class="mb" data-at="900">1</span></div>
+              <div class="ms" style="--r:3deg"><b>OPET</b><i></i><i></i><i></i><em>1.200,00</em><span class="mb" data-at="1100">2</span></div>
+              <div class="ms" style="--r:-2deg"><b>KÖRFEZ BALIK</b><i></i><i></i><i></i><em>1.100,00</em><span class="mb" data-at="1300">3</span></div>
+              <div class="ms" style="--r:5deg"><b>OTOPARK</b><i></i><em>60,00</em><span class="mb" data-at="1500">4</span></div>
+              <div class="ms" style="--r:-3deg"><b>İZMİR TAKSİ</b><i></i><i></i><em>280,00</em><span class="mb" data-at="1700">5</span></div>
+            </div>
+            <div class="cam" style="background:transparent"><div class="tag">5 fiş bulundu</div><div class="scan" data-at="200"></div><div class="shutter"></div></div>
+            <div class="toast" data-at="2400">5 fiş okundu, 5 ayrı kayıt açıldı. Toplam ₺2.725,00</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Onay şeması -->
+<section class="act tint" id="sema" data-title="Onay zinciri">
+  <div class="wrap">
+    <span class="eyenum">03 · Onay zinciri</span>
+    <h2 class="t">Onay zinciri sizin organizasyon şemanız</h2>
+    <p class="lead2" style="margin-bottom:28px">Direktörlükleri, müdürleri ve son onayın kimde olduğunu bir kez çizersiniz. Bir kişiye dokunun; raporunun hangi yoldan gideceğini görün.</p>
+    <div class="org">
+      <div class="tree" id="tree" aria-label="Örnek organizasyon şeması"></div>
+      <aside class="org-side" aria-live="polite">
+        <h3 id="who">Veli Mahmut'un raporu</h3>
+        <p class="muted" id="whoSub" style="margin:0">Satış Temsilcisi</p>
+        <ol class="route" id="route"></ol>
+        <label class="toggle"><input type="checkbox" id="gm"> Satışta son onay Genel Müdür'de olsun</label>
+        <p class="muted" style="font-size:.875rem;margin-top:12px">Kimse kendi raporunu onaylayamaz. Bir yönetici ayrılırsa ona bağlı kişiler bir üstüne bağlanır, bekleyen raporlar takılmaz.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Vergi kalkanı -->
+<section class="act" id="vergi" data-title="Vergi kontrolü">
+  <div class="wrap">
+    <span class="eyenum">04 · Vergi kontrolü</span>
+    <h2 class="t">Riskli belge, kayda girmeden yakalanır</h2>
+    <p class="lead2">Her fişte 29 kontrol. Sınırlar ve oranlar yıl bazında güncellenir; uyarı sade bir cümleyle çalışana, onaylayıcıya ve muhasebeye gider.</p>
+    <div class="shield" id="shield">
+      <div class="chk" style="--r:-1deg"><h4>Fatura gereken tutar</h4><div class="rc"><div class="r"><span>BAUHAUS ÇİĞLİ</span><span>ÖKC</span></div><div class="r"><b>TOPLAM</b><b>14.400,00</b></div></div><div class="verd w">12.000 TL'yi aşıyor. Şirket adına fatura isteyin.</div></div>
+      <div class="chk" style="--r:1deg"><h4>Mükerrer fiş</h4><div class="rc"><div class="r"><span>SHELL BORNOVA</span><span>27.10</span></div><div class="r"><b>TOPLAM</b><b>1.200,00</b></div></div><div class="verd bad">Bu belge daha önce başka bir masrafta kaydedilmiş.</div></div>
+      <div class="chk" style="--r:-1.5deg"><h4>Plaka</h4><div class="rc"><div class="r"><span>OPET</span><span>35 KL 908</span></div><div class="r"><b>TOPLAM</b><b>1.200,00</b></div></div><div class="verd bad">Plaka çalışanın araçlarıyla eşleşmiyor.</div></div>
+      <div class="chk" style="--r:1deg"><h4>Şirket adına mı</h4><div class="rc"><div class="r"><span>TEKNOSA e-ARŞİV</span><span>VKN ≠</span></div><div class="r"><b>TOPLAM</b><b>6.499,00</b></div></div><div class="verd w">Fatura başka bir vergi numarasına kesilmiş; KDV indirilemez.</div></div>
+      <div class="chk" style="--r:-1deg"><h4>Alkollü içki</h4><div class="rc"><div class="r"><span>KÖRFEZ BALIK</span><span>Rakı 35cl</span></div><div class="r"><b>TOPLAM</b><b>1.240,00</b></div></div><div class="verd k">Alkol ayrıldı: şirket kuralına göre ödenir, vergiden düşülmez (KKEG).</div></div>
+      <div class="chk" style="--r:1.5deg"><h4>Bilgi fişi</h4><div class="rc"><div class="r"><span>BİLGİ FİŞİ</span><span>e-Arşiv</span></div><div class="r"><b>TOPLAM</b><b>2.400,00</b></div></div><div class="verd ok">Çalışan e-Arşiv faturasının şirket adına geldiğini onayladı.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Roller -->
+<section class="act tint" id="roller" data-title="Kim ne görür">
+  <div class="wrap">
+    <span class="eyenum">05 · Kim ne görür</span>
+    <h2 class="t">Herkes yalnızca kendi işini görür</h2>
+    <p class="lead2">Kartlara dokunun.</p>
+    <div class="roles">
+      <button class="role" type="button" aria-pressed="false"><div class="face front"><span class="n">Çalışan</span><p>Fişini çeker, unutur.</p><h3>Parasını ne zaman alacağını bilir</h3><span class="tap">Çevirmek için dokunun</span></div><div class="face back"><h4>Çalışan</h4><ul><li>Fişi harcadığı yerde çeker; beş fiş tek fotoğrafta</li><li>Raporun kimde beklediğini görür</li><li>Sınırına ne kadar kaldığını bilir</li><li>"Masrafınız ödendi" bildirimini alır</li></ul></div></button>
+      <button class="role" type="button" aria-pressed="false"><div class="face front"><span class="n">Onaylayıcı</span><p>Telefondan, tek ekranda.</p><h3>Fotoğraf değil, özet görür</h3><span class="tap">Çevirmek için dokunun</span></div><div class="face back"><h4>Onaylayıcı</h4><ul><li>Gider grubu toplamları, kimlerle, uyarılar</li><li>Sınırı aşan fiş işaretli gelir</li><li>Onaylar ya da nedenini yazıp iade eder</li><li>Kendi raporunu onaylayamaz</li></ul></div></button>
+      <button class="role" type="button" aria-pressed="false"><div class="face front"><span class="n">Muhasebe</span><p>Yazmak yok, kontrol var.</p><h3>Yevmiye hazır, dosya tek tık</h3><span class="tap">Çevirmek için dokunun</span></div><div class="face back"><h4>Muhasebe</h4><ul><li>Onaylanan raporlar masasına düşer</li><li>Excel, Logo, Luca aktarım dosyası</li><li>Alkol ve KKEG kararını fiş bazında verir</li><li>Rapor ve fişleri A4'e sıkıştırıp yazdırır</li></ul></div></button>
+      <button class="role" type="button" aria-pressed="false"><div class="face front"><span class="n">Ödeme yetkilisi</span><p>Finans ya da muhasebe.</p><h3>Kime, ne kadar, hangi IBAN</h3><span class="tap">Çevirmek için dokunun</span></div><div class="face back"><h4>Ödeme yetkilisi</h4><ul><li>Ödenecek tutar hazır: şirket kartı ve reddedilen alkol düşülmüş</li><li>IBAN tek dokunuşla kopyalanır</li><li>IBAN'ı şirket yöneticisi bile göremez</li><li>"Ödeme yapıldı" der, rapor arşive kalkar</li></ul></div></button>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Muhasebe -->
+<section class="act" id="muhasebe" data-title="Muhasebe ve arşiv">
+  <div class="wrap">
+    <span class="eyenum">06 · Muhasebe ve arşiv</span>
+    <h2 class="t">Muhasebe yeniden yazmaz; arşiv kâğıt israf etmez</h2>
+    <div class="acc" id="acc">
+      <div>
+        <div class="jcard">
+          <table>
+            <tr><td style="color:var(--faint)">Hesap</td><td style="color:var(--faint)">Borç</td><td style="color:var(--faint)">Alacak</td></tr>
+            <tr><td>770.01 Genel yönetim, yemek</td><td>1.000,00</td><td></td></tr>
+            <tr><td>191.10 İndirilecek KDV %10</td><td>100,00</td><td></td></tr>
+            <tr><td>770.03 Akaryakıt</td><td>375,00</td><td></td></tr>
+            <tr><td>191.20 İndirilecek KDV %20</td><td>75,00</td><td></td></tr>
+            <tr><td>335 Personele borçlar</td><td></td><td>1.550,00</td></tr>
+          </table>
+        </div>
+        <div class="exps"><span>Excel</span><span>Logo</span><span>Luca</span><span>PDF rapor</span><span>Bütün veri ZIP</span></div>
+        <p class="lead2" style="margin-top:18px;font-size:1.05rem">Kim ödediyse doğru hesaba: çalışanın cebinden çıkan personele borçlara, şirket kartı karta, avans avansa.</p>
+      </div>
+      <div>
+        <div class="sheet4" aria-hidden="true">
+          <div class="hd">Ekim masrafları, fiş görselleri 1/2</div>
+          <div class="g">
+            <div><i style="height:118px;--fx:-180px;--fy:-90px;--fr:-20deg"></i><i style="height:78px;--fx:-140px;--fy:60px;--fr:14deg"></i><i style="height:60px;--fx:-200px;--fy:140px;--fr:-8deg"></i></div>
+            <div><i style="height:88px;--fx:-60px;--fy:-160px;--fr:12deg"></i><i style="height:100px;--fx:-30px;--fy:180px;--fr:-16deg"></i><i style="height:62px;--fx:40px;--fy:200px;--fr:9deg"></i></div>
+            <div><i style="height:72px;--fx:90px;--fy:-170px;--fr:-11deg"></i><i style="height:58px;--fx:140px;--fy:40px;--fr:18deg"></i><i style="height:118px;--fx:120px;--fy:190px;--fr:-6deg"></i></div>
+            <div><i style="height:104px;--fx:190px;--fy:-80px;--fr:15deg"></i><i style="height:70px;--fx:210px;--fy:90px;--fr:-13deg"></i><i style="height:52px;--fx:170px;--fy:170px;--fr:7deg"></i></div>
+          </div>
+        </div>
+        <p class="sheet-cap">Rapor özeti, onay geçmişi ve numaralı fiş görselleri tek PDF'te. Bir A4'e 8-12 yazar kasa fişi.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Güvenlik -->
+<section class="act dark" id="guvenlik" data-title="Güvenlik">
+  <div class="wrap">
+    <span class="eyenum">07 · Güvenlik</span>
+    <h2 class="t">Veriniz sizin, kapı kilitli</h2>
+    <div class="locks">
+      <div><h3>Şirketler birbirini görmez</h3><p>Her kayıt şirkete bağlı; veritabanı kuralları her güncellemede yüzlerce testle denetlenir.</p></div>
+      <div><h3>IBAN yalnızca gerekene</h3><p>Kişinin kendisi, muhasebe ve ödeme yetkilisi görür. Şirket yöneticisi bile göremez.</p></div>
+      <div><h3>Silinmeyen denetim izi</h3><p>Onay, ayar ve değişiklikler kim, ne zaman, eski ve yeni değeriyle saklanır.</p></div>
+      <div><h3>Görevler ayrılığı</h3><p>Kimse kendi raporunu onaylayamaz, kendi ödemesini işaretleyemez; muhasebecinin masrafı da onaydan geçer.</p></div>
+      <div><h3>Avrupa'da, şifreli</h3><p>Veriler Frankfurt'taki veri merkezlerinde tutulur. KVKK aydınlatma metni hazır.</p></div>
+      <div><h3>Veriniz her an elinizde</h3><p>Bütün raporlar, fişler ve görseller tek ZIP dosyasında indirilir.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Başlangıç -->
+<section class="act tint" id="baslangic" data-title="İlk hafta">
+  <div class="wrap">
+    <span class="eyenum">08 · İlk hafta</span>
+    <h2 class="t">Kurulum yok; ilk rapor bu hafta</h2>
+    <div class="start" id="start">
+      <div><span class="when">1. gün, 10 dakika</span><h3>Şirket ve onay şeması</h3><p>Kişileri ekler, kimin kime bağlı olduğunu ve son onayı çizersiniz. Logonuz ve renkleriniz.</p></div>
+      <div><span class="when">1. gün</span><h3>Kurallar</h3><p>Gider grupları ve hesap kodları, kişi başı sınırlar, alkol kuralı, araç plakaları.</p></div>
+      <div><span class="when">İlk hafta</span><h3>İlk raporlar</h3><p>Çalışanlar telefona uygulamayı kurar, fişleri çeker; onaylar telefondan gelir.</p></div>
+      <div><span class="when">Ay sonu</span><h3>Muhasebe ve ödeme</h3><p>Muhasebe aktarım dosyasını alır, ödeme yetkilisi öder. Ay kapanır.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Kapanış -->
+<section class="act dark final" id="kapanis" data-title="Başlayalım">
+  <div class="wrap">
+    <span class="eyenum">Gidero</span>
+    <h2 class="big">Bu ayın fişleri bu ay kapansın.</h2>
+    <p class="lead2">14 gün kendi ekibinizle deneyin. Kurulum yok; onay şemanızı birlikte çizelim, ilk raporu bu hafta onaylatalım.</p>
+    <div class="cta-row"><a class="btn btn-light" href="https://gidero.expo.app">gidero.expo.app</a></div>
+    <div class="contact"><b>Caner Yücedağ</b><span>Gidero</span><span>destek@gidero.tr</span></div>
+  </div>
+</section>
+
+<script>
+/*FLOWENGINE*/
+</script>
+<script>
+/*ORGJS*/
+</script>
+<script>
+(function () {
+  var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var acts = [].slice.call(document.querySelectorAll('.act'));
+
+  // Fiş yağmuru
+  var rain = document.getElementById('rain');
+  var names = ['SİMİT SARAYI', 'OPET', 'KÖRFEZ', 'MİGROS', 'TAKSİ', 'OTOPARK', 'SHELL', 'BAUHAUS', 'HİLTON', 'TEKNOSA', 'KAHVE', 'A101', 'BİM', 'PTT'];
+  var W = window.innerWidth;
+  names.forEach(function (n, i) {
+    var s = document.createElement('div');
+    s.className = 'slip';
+    var lines = '';
+    for (var k = 0; k < 2 + (i % 3); k++) lines += '<i style="width:' + (60 + (i * 17 + k * 23) % 40) + '%"></i>';
+    s.innerHTML = '<b>' + n + '</b>' + lines + '<em>' + ((i * 137) % 900 + 40) + ',00</em>';
+    var x = 60 + ((i * 53) % 34);
+    s.style.left = x + '%';
+    s.style.setProperty('--d', (i * 90) + 'ms');
+    s.style.setProperty('--y', (window.innerHeight * (0.95 + (i % 4) * 0.12)) + 'px');
+    s.style.setProperty('--r', ((i * 37) % 60 - 30) + 'deg');
+    if (W < 760) s.style.left = (8 + (i * 61) % 84) + '%';
+    rain.appendChild(s);
+  });
+
+  // Bölüm noktaları ve ilerleme
+  var dots = document.getElementById('dots');
+  acts.forEach(function (a) {
+    var l = document.createElement('a');
+    l.href = '#' + a.id;
+    l.innerHTML = '<span>' + a.getAttribute('data-title') + '</span><i></i>';
+    l.setAttribute('aria-label', a.getAttribute('data-title'));
+    dots.appendChild(l);
+  });
+  var links = [].slice.call(dots.querySelectorAll('a'));
+  var bar = document.getElementById('bar');
+  function current() {
+    var mid = window.scrollY + window.innerHeight * 0.4, idx = 0;
+    acts.forEach(function (a, i) { if (a.offsetTop <= mid) idx = i; });
+    return idx;
+  }
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.transform = 'scaleX(' + (h > 0 ? window.scrollY / h : 0) + ')';
+    var i = current();
+    links.forEach(function (l, k) { l.classList.toggle('on', k === i); });
+    document.body.classList.toggle('on-dark', acts[i].classList.contains('dark'));
+    // Sorun kartları: bölümden çıkarken süpürülür
+    var b = document.getElementById('bugun'), mess = document.getElementById('mess');
+    var r = b.getBoundingClientRect();
+    mess.classList.toggle('gone', r.bottom < window.innerHeight * 0.45);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Bölüm girişleri
+  var io = new IntersectionObserver(function (en) {
+    en.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('in');
+      if (e.target.id === 'mess') setTimeout(function () { document.getElementById('verdict').classList.add('in'); }, 900);
+    });
+  }, { threshold: 0.3 });
+  ['mess', 'shield', 'acc', 'start'].forEach(function (id) { io.observe(document.getElementById(id)); });
+
+  // Yolculuk: ortadaki adım telefondaki sahneyi oynatır
+  var steps = [].slice.call(document.querySelectorAll('.jstep'));
+  var active = -1;
+  function pick() {
+    var mid = window.innerHeight * (window.innerWidth < 900 ? 0.75 : 0.5), best = 0, dist = Infinity;
+    steps.forEach(function (s, i) {
+      var r = s.getBoundingClientRect(), d = Math.abs((window.innerWidth < 900 ? r.bottom - window.innerHeight * 0.06 - 120 : r.top + r.height / 2) - mid);
+      if (d < dist) { dist = d; best = i; }
+    });
+    var sec = document.getElementById('yolculuk').getBoundingClientRect();
+    if (sec.top > window.innerHeight * 0.6 || sec.bottom < 0) return;
+    if (best !== active) {
+      active = best;
+      steps.forEach(function (s, i) { s.classList.toggle('on', i === best); });
+      window.GideroScene.show(Number(steps[best].getAttribute('data-scene')), !still);
+    }
+  }
+  window.addEventListener('scroll', pick, { passive: true });
+  pick();
+
+  // Roller: çevrilen kartlar
+  document.querySelectorAll('.role').forEach(function (r) {
+    r.addEventListener('click', function () { var f = r.classList.toggle('flip'); r.setAttribute('aria-pressed', String(f)); });
+  });
+
+  // Sunum tuşları: ↓ → boşluk Sayfa aşağı: sonraki bölüm; ↑ ←: önceki; F: tam ekran
+  function go(i) {
+    i = Math.max(0, Math.min(acts.length - 1, i));
+    acts[i].scrollIntoView({ behavior: still ? 'auto' : 'smooth' });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    var k = e.key;
+    var jr = document.getElementById('yolculuk').getBoundingClientRect();
+    var inJourney = jr.top < window.innerHeight * 0.5 && jr.bottom > window.innerHeight * 0.9;
+    var mid = window.innerHeight / 2;
+    function stepTo(dir) {
+      var list = steps.map(function (s) { var r = s.getBoundingClientRect(); return { s: s, c: r.top + r.height / 2 }; });
+      var t = dir > 0 ? list.filter(function (x) { return x.c > mid + 40; })[0] : list.filter(function (x) { return x.c < mid - 40; }).pop();
+      if (!t) return false;
+      t.s.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'center' });
+      return true;
+    }
+    if (k === 'ArrowDown' || k === 'ArrowRight' || k === 'PageDown' || (k === ' ' && !e.shiftKey)) {
+      e.preventDefault();
+      // Yolculuk bölümünde önce adım adım ilerle
+      if (inJourney && stepTo(1)) return;
+      go(current() + 1);
+    } else if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'PageUp' || (k === ' ' && e.shiftKey)) {
+      e.preventDefault();
+      if (inJourney && stepTo(-1)) return;
+      go(current() - 1);
+    } else if (k === 'Home') { e.preventDefault(); go(0); }
+    else if (k === 'End') { e.preventDefault(); go(acts.length - 1); }
+    else if (k === 'f' || k === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      else document.exitFullscreen && document.exitFullscreen();
+    }
+  });
+})();
+</script>
+</body>
+</html>
