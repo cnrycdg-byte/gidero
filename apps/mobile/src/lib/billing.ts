@@ -5,7 +5,7 @@ export type Plan = {
   kind: 'company' | 'bureau';
   name: string;
   description: string;
-  unit: 'user' | 'account';
+  unit: 'user' | 'account' | 'company';
   price_monthly: number;
   price_yearly_monthly: number;
   min_seats: number;

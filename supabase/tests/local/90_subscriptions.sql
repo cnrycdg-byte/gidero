@@ -1,3 +1,6 @@
+-- Eski sabit büro paketi bu testlerde kullanılır (yeni satışta kapalı)
+reset role;
+update public.plans set active = true where id = 'buro_5';
 -- Abonelik, paket sınırları, sipariş ve ödeme, platform yöneticisi
 insert into private.platform_owner_hashes values (encode(sha256(convert_to('owner@gidero.test', 'UTF8')), 'hex'));
 insert into auth.users (id, email) values
@@ -118,3 +121,6 @@ select test.ok((select count(*) from public.campaigns) = 0, 'Müşteri kampanya 
 reset role;
 
 select 'ABONELİK TESTLERİ GEÇTİ' as sonuc;
+
+reset role;
+update public.plans set active = false where id = 'buro_5';

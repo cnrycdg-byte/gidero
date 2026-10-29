@@ -19,6 +19,8 @@ import {
   type Plan,
   type Quote,
 } from '@/lib/billing';
+import { QtySlider } from '@/components/qty-slider';
+import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
 import { dateText, money } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { errorText, supabase } from '@/lib/supabase';
@@ -73,6 +75,10 @@ function SubscriptionWeb() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('year');
   const [seats, setSeats] = useState(3);
+  const [bands, setBands] = useState<Band[]>([]);
+  useEffect(() => {
+    fetchBands().then(setBands).catch(() => setBands([]));
+  }, []);
   const [code, setCode] = useState('');
   const [appliedCode, setAppliedCode] = useState('');
   const [q, setQ] = useState<Quote | null>(null);
@@ -92,7 +98,7 @@ function SubscriptionWeb() {
       setPlans(ps);
       setPlanId((cur) => cur ?? st.plan_id ?? ps[Math.min(1, ps.length - 1)]?.id ?? null);
       if (st.seats) setSeats(st.seats);
-      else setSeats(Math.max(3, st.users_used));
+      else setSeats(st.kind === 'bureau' ? Math.max(1, st.companies_used) : Math.max(3, st.users_used));
       const { data } = await supabase.from('orders').select('*').eq('account_id', accountId).order('created_at', { ascending: false }).limit(10);
       setOrders((data ?? []) as Order[]);
     } catch (e) {
@@ -117,14 +123,23 @@ function SubscriptionWeb() {
   }, [active, status, session]);
 
   const plan = plans.find((p) => p.id === planId) ?? null;
-  const minSeats = plan?.unit === 'user' ? Math.max(plan.min_seats, status?.users_used ?? 0) : 1;
+  // Kişi (şirket) ya da firma (büro) sayısı seçilen paketler
+  const perQty = plan?.unit === 'user' || plan?.unit === 'company';
+  const minSeats =
+    plan?.unit === 'user'
+      ? Math.max(plan.min_seats, status?.users_used ?? 0)
+      : plan?.unit === 'company'
+        ? Math.max(plan.min_seats, status?.companies_used ?? 0, 1)
+        : 1;
+  const qty = Math.max(seats, minSeats);
+  const planBands = bands.filter((b) => b.plan_id === planId);
 
   // Fiyatı sunucu hesaplar (kampanya ve KDV dahil)
   useEffect(() => {
     if (!accountId || !planId || !status?.can_manage) return;
     let cancel = false;
     setQError(null);
-    quote(accountId, planId, period, plan?.unit === 'user' ? Math.max(seats, minSeats) : null, appliedCode || null)
+    quote(accountId, planId, period, perQty ? qty : null, appliedCode || null)
       .then((r) => !cancel && setQ(r))
       .catch((e) => {
         if (cancel) return;
@@ -134,7 +149,7 @@ function SubscriptionWeb() {
     return () => {
       cancel = true;
     };
-  }, [accountId, planId, period, seats, appliedCode, status?.can_manage, plan?.unit, minSeats]);
+  }, [accountId, planId, period, seats, appliedCode, status?.can_manage, perQty, qty]);
 
   async function pay() {
     if (!accountId || !planId) return;
@@ -148,7 +163,7 @@ function SubscriptionWeb() {
           account_id: accountId,
           plan_id: planId,
           period,
-          seats: plan?.unit === 'user' ? Math.max(seats, minSeats) : null,
+          seats: perQty ? qty : null,
           code: appliedCode || null,
           billing,
         },
@@ -246,9 +261,10 @@ function SubscriptionWeb() {
                   style={[styles.plan, { backgroundColor: c.paper, borderColor: on ? c.pen : 'transparent' }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.md }}>
                     <Text style={{ fontFamily: fonts.display, fontSize: 19, color: c.ink }}>{p.name}</Text>
+                    {bands.some((b) => b.plan_id === p.id) ? <Text style={[type.small, { color: c.pen, fontWeight: '600' }]}>Sayı arttıkça ucuzlar</Text> : null}
                     <Text style={{ fontFamily: fonts.display, fontSize: 19, color: on ? c.pen : c.ink }}>
                       {money(price)}
-                      <Text style={[type.small, { color: c.muted }]}>{p.unit === 'user' ? ' / kişi / ay' : ' / ay'}</Text>
+                      <Text style={[type.small, { color: c.muted }]}>{p.unit === 'user' ? ' / kişi / ay' : p.unit === 'company' ? ' / firma / ay' : ' / ay'}</Text>
                     </Text>
                   </View>
                   <Text style={[type.small, { color: c.muted }]}>{p.description}</Text>
@@ -264,23 +280,40 @@ function SubscriptionWeb() {
             })}
           </View>
 
-          {plan?.unit === 'user' && (
-            <View style={[styles.box, { backgroundColor: c.paper }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.bodyStrong, { color: c.ink }]}>Çalışan sayısı</Text>
+          {perQty && plan && (
+            <View style={[styles.box, { backgroundColor: c.paper, flexDirection: 'column', alignItems: 'stretch' }]}>
+              <View>
+                <Text style={[type.bodyStrong, { color: c.ink }]}>{plan.unit === 'company' ? 'Müşteri firma sayısı' : 'Çalışan sayısı'}</Text>
                 <Text style={[type.small, { color: c.muted }]}>
-                  Onaylayıcı ve muhasebeci ücretsiz. En az {minSeats} kişi.
+                  {plan.unit === 'company'
+                    ? `Firma başı ${plan.users_per_company ?? 3} çalışan dahil; büro personeli ücretsiz. En az ${minSeats}.`
+                    : `Onaylayıcı ve muhasebeci ücretsiz. En az ${minSeats} kişi.`}
                 </Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable onPress={() => setSeats((s) => Math.max(minSeats, s - 1))} style={[styles.stepBtn, { backgroundColor: c.canvas }]} accessibilityLabel="Azalt">
-                  <Text style={{ fontSize: 20, color: c.ink }}>−</Text>
-                </Pressable>
-                <Text style={{ fontFamily: fonts.display, fontSize: 20, color: c.ink, minWidth: 36, textAlign: 'center' }}>{Math.max(seats, minSeats)}</Text>
-                <Pressable onPress={() => setSeats((s) => Math.max(minSeats, s) + 1)} style={[styles.stepBtn, { backgroundColor: c.canvas }]} accessibilityLabel="Artır">
-                  <Text style={{ fontSize: 20, color: c.ink }}>+</Text>
-                </Pressable>
-              </View>
+              <QtySlider value={qty} min={minSeats} max={plan.unit === 'company' ? 200 : 500} onChange={setSeats} label={plan.unit === 'company' ? 'Firma sayısı' : 'Çalışan sayısı'} />
+              {(() => {
+                const base = period === 'year' ? plan.price_yearly_monthly : plan.price_monthly;
+                const u = unitPrice(base, planBands, qty);
+                const monthlyU = unitPrice(plan.price_monthly, planBands, qty);
+                const per = plan.unit === 'company' ? 'firma' : 'kişi';
+                const next = [...planBands].sort((x, y) => x.min_qty - y.min_qty).find((b) => b.min_qty > qty);
+                return (
+                  <View style={{ gap: 2 }}>
+                    <Text style={{ fontFamily: fonts.display, fontSize: 22, color: c.ink }}>
+                      {`${money(u)} / ${per} / ay`}
+                      <Text style={[type.small, { color: c.muted }]}>{`  toplam aylık ${money(u * qty)}`}</Text>
+                    </Text>
+                    {period === 'year' && monthlyU > u ? (
+                      <Text style={[type.small, { color: c.pen, fontWeight: '600' }]}>{`Yıllık ödemede ${per} başı ${money(monthlyU - u)} daha ucuz; yılda ${money((monthlyU - u) * qty * 12)} tasarruf.`}</Text>
+                    ) : null}
+                    {next ? (
+                      <Text style={[type.small, { color: c.muted }]}>
+                        {`${next.min_qty} ${per} ve üstünde ${per} başı ${money(unitPrice(base, planBands, next.min_qty))}.`}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })()}
             </View>
           )}
 
@@ -294,7 +327,7 @@ function SubscriptionWeb() {
 
           {q && (
             <View style={[styles.summary, { backgroundColor: c.paper }]}>
-              <Line label={`${q.plan_name}, ${period === 'year' ? '12 ay' : '1 ay'}${plan?.unit === 'user' ? `, ${q.seats} kişi` : ''}`} value={money(q.list_price)} />
+              <Line label={`${q.plan_name}, ${period === 'year' ? '12 ay' : '1 ay'}${plan?.unit === 'user' ? `, ${q.seats} kişi` : plan?.unit === 'company' ? `, ${q.seats} firma` : ''}`} value={money(q.list_price)} />
               {q.discount > 0 && <Line label={`İndirim (${q.campaign_note})`} value={`−${money(q.discount)}`} tone="ok" />}
               {q.extra_months > 0 && <Line label={`Hediye süre (${q.campaign_note})`} value={`+${q.extra_months} ay`} tone="ok" />}
               <Line label={`KDV %${Number(q.vat_rate)}`} value={money(q.vat_amount)} />
