@@ -133,7 +133,8 @@ function RootStack() {
         <Stack.Screen name="admin/account/[id]" options={{ title: 'Müşteri' }} />
         <Stack.Screen name="admin/company/[id]" options={{ title: 'Firma ayarları' }} />
         <Stack.Screen name="admin/orders" options={{ title: 'Siparişler' }} />
-        <Stack.Screen name="admin/plans" options={{ title: 'Paketler' }} />
+        <Stack.Screen name="admin/plans" options={{ title: 'Fiyatlar' }} />
+        <Stack.Screen name="admin/plan-details" options={{ title: 'Paket ayrıntıları' }} />
         <Stack.Screen name="admin/campaigns" options={{ title: 'Kampanyalar' }} />
         <Stack.Screen name="admin/chats" options={{ title: 'Site sohbetleri' }} />
         <Stack.Screen name="admin/new-customer" options={{ title: 'Yeni müşteri' }} />
