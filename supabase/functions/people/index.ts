@@ -1,7 +1,8 @@
 // people: şirkete kişi ekleme ve ilk giriş (davet) bağlantısı.
 //
 // POST (Authorization: Bearer <oturum>)
-//   { action: 'add', company_id, full_name, title, email?, roles, manager_id? } → { user_id, link|null }
+//   { action: 'add', company_id, full_name, title, email?, phone?, password?, roles, manager_id? }
+//        → { user_id, link|null, password_set }  (password verilirse geçici şifre; kişi ilk girişte değiştirir)
 //   { action: 'link', company_id, user_id }                                   → { link }
 //   { action: 'owner_link', account_id, full_name? }                           → { link|null, email }   (Gidero yöneticisi)
 //   { action: 'add_staff', account_id, full_name, email, company_ids? }        → { user_id, link|null } (büro sahibi)
@@ -24,6 +25,7 @@ type Body = {
   manager_id?: string | null;
   company_ids?: string[];
   password?: string;
+  phone?: string;
 };
 
 Deno.serve(async (req) => {
@@ -83,13 +85,35 @@ Deno.serve(async (req) => {
         p_final_approver: false,
       });
       if (!created) await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
+      const phone = String(b.phone ?? '').trim();
+      if (phone) await admin.from('profiles').update({ phone }).eq('id', userId).is('phone', null);
 
+      // Bağlantı ya da geçici şifre yalnızca yeni açılan ya da henüz hiç giriş yapmamış (ve yalnızca bu yöneticinin şirketlerinde olan) kişiye
+      const { data: may } = await asCaller.rpc('can_issue_invite', { p_company: company, p_user: userId });
+      const allowed = created || may === true;
       let link: string | null = null;
-      if (!demo) {
-        const { data: may } = await asCaller.rpc('can_issue_invite', { p_company: company, p_user: userId });
-        if (created || may === true) link = inviteUrl(await recoveryToken(admin, email));
+      let passwordSet = false;
+      const password = String(b.password ?? '');
+      if (allowed && password) {
+        if (password.length < 8) return json(400, { error: 'Kişi eklendi ama geçici şifre en az 8 karakter olmalı; kişiye dokunup şifresini yeniden belirleyin.' });
+        const { data: u } = await admin.auth.admin.getUserById(userId);
+        const { error: pwErr } = await admin.auth.admin.updateUserById(userId, {
+          password,
+          user_metadata: { ...(u?.user?.user_metadata ?? {}), must_change_password: true },
+        });
+        if (pwErr) return json(400, { error: 'Kişi eklendi ama şifre çok zayıf; kişiye dokunup daha güçlü bir geçici şifre belirleyin.' });
+        passwordSet = true;
+      } else if (allowed && !demo) {
+        link = inviteUrl(await recoveryToken(admin, email));
       }
-      return json(200, { user_id: userId, email, link, demo, warning: detErr ? 'Ünvan kaydedilemedi; kişiye dokunup tekrar yazın.' : null });
+      return json(200, {
+        user_id: userId,
+        email,
+        link,
+        demo,
+        password_set: passwordSet,
+        warning: detErr ? 'Ünvan kaydedilemedi; kişiye dokunup tekrar yazın.' : null,
+      });
     }
 
     if (b.action === 'link') {
