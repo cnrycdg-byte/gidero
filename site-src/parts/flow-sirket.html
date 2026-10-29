@@ -1,0 +1,118 @@
+<div class="flow" data-flow aria-label="Bir masraf raporunun fişten ödemeye yolculuğu">
+  <div>
+    <ol class="fsteps">
+      <li><button type="button" data-n="1"><b>Çalışan rapor açar</b><small>Başlığı yazar, kimin onaylayacağını baştan görür.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="2"><b>Fişi çeker</b><small>Gidero tutarı, tarihi, satıcıyı ve KDV'yi okur.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="3"><b>Kontrol edip onaya gönderir</b><small>Okunamayan alan turuncu görünür; elle yazılır.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="4"><b>Yönetici tek ekranda onaylar</b><small>Fotoğraflara bakmadan: hangi grupta ne kadar, kimlerle.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="5"><b>Muhasebe aktarır</b><small>Yevmiye kaydı hazır; Excel, Logo ya da Luca dosyası iner.</small></button><div class="bar"><span></span></div></li>
+      <li><button type="button" data-n="6"><b>Ödeme yetkilisi öder</b><small>IBAN tek dokunuşla kopyalanır, çalışana bildirim gider.</small></button><div class="bar"><span></span></div></li>
+    </ol>
+    <div class="fctl"><button type="button" data-flow-pause>Durdur</button></div>
+  </div>
+
+  <div class="dev phone" aria-hidden="true"><div class="glass">
+    <div class="scene" data-dur="4400">
+      <div class="s-top">Yeni rapor<span class="s-av">VM</span></div>
+      <div class="card">
+        <div class="fl"><label>Rapor başlığı</label><div class="v" data-type="İzmir fuarı" data-at="300"></div></div>
+        <div class="fl"><label>Oluşturma tarihi</label><div class="v">28 Ekim 2026</div></div>
+      </div>
+      <div class="card" data-at="1500">
+        <div class="fl"><label>Onaylayacak kişiler</label></div>
+        <div class="chain" style="margin-top:6px"><span>Ali Çelik</span><em>sonra</em><span>Selin Er, son onay</span></div>
+      </div>
+      <div class="abtn" data-at="2200" data-press="3300" style="margin-top:auto">Raporu oluştur, fiş çek</div>
+    </div>
+
+    <div class="scene" data-dur="3400">
+      <div class="cam">
+        <div class="tag">Fişi çerçeveye alın</div>
+        <div class="rcpt">
+          <div class="c"><b>KÖRFEZ BALIK LOKANTASI</b><br>Karşıyaka / İZMİR<br>VKN 5810042377</div>
+          <hr>
+          <div class="r"><span>27.10.2026</span><span>20:41</span></div>
+          <div class="r"><span>FİŞ NO</span><span>0184</span></div>
+          <hr>
+          <div class="r"><span>Balık tabağı x2</span><span>700,00</span></div>
+          <div class="r"><span>Meze tabağı</span><span>300,00</span></div>
+          <div class="r"><span>KDV %10</span><span>100,00</span></div>
+          <hr>
+          <div class="r"><b>TOPLAM</b><b>1.100,00</b></div>
+          <div class="r"><span>KREDİ KARTI</span><span>1.100,00</span></div>
+        </div>
+        <div class="frame"></div>
+        <div class="scan" data-at="500"></div>
+        <div class="shutter"></div>
+      </div>
+    </div>
+
+    <div class="scene" data-dur="5400">
+      <div class="s-top">Fişi kontrol edin<small>1 / 2</small></div>
+      <div class="card">
+        <div class="fl" data-at="150"><label>Satıcı</label><div class="v">Körfez Balık Lokantası</div></div>
+        <div class="fl" data-at="300"><label>Tarih ve tutar</label><div class="v">27.10.2026&nbsp;&nbsp;₺1.100,00</div></div>
+        <div class="fl" data-at="450"><label>KDV</label><div class="v">₺100,00 (%10)</div></div>
+        <div class="fl" data-at="600"><label>Gider grubu</label><div class="v">Müşteri ağırlama</div></div>
+        <div class="fl miss" data-at="750" data-fix="2300" data-fixtext="Ege Gıda, 2 kişi"><label>Kimlerle</label><div class="v">Okunamadı, elle yazın</div></div>
+      </div>
+      <div class="okline" data-at="3500">29 vergi kontrolü geçti, uyarı yok</div>
+      <div class="abtn" data-at="3800" data-press="4700" style="margin-top:auto">Doğru, sıradaki fiş</div>
+    </div>
+
+    <div class="scene" data-dur="5600">
+      <div class="s-top">Onay bekleyen<span class="s-av" style="background:var(--kase)">AÇ</span></div>
+      <div class="card">
+        <div style="font-weight:600">İzmir fuarı</div>
+        <div class="muted" style="font-size:.75rem">Veli Mahmut, 2 fiş</div>
+        <div class="tot" style="margin-top:6px">₺1.550,00</div>
+      </div>
+      <div class="card" data-at="300">
+        <div class="kv"><span>Müşteri ağırlama</span><b>₺1.100,00</b></div>
+        <div class="gbar"><i style="--w:.71"></i></div>
+        <div class="kv" style="margin-top:8px"><span>Akaryakıt</span><b>₺450,00</b></div>
+        <div class="gbar"><i style="--w:.29"></i></div>
+      </div>
+      <div class="card" data-at="700">
+        <div class="kv"><span>Körfez Balık, 27.10</span><b>₺1.100,00</b></div>
+        <div class="muted" style="font-size:.75rem">Kimlerle: Ege Gıda, 2 kişi</div>
+        <div class="kv" style="margin-top:8px"><span>Opet, 27.10, 35 ABC 123</span><b>₺450,00</b></div>
+      </div>
+      <div class="stamp" data-at="2900">Onaylandı<small>Ali Çelik 28.10.2026</small></div>
+      <div class="okline" data-at="3700">Son onay için Selin Er'e gönderildi</div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:auto" data-at="1300"><div class="abtn alt">İade et</div><div class="abtn" data-press="2600">Onayla</div></div>
+    </div>
+
+    <div class="scene" data-dur="5000">
+      <div class="s-top">Muhasebe<small>Kontrol ve aktarım</small></div>
+      <div class="card">
+        <div class="kv"><b>İzmir fuarı</b><b>₺1.550,00</b></div>
+        <div class="muted" style="font-size:.75rem">Selin Er onayladı, 28.10.2026</div>
+      </div>
+      <div class="card">
+        <table class="jr">
+          <tr data-at="300"><td>770.01 Yemek</td><td>1.000,00</td><td></td></tr>
+          <tr data-at="550"><td>191.10 KDV %10</td><td>100,00</td><td></td></tr>
+          <tr data-at="800"><td>770.03 Akaryakıt</td><td>375,00</td><td></td></tr>
+          <tr data-at="1050"><td>191.20 KDV %20</td><td>75,00</td><td></td></tr>
+          <tr data-at="1300"><td>335 Personele borçlar</td><td></td><td>1.550,00</td></tr>
+        </table>
+      </div>
+      <div class="files" data-at="2000"><span>Excel</span><span class="hl">Logo</span><span>Luca</span></div>
+      <div class="toast" data-at="2900">Logo aktarım dosyası indirildi</div>
+    </div>
+
+    <div class="scene" data-dur="5600">
+      <div class="s-top">Ödemeler<small>Ödeme yetkilisi</small></div>
+      <div class="card">
+        <div class="kv"><b>Veli Mahmut</b><b>₺1.550,00</b></div>
+        <div class="fl" style="margin-top:10px"><label>IBAN</label><div class="v iban">TR33 0006 1005 1978 6457 8413 26</div></div>
+        <div class="fl"><label>Açıklama</label><div class="v">İzmir fuarı masrafı</div></div>
+        <div class="kv" style="margin-top:8px"><span>Ziraat Bankası</span><span class="copy">Kopyala</span></div>
+      </div>
+      <div class="toast" data-at="900" style="bottom:72px">IBAN ve tutar kopyalandı</div>
+      <div class="abtn" data-at="200" data-press="2300" style="margin-top:auto">Ödeme yapıldı</div>
+      <div class="notif" data-at="2900"><span class="s-av">g</span><div><b>Masrafınız ödendi</b><br>İzmir fuarı, ₺1.550,00</div></div>
+    </div>
+  </div></div>
+</div>

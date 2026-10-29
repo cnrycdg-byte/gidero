@@ -1,20 +1,17 @@
 title: Şirketler için | Gidero
 description: Onay zincirinizi organizasyon şemasında çizin. Çalışan fişi çeker, onaylayıcı tek ekranda onaylar, muhasebe aktarır, ödeme yetkilisi IBAN'a öder.
-scripts: assets/pricing.js
+scripts: assets/pricing.js, assets/flow.js
 ---
-<section class="intro">
+<section class="hero text">
   <div class="wrap">
     <div>
       <p class="crumb"><a href="index.html">Ana sayfa</a> / Şirketler için</p>
-      <h1>Onay zincirinizi siz çizin, masraflar kendiliğinden aksın.</h1>
-      <p class="lead">Her şirketin onay süreci farklı. Gidero'da direktörlüklerinizi, müdürlerinizi ve son onayın kimde olduğunu şemada çizersiniz; her rapor o yoldan yürür, kimin elinde olduğu her an görünür.</p>
+      <h1>Onay zincirinizi siz çizin, masraflar o yoldan aksın.</h1>
+      <p class="lead">Her şirketin onay süreci farklı. Direktörlüklerinizi, müdürlerinizi ve son onayın kimde olduğunu şemada çizersiniz; her rapor o yoldan yürür, kimin elinde olduğu her an görünür.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="https://gidero.expo.app">14 gün ücretsiz deneyin</a>
-        <a class="btn btn-ghost" href="#sema" style="color:#fff">Onay şemasını deneyin</a>
+        <a class="btn btn-primary" href="https://gidero.expo.app">14 gün ücretsiz deneyin</a>
+        <a class="btn btn-line" href="#sema">Örnek şemayı deneyin</a>
       </div>
-    </div>
-    <div class="phones">
-      <div class="phone"><img src="img/screens/tel-onay-ozet.webp" alt="Onaylayıcının rapor özeti: gider grupları, fişler, kimlerle, alkol ve uyarılar" width="420" height="900"></div>
     </div>
   </div>
 </section>
@@ -22,9 +19,8 @@ scripts: assets/pricing.js
 <section class="sec" id="sema">
   <div class="wrap">
     <div class="sec-head">
-      <div class="kicker">Onay şeması</div>
       <h2>Bir kişiye dokunun, raporunun yolunu görün</h2>
-      <p class="lead">Rapor alttan yukarı onaylanır ve "son onay" kişisinde biter; sonra muhasebeye ve ödemeye geçer. Şemayı uygulamada sürükle bırakla siz kurarsınız; buradaki örnek şirkette deneyin.</p>
+      <p class="lead">Rapor alttan yukarı onaylanır ve son onay kişisinde biter; sonra muhasebeye ve ödemeye geçer. Şemayı uygulamada sürükleyip bırakarak kurarsınız; buradaki örnek şirkette deneyin.</p>
     </div>
     <div class="org">
       <div class="tree" id="tree" aria-label="Örnek organizasyon şeması"></div>
@@ -33,68 +29,42 @@ scripts: assets/pricing.js
         <p class="muted" id="whoSub" style="margin:0">Satış Temsilcisi, Ege bölgesi</p>
         <ol class="route" id="route"></ol>
         <label class="toggle"><input type="checkbox" id="gm"> Satışta son onay Genel Müdür'de olsun</label>
-        <p class="muted" style="font-size:14px;margin-top:12px">Onaylayıcılar da masraf girer; onların raporu kendi üstlerine gider. Kimse kendi raporunu onaylayamaz.</p>
+        <p class="muted" style="font-size:.875rem;margin-top:12px">Onaylayıcılar da masraf girer; onların raporu kendi üstlerine gider. Kimse kendi raporunu onaylayamaz.</p>
       </aside>
     </div>
   </div>
 </section>
 
-<section class="sec paper">
-  <div class="wrap grid2">
-    <div>
-      <div class="kicker">Çalışan</div>
-      <h2>Fişi olduğu yerde bitirir</h2>
-      <ol class="steps">
-        <li><div><b>Rapor açar</b><span>"İzmir fuarı" gibi bir başlık yazar; oluşturma tarihini ve onaylayacak kişileri görür.</span></div></li>
-        <li><div><b>Fişleri çeker ya da galeriden ekler</b><span>Gidero tutarı, tarihi, satıcıyı ve KDV'yi okur; e-Arşiv karekodunu çözer.</span></div></li>
-        <li><div><b>Her fişi kontrol eder</b><span>Okunamayan alanlar turuncudur. Fotoğraf yanında büyük durur; "Doğru, sıradaki fiş" ile hızla ilerler.</span></div></li>
-        <li><div><b>Gönderir, takip eder</b><span>Raporun kimde beklediğini görür; ödendiğinde bildirim alır.</span></div></li>
-      </ol>
+<section class="sec tint" id="yolculuk">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Bir raporun yolculuğu</h2>
+      <p class="lead">Veli Mahmut İzmir fuarında müşteriyle yemek yedi ve depoyu doldurdu. Raporu fişten ödemeye böyle ilerler; bir adıma tıklayıp o ekrana geçebilirsiniz.</p>
     </div>
-    <div class="shot"><img src="img/screens/fis-kontrol.webp" alt="Fiş kontrol ekranı: solda form, okunamayan alanlar turuncu; sağda fiş fotoğrafı" loading="lazy" width="1400" height="900"></div>
+    <!--PART:flow-sirket-->
   </div>
 </section>
 
 <section class="sec">
   <div class="wrap grid2">
-    <div class="phones">
-      <div class="phone"><img src="img/screens/tel-rapor-akis.webp" alt="Rapor ekranında adım adım onay akışı" loading="lazy" width="420" height="900"></div>
-    </div>
     <div>
-      <div class="kicker">Onaylayıcı</div>
-      <h2>Fotoğraf değil, özet</h2>
-      <p class="lead">Onaylayıcı raporu açtığında bütün fişleri tek ekranda görür: gider grubu toplamları, her fişin tarihi, satıcısı, tutarı, KDV'si, kimlerle yapıldığı, açıklaması ve vergi uyarıları.</p>
-      <p class="muted">Onaylar ya da nedenini yazarak iade eder. Rapor bir üst onaylayıcıya geçer; kimin onayladığı, ne zaman ve hangi notla, akış şemasında herkese görünür.</p>
+      <h2>Çalışan fişi masa başında da kontrol eder</h2>
+      <p class="lead">Bilgisayarda fotoğraf sağda büyük durur, form solda. Okunamayan alanlar turuncudur; "Doğru, sıradaki fiş" ile bir sonrakine geçilir.</p>
     </div>
+    <div class="shot"><img src="img/screens/fis-kontrol.webp" alt="Fiş kontrol ekranı: solda form, okunamayan alanlar turuncu; sağda fiş fotoğrafı" loading="lazy" width="1400" height="900"></div>
   </div>
 </section>
 
-<section class="sec deep">
-  <div class="wrap grid2">
-    <div>
-      <div class="kicker">Muhasebe ve ödeme</div>
-      <h2>Onaydan sonra kimse kovalamaz</h2>
-      <ol class="steps">
-        <li><div><b>Muhasebe masası</b><span>Onaylanan raporlar düşer: kontrol, Excel/Logo/Luca aktarımı, ödeme, arşiv.</span></div></li>
-        <li><div><b>Finans: ödeme sorumlusuna aktar</b><span>Ödeme yetkilisi muhasebeci de olabilir, başka biri de. Kişi eklerken "ödeme yetkilisi" rolünü verirsiniz.</span></div></li>
-        <li><div><b>Tek tıkla kopyala, öde</b><span>Çalışana ödenecek tutar (şirket kartıyla ödenenler ve reddedilen alkol hariç), IBAN, hesap sahibi ve açıklama hazır.</span></div></li>
-        <li><div><b>Ödeme yapıldı</b><span>Rapor arşive kalkar, çalışana "masrafınız ödendi" bildirimi gider.</span></div></li>
-      </ol>
-    </div>
-    <div class="shot"><img src="img/screens/odemeler.webp" alt="Ödemeler ekranı: kişi, ödenecek tutar, kopyalanabilir IBAN ve Ödeme yapıldı düğmesi" loading="lazy" width="1400" height="900"></div>
-  </div>
-</section>
-
-<section class="sec paper">
+<section class="sec tint">
   <div class="wrap">
-    <div class="sec-head"><div class="kicker">Kurallar sizin</div><h2>Şirketinize göre ayarlanır</h2></div>
-    <div class="grid3">
-      <div class="feat"><h3>Gider grupları ve sınırlar</h3><p>Yemek, akaryakıt, konaklama; hesap kodlarıyla. Kişi başı aylık, 3 aylık ya da yıllık sınır koyun; aşım anında görünür.</p></div>
-      <div class="feat"><h3>Vergi uyarıları</h3><p>Fatura sınırı, mükerrer fiş, şirket adına kesilmemiş belge, binek araç kısıtı, geçersiz KDV oranı: her fişte 29 kontrol.</p></div>
-      <div class="feat"><h3>Alkollü içki kuralı</h3><p>Ödenmez, ödenir ama vergiden düşülmez (KKEG) ya da normal gider: siz seçersiniz, muhasebe fiş bazında değiştirebilir.</p></div>
-      <div class="feat"><h3>Araç ve plaka</h3><p>Çalışanın kartına araçlarını girin; akaryakıt fişindeki plaka eşleşmezse uyarı çıkar.</p></div>
-      <div class="feat"><h3>Logonuz ve renkleriniz</h3><p>Şirketinize giren herkes uygulamayı kendi kurumsal renklerinizle görür.</p></div>
-      <div class="feat"><h3>IBAN gizliliği</h3><p>Banka bilgisini yalnızca kişinin kendisi, muhasebe ve ödeme yetkilisi görür.</p></div>
+    <div class="sec-head"><h2>Kurallar şirketinize göre</h2></div>
+    <div class="dl">
+      <div><h3>Gider grupları ve sınırlar</h3><p>Yemek, akaryakıt, konaklama; hesap kodlarıyla. Kişi başı aylık, 3 aylık ya da yıllık sınır koyun; aşım anında görünür.</p></div>
+      <div><h3>Vergi uyarıları</h3><p>Fatura gereken tutar, mükerrer fiş, şirket adına kesilmemiş belge, binek araç kısıtı, geçersiz KDV oranı: her fişte 29 kontrol.</p></div>
+      <div><h3>Alkollü içki</h3><p>Ödenmez, ödenir ama vergiden düşülmez (KKEG) ya da normal gider. Siz seçersiniz; muhasebe fiş bazında değiştirebilir.</p></div>
+      <div><h3>Araç ve plaka</h3><p>Çalışanın araçlarını girin; akaryakıt fişindeki plaka eşleşmezse uyarı çıkar.</p></div>
+      <div><h3>Logonuz ve renkleriniz</h3><p>Şirketinize giren herkes uygulamayı kendi kurumsal renklerinizle görür.</p></div>
+      <div><h3>Kim ödedi</h3><p>Şirket kartı, avans ya da kasa ile ödenenler çalışana ödenmez; muhasebede doğru hesaba yazılır.</p></div>
     </div>
   </div>
 </section>
@@ -102,7 +72,6 @@ scripts: assets/pricing.js
 <section class="sec" id="fiyat">
   <div class="wrap">
     <div class="sec-head">
-      <div class="kicker">Fiyat</div>
       <h2>Tek paket, kişi sayısı arttıkça ucuzlar</h2>
       <p class="lead">Yalnızca masraf giren çalışanlar sayılır; onaylayıcı, muhasebeci ve ödeme yetkilisi ücretsizdir. Yıllık tek ödemede kişi başı fiyat daha da düşer.</p>
     </div>
@@ -110,25 +79,23 @@ scripts: assets/pricing.js
   </div>
 </section>
 
-<section class="sec paper">
+<section class="sec tint">
   <div class="wrap">
-    <div class="sec-head"><div class="kicker">Sorular</div><h2>Şirketlerin sorduğu</h2></div>
+    <div class="sec-head"><h2>Şirketlerin sorduğu</h2></div>
     <div class="faq">
       <details><summary>Onay zincirini kim kurar?</summary><p>Şirket yöneticisi. Kişileri ekler, ünvanlarını ve kime bağlı olduklarını şemada sürükleyerek belirler, son onayın kimde olduğunu işaretler.</p></details>
       <details><summary>Bir yönetici ayrılırsa raporlar takılır mı?</summary><p>Hayır. Kişiyi ekipten çıkardığınızda ona bağlı kişiler onun yöneticisine bağlanır ve bekleyen raporlar yeni onaylayıcıya geçer.</p></details>
-      <details><summary>Muhasebe dışarıda, bir büroda. Olur mu?</summary><p>Olur. Büronuzdaki muhasebeciyi şirketinize "muhasebeci" rolüyle eklersiniz; onaylanan raporlar onun masasına düşer.</p></details>
+      <details><summary>Muhasebemiz dışarıda, bir büroda. Olur mu?</summary><p>Olur. Büronuzdaki muhasebeciyi şirketinize "muhasebeci" rolüyle eklersiniz; onaylanan raporlar onun masasına düşer.</p></details>
       <details><summary>Çalışanın IBAN'ını kim görür?</summary><p>Kişinin kendisi, muhasebeci ve ödeme yetkilisi. Şirket yöneticisi IBAN'ın kayıtlı olduğunu görür ama kendisini göremez.</p></details>
-      <details><summary>Şirket kartıyla yapılan harcamalar ne olur?</summary><p>Çalışan fişte "kim ödedi" seçer. Şirket kartı, avans ya da kasa ile ödenenler çalışana ödenmez; muhasebede doğru hesaba yazılır.</p></details>
+      <details><summary>Ödeme yetkilisi kim olabilir?</summary><p>Muhasebeci de olabilir, finanstan başka biri de. Kişi eklerken "ödeme yetkilisi" rolünü verirsiniz; onaylanan raporlar muhasebeden ona aktarılır.</p></details>
     </div>
   </div>
 </section>
 
-<section class="sec">
+<section class="close">
   <div class="wrap">
-    <div class="cta">
-      <div><h2>Onay şemanızı 10 dakikada kurun</h2><p>14 gün ücretsiz. İlk raporu bugün onaylatın.</p></div>
-      <a class="btn btn-light" href="https://gidero.expo.app">Hemen başlayın</a>
-    </div>
+    <div><h2>Onay şemanızı 10 dakikada kurun</h2><p>14 gün ücretsiz. İlk raporu bugün onaylatın.</p></div>
+    <div class="cta-row"><a class="btn btn-light" href="https://gidero.expo.app">Ücretsiz başlayın</a></div>
   </div>
 </section>
 <!--SCRIPT-->
@@ -152,7 +119,7 @@ scripts: assets/pricing.js
   var sel = 'v', gmFinal = false;
   function isFinal(id) { return id === 'gm' || (P[id].final && !(gmFinal && id === 'sd')); }
   function node(id) {
-    var p = P[id], badge = isFinal(id) ? '<span class="badge">Son onay</span>' : p.acc ? '<span class="badge" style="background:#E6F1EE;color:#0B6E5F">Muhasebe</span>' : '';
+    var p = P[id], badge = isFinal(id) ? '<span class="badge">Son onay</span>' : p.acc ? '<span class="badge acc">Muhasebe</span>' : '';
     var k = kids(id);
     return '<li><button type="button" class="node" data-id="' + id + '"><b>' + p.n + '</b><small>' + p.t + '</small>' + badge + '</button>' + (k.length ? '<ul>' + k.map(node).join('') + '</ul>' : '') + '</li>';
   }
