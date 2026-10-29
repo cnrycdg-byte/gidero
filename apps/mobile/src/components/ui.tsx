@@ -6,6 +6,7 @@ import { Text } from '@/components/text';
 import Svg, { Path } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/icon';
+import { useWide } from '@/lib/layout';
 import { fonts, radius, space, type, useColors, type Palette } from '@/constants/theme';
 import { STATUS_LABEL, type ReportStatus } from '@/lib/types';
 
@@ -92,8 +93,9 @@ type RowProps = {
 
 export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor, iconBg, right, onPress, chevron }: RowProps) {
   const c = useColors();
+  const wide = useWide();
   const body = (
-    <View style={styles.row}>
+    <View style={[styles.row, wide && { minHeight: 48, paddingVertical: 9 }]}>
       {icon && (
         <View style={[styles.rowIcon, { backgroundColor: iconBg ?? c.penSoft }]}>
           <Icon name={icon} size={17} color={iconColor ?? c.pen} />
@@ -172,6 +174,7 @@ type ButtonProps = {
 
 export function Button({ title, onPress, variant = 'primary', icon, loading, disabled, size = 'regular', style }: ButtonProps) {
   const c = useColors();
+  const wide = useWide();
   const look = buttonLook(c, variant);
   const off = disabled || loading;
   return (
@@ -185,7 +188,10 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       style={({ pressed }) => [
         styles.button,
         size === 'large' && { minHeight: 58, borderRadius: radius.lg },
+        // Bilgisayarda düğme yazısı kadar geniş; satırın tamamını kaplamaz
+        wide && { minHeight: size === 'large' ? 46 : 40, alignSelf: 'flex-start', paddingHorizontal: 18, borderRadius: radius.md },
         { backgroundColor: look.bg, opacity: off ? 0.45 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+        variant === 'secondary' && { borderWidth: 1, borderColor: c.paperLine },
         style,
       ]}>
       {loading ? (
@@ -193,7 +199,7 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           {icon && <Icon name={icon} size={size === 'large' ? 20 : 17} color={look.fg} />}
-          <Text style={{ color: look.fg, fontSize: size === 'large' ? 18 : 16, fontFamily: size === 'large' ? fonts.display : fonts.semibold }}>{title}</Text>
+          <Text style={{ color: look.fg, fontSize: wide ? (size === 'large' ? 16 : 14) : size === 'large' ? 18 : 16, fontFamily: size === 'large' ? fonts.display : fonts.semibold }}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -221,9 +227,10 @@ function buttonLook(c: Palette, v: ButtonProps['variant']) {
 
 export function Field({ label, hint, ...props }: TextInputProps & { label: string; hint?: string }) {
   const c = useColors();
+  const wide = useWide();
   const [focus, setFocus] = useState(false);
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: 6, maxWidth: wide ? 560 : undefined, width: '100%' }}>
       <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>{label}</Text>
       <TextInput
         placeholderTextColor={c.faint}
@@ -239,6 +246,7 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
         style={[
           styles.input,
           { color: c.ink, backgroundColor: c.canvas, borderColor: focus ? c.pen : c.paperLine },
+          wide && { paddingVertical: 9, fontSize: 15 },
           props.editable === false && { opacity: 0.7 },
           props.multiline && { minHeight: 84, textAlignVertical: 'top' },
           props.style,
