@@ -20,7 +20,7 @@
         '<div class="qty"><output data-o="qty">10</output><span class="muted">' + per + '</span></div>' +
         '<input type="range" id="q-' + kind + '" data-o="range" min="1" max="' + (bureau ? 200 : 500) + '" value="10">' +
         '<div class="ticks"><span data-o="min">1</span><span>' + (bureau ? 200 : 500) + '</span></div>' +
-        '<p class="hint">' + (bureau ? 'Her firmada 3 çalışan dahil; büro personeli ücretsiz.' : 'Onaylayıcı, muhasebeci ve ödeme yetkilisi ücretsizdir.') + '</p></div>' +
+        '<p class="hint">' + (bureau ? 'Her firmada 3 çalışan pakete dahildir, büro personeli ücretsizdir.' : 'Onaylayıcı, muhasebeci ve ödeme yetkilisi ücretsizdir.') + '</p></div>' +
         '<div class="prow"><label>Ödeme</label><div class="seg" role="group" aria-label="Ödeme dönemi"><button type="button" data-p="year" aria-pressed="true">Yıllık tek ödeme</button><button type="button" data-p="month" aria-pressed="false">Aylık</button></div></div>' +
         '<div class="bands" data-o="bands"></div>' +
       '</div>' +

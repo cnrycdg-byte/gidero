@@ -1,22 +1,22 @@
 <div class="gains" data-tabs>
   <div class="gtabs" role="tablist" aria-label="Gidero'nun faydaları">
-    <button role="tab" id="g-t-vergi" aria-controls="g-p-vergi" aria-selected="true"><b>Vergi</b><span>Sorun, fiş daha çalışanın elindeyken görünür</span></button>
-    <button role="tab" id="g-t-kacak" aria-controls="g-p-kacak" aria-selected="false" tabindex="-1"><b>Kaçak</b><span>Aynı fiş iki kez, başka aracın yakıtı giremez</span></button>
-    <button role="tab" id="g-t-zaman" aria-controls="g-p-zaman" aria-selected="false" tabindex="-1"><b>Zaman</b><span>Ay sonunda Excel doldurmak yok</span></button>
-    <button role="tab" id="g-t-sinir" aria-controls="g-p-sinir" aria-selected="false" tabindex="-1"><b>Harcama sınırları</b><span>Kim, hangi grupta, ne kadar harcadı</span></button>
-    <button role="tab" id="g-t-muh" aria-controls="g-p-muh" aria-selected="false" tabindex="-1"><b>Muhasebe</b><span>Her fiş hesap koduyla, yevmiyesi hazır gelir</span></button>
-    <button role="tab" id="g-t-arsiv" aria-controls="g-p-arsiv" aria-selected="false" tabindex="-1"><b>Arşiv ve çıktı</b><span>Fişler kaybolmaz, dosyaya az kâğıtla girer</span></button>
+    <button role="tab" id="g-t-vergi" aria-controls="g-p-vergi" aria-selected="true"><b>Vergi</b><span>Sorunlu fişi çalışan daha dükkândayken öğrenir</span></button>
+    <button role="tab" id="g-t-kacak" aria-controls="g-p-kacak" aria-selected="false" tabindex="-1"><b>Kaçak</b><span>Aynı fiş iki kez ödenmez, başka aracın yakıtı yazılmaz</span></button>
+    <button role="tab" id="g-t-zaman" aria-controls="g-p-zaman" aria-selected="false" tabindex="-1"><b>Zaman</b><span>Ay sonunda kimse Excel doldurmaz</span></button>
+    <button role="tab" id="g-t-sinir" aria-controls="g-p-sinir" aria-selected="false" tabindex="-1"><b>Harcama sınırları</b><span>Kimin hangi gider grubunda ne kadar harcadığı görünür</span></button>
+    <button role="tab" id="g-t-muh" aria-controls="g-p-muh" aria-selected="false" tabindex="-1"><b>Muhasebe</b><span>Her fiş hesap koduyla ve yevmiye kaydıyla gelir</span></button>
+    <button role="tab" id="g-t-arsiv" aria-controls="g-p-arsiv" aria-selected="false" tabindex="-1"><b>Arşiv ve çıktı</b><span>Fişler kaybolmaz, çıktısı az kâğıt harcar</span></button>
   </div>
 
   <div class="gpanel" role="tabpanel" id="g-p-vergi" aria-labelledby="g-t-vergi">
     <div class="gtext">
-      <h3>Vergi sorunu, fiş daha çalışanın elindeyken görünür</h3>
+      <h3>Vergi sorununu fiş daha çalışanın elindeyken görürsünüz</h3>
       <dl>
-        <dt>Fatura gereken yerde fatura</dt><dd>2026'da 12.000 TL'yi aşan harcamada fiş yetmez. Gidero çalışana faturayı o an istemesini söyler.</dd>
-        <dt>Şirket adına kesilmiş mi</dt><dd>Faturadaki vergi numarası şirketinizle eşleşmezse uyarır; bilgi fişinde e-Arşiv faturasının onayını ister.</dd>
-        <dt>İndirilemeyecek KDV</dt><dd>Binek araçta kabul edilmeyen payı, alkolü ve süresi geçmiş KDV'yi ayrı satıra yazar.</dd>
+        <dt>Fatura gereken yerde fatura</dt><dd>2026'da 12.000 TL'yi aşan harcamada fiş yetmez, fatura gerekir. Gidero bunu çalışana kasadayken söyler, o da faturayı hemen ister.</dd>
+        <dt>Fatura şirket adına mı?</dt><dd>Faturadaki vergi numarası şirketinizinkiyle eşleşmezse Gidero uyarır. Bilgi fişinde, e-Arşiv faturasının şirket adına geldiğini çalışana onaylatır.</dd>
+        <dt>İndirilemeyecek KDV</dt><dd>Binek araçta gider yazılamayan payı, alkolü ve indirim süresi geçmiş KDV'yi ayrı satırda gösterir.</dd>
       </dl>
-      <p class="gnote">Dayanak: VUK 232, KDVK 29, GVK 40/1-5. Tutarlar her yıl güncellenir; son karar muhasebecinizindir.</p>
+      <p class="gnote">Dayanak: VUK 232, KDVK 29, GVK 40/1-5. Tutarlar her yıl güncellenir. Son kararı muhasebeciniz verir.</p>
     </div>
     <div class="gvis">
       <div class="rcpt" style="transform:rotate(-2deg)">
@@ -31,11 +31,11 @@
 
   <div class="gpanel" role="tabpanel" id="g-p-kacak" aria-labelledby="g-t-kacak" hidden>
     <div class="gtext">
-      <h3>Aynı fiş iki kez, başka aracın yakıtı hiç giremez</h3>
+      <h3>Aynı fiş iki kez ödenmez, başka aracın yakıtı masrafa yazılmaz</h3>
       <dl>
-        <dt>Mükerrer fiş</dt><dd>Aynı fotoğraf, aynı ETTN ya da aynı satıcı ve fiş numarası ikinci kez gelirse yakalanır; kişiler arasında bile.</dd>
-        <dt>Plaka kontrolü</dt><dd>Akaryakıt fişindeki plaka, çalışanın kartındaki araçlarla karşılaştırılır.</dd>
-        <dt>Kendi masrafını onaylama yok</dt><dd>Kimse kendi raporunu onaylayamaz, kendi ödemesini işaretleyemez. Her değişiklik kim ve ne zaman bilgisiyle saklanır.</dd>
+        <dt>Mükerrer fiş</dt><dd>Aynı fotoğraf, aynı ETTN ya da aynı satıcı ve fiş numarası ikinci kez gelirse Gidero yakalar. Fişi iki farklı çalışan yüklese bile.</dd>
+        <dt>Plaka kontrolü</dt><dd>Akaryakıt fişindeki plaka, çalışanın tanımlı araçlarıyla karşılaştırılır. Eşleşmezse onaylayıcı bunu görür.</dd>
+        <dt>Kimse kendi masrafını onaylayamaz</dt><dd>Kendi raporunu onaylamak da kendi ödemesini "ödendi" yapmak da mümkün değil. Her değişiklik, kimin ne zaman yaptığıyla birlikte saklanır.</dd>
       </dl>
     </div>
     <div class="gvis stack">
@@ -47,22 +47,22 @@
 
   <div class="gpanel" role="tabpanel" id="g-p-zaman" aria-labelledby="g-t-zaman" hidden>
     <div class="gtext">
-      <h3>Ay sonunda Excel doldurmak yok</h3>
+      <h3>Ay sonunda kimse Excel doldurmaz</h3>
       <dl>
-        <dt>Harcadığınız yerde çekin</dt><dd>Kâğıt kaybolsa da fişin görüntüsü kayıtta kalır. Tek fotoğrafta birden çok fiş ayrı ayrı okunur.</dd>
-        <dt>Rapor kendiliğinden oluşur</dt><dd>Fişler ayın raporuna düşer; toplam ve gider grupları hazırdır.</dd>
-        <dt>Onay tek ekranda</dt><dd>Yönetici fotoğraflara tek tek bakmadan özeti görür, telefondan onaylar. Rapor kimde bekliyorsa herkes görür.</dd>
+        <dt>Harcadığınız yerde çekin</dt><dd>Fişi aldığınız anda fotoğrafını çekin; kâğıt sonra kaybolsa da görüntüsü kayıtta kalır. Birkaç fişi tek fotoğrafta da çekebilirsiniz, her biri ayrı okunur.</dd>
+        <dt>Rapor kendiliğinden oluşur</dt><dd>Çektiğiniz fiş açık raporunuza eklenir. Toplam tutar ve gider grubu dağılımı siz uğraşmadan hesaplanır.</dd>
+        <dt>Onay tek ekranda biter</dt><dd>Yönetici fotoğrafları tek tek açmadan raporun özetini görür ve telefondan onaylar. Raporun kimde beklediğini herkes görebilir.</dd>
       </dl>
     </div>
     <div class="gvis">
       <table class="vs">
         <thead><tr><th></th><th>Excel ve zarfla</th><th>Gidero ile</th></tr></thead>
         <tbody>
-          <tr><td>Fiş toplama</td><td>Ay sonunda cüzdan ve araç boşaltılır</td><td>Harcandığı anda fotoğraf</td></tr>
-          <tr><td>Bilgileri yazma</td><td>Tutar, tarih, KDV tek tek</td><td>Okunur, çalışan kontrol eder</td></tr>
-          <tr><td>Onay</td><td>Islak imza, masada bekleyen dosya</td><td>Telefondan, sırası belli</td></tr>
-          <tr><td>Muhasebe</td><td>Yeniden yazılır</td><td>Excel, Logo ya da Luca dosyası</td></tr>
-          <tr><td>Ödeme</td><td>"IBAN'ın neydi?"</td><td>Tek dokunuşla kopyala, öde</td></tr>
+          <tr><td>Fiş toplama</td><td>Ay sonunda cüzdan ve torpido gözü boşaltılır</td><td>Fiş alındığı anda fotoğrafı çekilir</td></tr>
+          <tr><td>Bilgileri yazma</td><td>Tutar, tarih ve KDV tek tek yazılır</td><td>Gidero okur, çalışan kontrol eder</td></tr>
+          <tr><td>Onay</td><td>Dosya imza için masada bekler</td><td>Telefondan onaylanır, sırası bellidir</td></tr>
+          <tr><td>Muhasebe</td><td>Her şey programa yeniden yazılır</td><td>Excel, Logo ya da Luca dosyası iner</td></tr>
+          <tr><td>Ödeme</td><td>"IBAN'ın neydi?" diye sorulur</td><td>IBAN ve tutar tek dokunuşla kopyalanır</td></tr>
         </tbody>
       </table>
     </div>
@@ -70,11 +70,11 @@
 
   <div class="gpanel" role="tabpanel" id="g-p-sinir" aria-labelledby="g-t-sinir" hidden>
     <div class="gtext">
-      <h3>Kim, hangi gider grubunda, ne kadar harcadı</h3>
+      <h3>Kimin hangi gider grubunda ne kadar harcadığını görürsünüz</h3>
       <dl>
-        <dt>Sınırı şirket koyar</dt><dd>Her gider grubuna kişi başı aylık, 3 aylık, 6 aylık ya da yıllık sınır.</dd>
-        <dt>Herkes kendi payını görür</dt><dd>Çalışan kendini, yönetici ekibini, muhasebe herkesi görür.</dd>
-        <dt>Aşım gizlenmez</dt><dd>Sınırı aşan fiş, raporda onaylayıcının önüne işaretli gelir.</dd>
+        <dt>Sınırı şirket koyar</dt><dd>Her gider grubuna kişi başı aylık, 3 aylık, 6 aylık ya da yıllık bir sınır koyabilirsiniz.</dd>
+        <dt>Herkes kendi payını görür</dt><dd>Çalışan kendi harcamasını, yönetici ekibininkini, muhasebe herkesinkini görür.</dd>
+        <dt>Sınır aşımı gözden kaçmaz</dt><dd>Sınırı aşan fiş, onaylayıcının önüne işaretli olarak gelir.</dd>
       </dl>
     </div>
     <div class="gvis">
@@ -90,11 +90,11 @@
 
   <div class="gpanel" role="tabpanel" id="g-p-muh" aria-labelledby="g-t-muh" hidden>
     <div class="gtext">
-      <h3>Her fiş, hesap koduyla gelir</h3>
+      <h3>Her fiş muhasebeye hesap koduyla gelir</h3>
       <dl>
-        <dt>Yevmiye kaydı hazır</dt><dd>Gider, KDV ve karşı hesap satırları Tekdüzen Hesap Planı'na göre ayrılır; borç ve alacak eşittir.</dd>
-        <dt>Programınıza aktarın</dt><dd>Excel dökümü her programa girer. Logo ve Luca biçimleri pilot bürolarla doğrulanıyor.</dd>
-        <dt>Kim ödedi, doğru hesaba</dt><dd>Çalışanın cebinden çıkanı personele borçlara, şirket kartını karta, avansı avansa yazar.</dd>
+        <dt>Yevmiye kaydı hazır</dt><dd>Gider, KDV ve karşı hesap satırları Tekdüzen Hesap Planı'na göre ayrılır. Borç ve alacak toplamı her zaman tutar.</dd>
+        <dt>Programınıza aktarın</dt><dd>Excel dökümünü her muhasebe programına alabilirsiniz. Logo ve Luca biçimlerini pilot bürolarla birlikte doğruluyoruz.</dd>
+        <dt>Ödeme şekline göre doğru hesap</dt><dd>Çalışanın cebinden ödediği tutar personele borçlara, şirket kartıyla ödenen karta, avanstan ödenen avansa yazılır.</dd>
       </dl>
     </div>
     <div class="gvis">
@@ -114,11 +114,11 @@
 
   <div class="gpanel" role="tabpanel" id="g-p-arsiv" aria-labelledby="g-t-arsiv" hidden>
     <div class="gtext">
-      <h3>Kâğıt fiş kaybolsa da kayıt kalır, dosyaya az kâğıtla girer</h3>
+      <h3>Kâğıt fiş kaybolsa da kayıt kalır, çıktısı az kâğıt harcar</h3>
       <dl>
-        <dt>Rapor ve fişler tek PDF'te</dt><dd>Rapor özeti, onay geçmişi ve fişlerin görüntüleri numaralı olarak yazdırılır ya da PDF olarak iner.</dd>
-        <dt>Bir A4'e olabildiğince çok fiş</dt><dd>Görseller sayfaya sıkıştırılarak dizilir: sıkı yerleşimde bir sayfaya 8-12 yazar kasa fişi. Soluk fişler ve faturalar için büyük yerleşim.</dd>
-        <dt>Verinizi her an indirin</dt><dd>Bütün raporlar, fişler ve görseller tek ZIP dosyası. Abonelik bitse de 10 gün indirebilirsiniz.</dd>
+        <dt>Rapor ve fişler tek PDF'te</dt><dd>Rapor özeti, onay geçmişi ve numaralanmış fiş görüntüleri tek seferde yazdırılır ya da PDF olarak iner.</dd>
+        <dt>Bir A4'e olabildiğince çok fiş</dt><dd>Görseller boşluk bırakmadan dizilir; sıkı yerleşimde bir sayfaya 8-12 yazar kasa fişi sığar. Soluk fişler ve faturalar için büyük yerleşimi seçebilirsiniz.</dd>
+        <dt>Verinizi her an indirin</dt><dd>Bütün raporları, fişleri ve görselleri tek ZIP dosyası olarak indirebilirsiniz. Abonelik bitse de bu hak 10 gün sürer.</dd>
       </dl>
     </div>
     <div class="gvis">
@@ -126,7 +126,7 @@
         <div class="a4h">Ekim masrafları, fiş görselleri 1/2</div>
         <div class="a4g"><div><i style="height:46%"></i><i style="height:30%"></i><i style="height:20%"></i></div><div><i style="height:34%"></i><i style="height:38%"></i><i style="height:24%"></i></div><div><i style="height:28%"></i><i style="height:22%"></i><i style="height:44%"></i></div><div><i style="height:40%"></i><i style="height:26%"></i><i style="height:18%"></i></div></div>
       </div>
-      <p class="gnote" style="text-align:center">12 fiş, özetle birlikte 3 sayfa</p>
+      <p class="gnote" style="text-align:center">12 fiş, rapor özetiyle birlikte 3 sayfa tutar.</p>
     </div>
   </div>
 </div>
