@@ -111,6 +111,12 @@ export function Sidebar() {
         ))}
       </ScrollView>
       <View style={styles.bottom}>
+        {!platformAdmin && (
+          <Pressable onPress={() => router.push({ pathname: '/feedback', params: { from: path } })} style={styles.item}>
+            <Icon name="feedback" size={16} color="rgba(255,255,255,0.75)" />
+            <Text style={[styles.itemText, { flex: 1, color: '#FFFFFF' }]}>Geri bildirim gönder</Text>
+          </Pressable>
+        )}
         <Pressable onPress={() => router.push('/notifications')} style={styles.item}>
           <Icon name="bell" size={16} color="rgba(255,255,255,0.75)" />
           <Text style={[styles.itemText, { flex: 1, color: '#FFFFFF' }]}>Bildirimler</Text>

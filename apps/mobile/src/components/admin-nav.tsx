@@ -15,6 +15,7 @@ const ITEMS: { href: string; label: string; icon: IconName; match?: string[] }[]
   { href: '/admin/finance', label: 'Gelir ve gider', icon: 'doc' },
   { href: '/admin/campaigns', label: 'Kampanyalar', icon: 'plus' },
   { href: '/admin/chats', label: 'Site sohbetleri', icon: 'send' },
+  { href: '/admin/feedback', label: 'Geri bildirimler', icon: 'feedback' },
   { href: '/test', label: 'Test sürüşü', icon: 'team' },
 ];
 

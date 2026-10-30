@@ -107,10 +107,13 @@ function RootStack() {
         <Stack.Screen name="admin/chats" options={{ title: 'Site sohbetleri' }} />
         <Stack.Screen name="admin/new-customer" options={{ title: 'Yeni müşteri' }} />
         <Stack.Screen name="admin/finance" options={{ title: 'Gelir ve gider' }} />
+        <Stack.Screen name="admin/feedback" options={{ title: 'Geri bildirimler' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
+        {/* Kendi içinde biten kısa iş: sayfa (sheet) olarak açılır (HIG Sheets, Modality) */}
+        <Stack.Screen name="feedback" options={{ title: 'Geri bildirim', presentation: 'modal' }} />
         <Stack.Screen name="tour" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack.Protected>
     </Stack>
