@@ -218,7 +218,7 @@ function Home() {
             accessibilityLabel={unread ? `${unread} okunmamış bildirim` : 'Bildirimler'}
             hitSlop={8}
             style={[styles.bell, { backgroundColor: unread ? c.stampSoft : c.paper }]}>
-            <Icon name="inbox" size={18} color={unread ? c.stamp : c.muted} />
+            <Icon name={unread ? 'bellFill' : 'bell'} size={19} color={unread ? c.stamp : c.muted} />
             {unread > 0 && (
               <View style={[styles.badge, { backgroundColor: c.red }]}>
                 <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{unread > 9 ? '9+' : String(unread)}</Text>

@@ -112,7 +112,7 @@ export function Sidebar() {
       </ScrollView>
       <View style={styles.bottom}>
         <Pressable onPress={() => router.push('/notifications')} style={styles.item}>
-          <Icon name="inbox" size={15} color="rgba(255,255,255,0.75)" />
+          <Icon name="bell" size={16} color="rgba(255,255,255,0.75)" />
           <Text style={[styles.itemText, { flex: 1, color: '#FFFFFF' }]}>Bildirimler</Text>
           <Badge n={n.notifications} on={false} />
         </Pressable>
