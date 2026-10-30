@@ -423,7 +423,7 @@ export default function ExpenseScreen() {
               editable={editable}
               placeholder="0,00"
               missing={m('total')}
-              style={{ fontSize: 30, fontFamily: fonts.displayHeavy, fontVariant: ['tabular-nums'] }}
+              style={{ fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}
               hint={readDiffers ? `Fişten okunan tutar: ${money(exp.read_total)}` : undefined}
             />
             <View style={{ flexDirection: 'row', gap: space.sm }}>

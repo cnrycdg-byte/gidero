@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Page } from '@/components/page';
 import { Text } from '@/components/text';
 import { Button, Field, Group, Notice, Row, SectionTitle } from '@/components/ui';
-import { radius, setThemePref, space, type, useColors, useThemePref, type ThemePref } from '@/constants/theme';
+import { radius, space, type, useColors } from '@/constants/theme';
 import { confirm } from '@/lib/confirm';
 import { useDemo } from '@/lib/demo';
 import { useSession } from '@/lib/session';
@@ -14,18 +14,12 @@ import { errorText, supabase } from '@/lib/supabase';
 import { ROLE_LABEL } from '@/lib/types';
 import { bankFromIban, fetchBank, formatIban, ibanError, saveBank } from '@/lib/bank';
 
-const THEMES: { key: ThemePref; label: string }[] = [
-  { key: 'system', label: 'Telefonun ayarı' },
-  { key: 'light', label: 'Açık' },
-  { key: 'dark', label: 'Koyu' },
-];
 
 // Hesabım: kişisel bilgiler, şifre, e-posta, görünüm, bildirimler, oturum
 export default function Profile() {
   const c = useColors();
   const { session, userId, active, bureaus, platformAdmin } = useSession();
   const demo = useDemo(userId);
-  const pref = useThemePref();
   const email = session?.user.email ?? '';
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -162,15 +156,6 @@ export default function Profile() {
           <Button title="Doğrulama bağlantısı gönder" onPress={changeEmail} loading={busy === 'email'} />
         </View>
       )}
-
-      <SectionTitle title="Görünüm" />
-      <View style={styles.chips}>
-        {THEMES.map((t) => (
-          <Pressable key={t.key} onPress={() => setThemePref(t.key)} style={chip(pref === t.key)}>
-            <Text style={{ color: pref === t.key ? c.onPen : c.ink, fontWeight: pref === t.key ? '600' : '400' }}>{t.label}</Text>
-          </Pressable>
-        ))}
-      </View>
 
       <SectionTitle title="Bildirimler" />
       <View style={[styles.box, { backgroundColor: c.paper }]}>

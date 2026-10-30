@@ -1,10 +1,3 @@
-import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque/700Bold';
-import { BricolageGrotesque_800ExtraBold } from '@expo-google-fonts/bricolage-grotesque/800ExtraBold';
-import { Figtree_400Regular } from '@expo-google-fonts/figtree/400Regular';
-import { Figtree_500Medium } from '@expo-google-fonts/figtree/500Medium';
-import { Figtree_600SemiBold } from '@expo-google-fonts/figtree/600SemiBold';
-import { Figtree_700Bold } from '@expo-google-fonts/figtree/700Bold';
-import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -14,8 +7,8 @@ import { View } from 'react-native';
 import { DemoBar } from '@/components/demo-bar';
 import { NewPassword } from '@/components/new-password';
 import { Loading } from '@/components/ui';
-import { fonts, loadThemePref, useColors, useScheme } from '@/constants/theme';
-import { ProfileButton } from '@/components/profile-button';
+import { useColors, useScheme } from '@/constants/theme';
+import { useStackOptions } from '@/lib/nav-options';
 import { Sidebar } from '@/components/sidebar';
 import { useWide } from '@/lib/layout';
 import { QueueProvider } from '@/lib/queue';
@@ -29,22 +22,10 @@ export default function RootLayout() {
   const palette = useColors();
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
   const navTheme = { ...base, colors: { ...base.colors, background: palette.canvas, card: palette.canvas } };
+  // Yazı tipi gömülmez, sistem fontu kullanılır (HIG Typography); açılış ekranı hemen kapanır
   useEffect(() => {
-    loadThemePref();
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
-  const [fontsLoaded, fontError] = useFonts({
-    BricolageGrotesque_700Bold,
-    BricolageGrotesque_800ExtraBold,
-    Figtree_400Regular,
-    Figtree_500Medium,
-    Figtree_600SemiBold,
-    Figtree_700Bold,
-  });
-  const fontsReady = fontsLoaded || !!fontError;
-  useEffect(() => {
-    if (fontsReady) SplashScreen.hideAsync().catch(() => {});
-  }, [fontsReady]);
-  if (!fontsReady) return null;
 
   return (
     <ThemeProvider value={navTheme}>
@@ -63,6 +44,7 @@ function RootStack() {
   const mustChange = session?.user.user_metadata?.must_change_password === true || session?.user.user_metadata?.must_change_password === 'true';
   const c = useColors();
   const wide = useWide();
+  const stackOptions = useStackOptions();
   useEffect(() => {
     if (userId) registerPush(userId);
   }, [userId]);
@@ -82,23 +64,12 @@ function RootStack() {
     <View style={{ flex: 1, flexDirection: withRail ? 'row' : 'column', backgroundColor: c.canvas }}>
     {withRail && <Sidebar />}
     <View style={{ flex: 1 }}>
-    <Stack
-      screenOptions={{
-        headerBackButtonDisplayMode: 'minimal',
-        headerTintColor: c.pen,
-        headerTitleStyle: { color: c.ink, fontFamily: fonts.display, fontSize: 18 },
-        headerLargeTitleStyle: { color: c.ink, fontFamily: fonts.displayHeavy },
-        contentStyle: withRail ? { backgroundColor: c.canvas, maxWidth: 1180, width: '100%' } : { backgroundColor: c.canvas },
-        headerShadowVisible: false,
-        headerLargeTitleShadowVisible: false,
-        headerStyle: { backgroundColor: c.canvas },
-        headerRight: signedIn && !withRail ? () => <ProfileButton /> : undefined,
-      }}>
+    <Stack screenOptions={stackOptions}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="index" options={{ title: '' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !hasMembership && !hasBureau}>
         <Stack.Screen name="onboarding" options={{ title: 'Hoş geldiniz', headerLargeTitle: true }} />
@@ -108,15 +79,12 @@ function RootStack() {
         <Stack.Screen name="new-report" options={{ title: 'Yeni rapor', presentation: 'modal' }} />
         <Stack.Screen name="report/[id]" options={{ title: '' }} />
         <Stack.Screen name="expense/[id]" options={{ title: 'Fiş' }} />
-        <Stack.Screen name="approvals" options={{ title: 'Onayınızı bekleyenler' }} />
         <Stack.Screen name="team" options={{ title: 'Ekip' }} />
         <Stack.Screen name="categories" options={{ title: 'Gider grupları' }} />
         <Stack.Screen name="limits" options={{ title: 'Sınır durumu' }} />
         <Stack.Screen name="export" options={{ title: 'Muhasebe aktarımı' }} />
         <Stack.Screen name="bulk" options={{ title: 'Toplu yükleme' }} />
         <Stack.Screen name="approval-flow" options={{ title: 'Onay zinciri' }} />
-        <Stack.Screen name="accounting" options={{ title: 'Muhasebe masası' }} />
-        <Stack.Screen name="payments" options={{ title: 'Ödemeler' }} />
         <Stack.Screen name="data-export" options={{ title: 'Verilerimi indir' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && (hasMembership || hasBureau)}>
@@ -142,7 +110,6 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
-        <Stack.Screen name="profile" options={{ title: 'Hesabım', headerRight: () => null }} />
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
         <Stack.Screen name="tour" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack.Protected>
