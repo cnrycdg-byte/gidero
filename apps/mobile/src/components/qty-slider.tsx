@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Text } from '@/components/text';
-import { fonts, radius, space, useColors } from '@/constants/theme';
+import { fonts, systemFont, radius, space, useColors } from '@/constants/theme';
 
 /** Sayı seçici: bilgisayarda kaydırıcı, her yerde - / + ve elle yazma */
 export function QtySlider({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (n: number) => void; label: string }) {
@@ -19,7 +19,7 @@ export function QtySlider({ value, min, max, onChange, label }: { value: number;
           onChangeText={(t) => onChange(clamp(Number(t.replace(/\D/g, ''))))}
           keyboardType="number-pad"
           accessibilityLabel={label}
-          style={[styles.num, { color: c.ink, borderColor: c.paperLine, fontFamily: fonts.display }]}
+          style={[styles.num, { color: c.ink, borderColor: c.paperLine, fontFamily: systemFont, fontWeight: '700' }]}
         />
         <Pressable onPress={() => onChange(clamp(value + 1))} style={[styles.btn, { backgroundColor: c.canvas }]} accessibilityLabel={`${label} artır`}>
           <Text style={{ fontSize: 20, color: c.ink }}>+</Text>

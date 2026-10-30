@@ -8,7 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/icon';
 import { useWide } from '@/lib/layout';
-import { fonts, radius, space, type, useColors, type Palette } from '@/constants/theme';
+import { fonts, hit, radius, space, systemFont, type, useColors, type Palette } from '@/constants/theme';
 import { STATUS_LABEL, type ReportStatus } from '@/lib/types';
 
 /* ------------------------------------------------------------------ */
@@ -53,17 +53,22 @@ export function Perforation({ color }: { color?: string }) {
 
 /* ---------------------------- Listeler ----------------------------- */
 
+/** Gruplu liste başlığı: Headline, birincil yazı rengi (Lists and tables > Style: grouped style uses headers) */
 export function SectionTitle({ title, action }: { title: string; action?: ReactNode }) {
   const c = useColors();
   return (
     <View style={styles.sectionTitle}>
-      <Text style={[type.section, { color: c.muted }]}>{title}</Text>
+      <Text accessibilityRole="header" style={[type.section, { color: c.ink }]}>{title}</Text>
       {action}
     </View>
   );
 }
 
-/** iOS ayarlar ekranı gibi gruplanmış liste */
+/**
+ * Inset grouped liste (iOS Ayarlar gibi). Lists and tables > "Prefer displaying text in a list or table";
+ * Style: "the grouped style uses headers, footers, and additional space to separate groups of data".
+ * Arka plan secondarySystemGroupedBackground, ayraç opaqueSeparator (Color > iOS, iPadOS).
+ */
 export function Group({ children }: { children: ReactNode }) {
   const c = useColors();
   const items = Children.toArray(children).filter(isValidElement);
@@ -98,15 +103,16 @@ export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor
   const c = useColors();
   const wide = useWide();
   const body = (
-    <View style={[styles.row, wide && { minHeight: 48, paddingVertical: 9 }]}>
+    <View style={[styles.row, wide && { paddingVertical: 9 }]}>
       {left}
       {!left && icon && (
         <View style={[styles.rowIcon, { backgroundColor: iconBg ?? c.penSoft }]}>
-          <Icon name={icon} size={17} color={iconColor ?? c.pen} />
+          <Icon name={icon} size={16} color={iconColor ?? c.pen} />
         </View>
       )}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[type.bodyStrong, { color: c.ink }]} numberOfLines={1}>
+        {/* Satır başlığı Body (17 pt), ikinci satır Footnote secondaryLabel (Typography > Specifications) */}
+        <Text style={[type.body, { color: c.ink }]} numberOfLines={1}>
           {title}
         </Text>
         {typeof subtitle === 'string' ? (
@@ -119,12 +125,14 @@ export function Row({ title, subtitle, value, valueTone = 'ink', icon, iconColor
       </View>
       {value != null && <Text style={[type.amount, { color: valueTone === 'ink' ? c.ink : c.muted }]}>{value}</Text>}
       {right}
+      {/* Alt sayfaya giden satırda açılma oku (Lists and tables > "use a disclosure indicator") */}
       {(chevron ?? !!onPress) && <Icon name="chevron" size={13} color={c.faint} />}
     </View>
   );
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ backgroundColor: pressed ? c.paperLine : 'transparent' })}>
+    // Seçimde kısa vurgu (Lists and tables > "Provide appropriate feedback when people select a list item")
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ backgroundColor: pressed ? c.fill : 'transparent' })}>
       {body}
     </Pressable>
   );
@@ -176,6 +184,11 @@ type ButtonProps = {
   style?: ViewStyle;
 };
 
+/**
+ * Düğmeler (Buttons): en olası eylem için belirgin (accent dolgulu) stil; ekranda bir ya da iki tane.
+ * Seçenekler arasında fark boyutla değil stille verilir. Dokunma alanı en az 44x44 pt, basılma hâli vardır.
+ * Yıkıcı eylem sistem kırmızısıyla gösterilir, ana (primary) rol verilmez.
+ */
 export function Button({ title, onPress, variant = 'primary', icon, loading, disabled, size = 'regular', style }: ButtonProps) {
   const c = useColors();
   const wide = useWide();
@@ -191,11 +204,10 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       disabled={off}
       style={({ pressed }) => [
         styles.button,
-        size === 'large' && { minHeight: 58, borderRadius: radius.lg },
+        size === 'large' && { minHeight: 56 },
         // Bilgisayarda düğme yazısı kadar geniş; satırın tamamını kaplamaz
-        wide && { minHeight: size === 'large' ? 46 : 40, alignSelf: 'flex-start', paddingHorizontal: 18, borderRadius: radius.md },
-        { backgroundColor: look.bg, opacity: off ? 0.45 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
-        variant === 'secondary' && { borderWidth: 1, borderColor: c.paperLine },
+        wide && { minHeight: hit, alignSelf: 'flex-start', paddingHorizontal: 18 },
+        { backgroundColor: look.bg, opacity: off ? 0.4 : pressed ? 0.7 : 1 },
         style,
       ]}>
       {loading ? (
@@ -203,7 +215,7 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           {icon && <Icon name={icon} size={size === 'large' ? 20 : 17} color={look.fg} />}
-          <Text style={{ color: look.fg, fontSize: wide ? (size === 'large' ? 16 : 14) : size === 'large' ? 18 : 16, fontFamily: size === 'large' ? fonts.display : fonts.semibold }}>{title}</Text>
+          <Text style={{ color: look.fg, fontSize: wide ? 15 : 17, fontWeight: '600' }}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -213,9 +225,9 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
 function buttonLook(c: Palette, v: ButtonProps['variant']) {
   switch (v) {
     case 'secondary':
-      return { bg: c.paper, fg: c.ink };
+      return { bg: c.fill, fg: c.pen }; // gri dolgulu, accent yazılı (bordered)
     case 'danger':
-      return { bg: c.redSoft, fg: c.red };
+      return { bg: c.redSoft, fg: c.red }; // systemRed (Buttons > Role: destructive)
     case 'plain':
       return { bg: 'transparent', fg: c.pen };
     case 'light':
@@ -250,7 +262,7 @@ export function Field({ label, hint, missing, ...props }: TextInputProps & { lab
         }}
         style={[
           styles.input,
-          { color: c.ink, backgroundColor: missing ? c.amberSoft : c.canvas, borderColor: focus ? c.pen : missing ? c.amber : c.paperLine },
+          { color: c.ink, backgroundColor: missing ? c.amberSoft : c.fill, borderColor: focus ? c.pen : missing ? c.amber : 'transparent' },
           wide && { paddingVertical: 9, fontSize: 15 },
           props.editable === false && { opacity: 0.7 },
           props.multiline && { minHeight: 84, textAlignVertical: 'top' },
@@ -265,10 +277,15 @@ export function Field({ label, hint, missing, ...props }: TextInputProps & { lab
 
 /* ---------------------------- Bildirim ----------------------------- */
 
+/**
+ * Bilgi ve uyarı kutusu. Anlam yalnızca renkle verilmez: her tonun kendi SF Symbol'ü vardır
+ * (Color > Inclusive color; Accessibility > "Convey information with more than color alone").
+ * Yazı birincil renktedir; renk ikon ve zeminde kalır (küçük metinde 4,5:1 karşıtlık).
+ */
 export function Notice({ text, tone = 'info' }: { text: string; tone?: 'info' | 'warn' | 'bad' | 'ok' }) {
   const c = useColors();
   const map = {
-    info: { bg: c.penSoft, fg: c.pen, icon: 'doc' as IconName },
+    info: { bg: c.penSoft, fg: c.pen, icon: 'info' as IconName },
     warn: { bg: c.amberSoft, fg: c.amber, icon: 'warning' as IconName },
     bad: { bg: c.redSoft, fg: c.red, icon: 'error' as IconName },
     ok: { bg: c.stampSoft, fg: c.stamp, icon: 'checkCircle' as IconName },
@@ -279,7 +296,7 @@ export function Notice({ text, tone = 'info' }: { text: string; tone?: 'info' | 
   return (
     <View style={[styles.notice, { backgroundColor: map.bg, alignItems: upgrade ? 'center' : 'flex-start' }]}>
       <Icon name={map.icon} size={16} color={map.fg} />
-      <Text style={[type.small, { color: map.fg, flex: 1, fontWeight: '500' }]}>{text}</Text>
+      <Text style={[type.subhead, { color: c.ink, flex: 1 }]}>{text}</Text>
       {upgrade && (
         <Pressable
           onPress={() => router.push('/subscription')}
@@ -330,13 +347,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: space.xs,
+    paddingHorizontal: space.lg,
     marginTop: space.sm,
+    minHeight: hit,
   },
-  group: { borderRadius: radius.lg, overflow: 'hidden' },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 60 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 13, minHeight: 56 },
-  rowIcon: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  group: { borderRadius: radius.md, overflow: 'hidden' },
+  // Ayraç yazının başladığı yerden başlar (16 kenar + 30 ikon + 12 boşluk)
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 58 },
+  // Satır en az 44 pt (Buttons > Best practices: hit region 44x44 pt), kenar boşluğu 16 pt
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 11, minHeight: hit + 8 },
+  rowIcon: { width: 30, height: 30, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   stamp: {
     borderWidth: 2,
     borderRadius: radius.sm,
@@ -345,14 +365,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     transform: [{ rotate: '-4deg' }],
   },
+  // iOS 26 düğmeleri kapsül biçimindedir; yükseklik 50 pt (en az 44 pt)
   button: {
     minHeight: 50,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.lg,
   },
-  input: { borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, fontFamily: fonts.regular },
+  input: { borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, minHeight: hit, fontSize: 17, fontFamily: systemFont },
   upgrade: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   notice: { borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   empty: { alignItems: 'center', gap: space.sm, paddingVertical: space.xxl, paddingHorizontal: space.xl },

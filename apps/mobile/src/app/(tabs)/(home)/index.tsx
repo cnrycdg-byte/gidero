@@ -4,11 +4,9 @@ import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } fro
 
 import { BureauHome } from '@/components/bureau-home';
 import { Page } from '@/components/page';
-import { ProfileButton } from '@/components/profile-button';
 import { useWide } from '@/lib/layout';
 import { Icon } from '@/components/icon';
 import { LimitBars } from '@/components/limit-bars';
-import { Logo } from '@/components/logo';
 import { QueueProgress } from '@/components/queue-progress';
 import { Text } from '@/components/text';
 import { Button, Empty, Group, Notice, Perforation, Row, SectionTitle, Slip, StatusTag } from '@/components/ui';
@@ -194,13 +192,8 @@ function Home() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: wide ? 'Raporlarım' : () => <Logo size={26} color={c.ink} />,
-          headerTitleAlign: 'left',
-          headerRight: wide ? undefined : () => <ProfileButton />,
-        }}
-      />
+      {/* Gezinme çubuğunda logo yerine ekranın adı (Branding > "Resist the temptation to display your logo throughout your app") */}
+      <Stack.Screen options={{ title: bureaus.length && active?.bureau_account_id ? 'Firma ekranı' : 'Raporlarım' }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
