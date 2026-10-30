@@ -13,6 +13,7 @@ import { dateText, money } from '@/lib/format';
 import { useWide } from '@/lib/layout';
 import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
 import { useSession } from '@/lib/session';
+import { adminFeedback, type AdminFeedback } from '@/lib/feedback';
 import { errorText } from '@/lib/supabase';
 
 type Filter = 'all' | 'trial' | 'active' | 'expired' | 'bureau' | 'company' | 'orders' | 'full';
@@ -45,6 +46,7 @@ export default function AdminHome() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [bands, setBands] = useState<Band[]>([]);
   const [chats, setChats] = useState<ChatSession[]>([]);
+  const [feedback, setFeedbackRows] = useState<AdminFeedback[]>([]);
   const [months, setMonths] = useState<FinanceMonth[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,18 +60,20 @@ export default function AdminHome() {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
       const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
-      const [a, p, b, f, ch] = await Promise.all([
+      const [a, p, b, f, ch, fb] = await Promise.all([
         adminAccounts(),
         fetchPlans(),
         fetchBands(),
         fetchFinance(from, now.toISOString().slice(0, 10)).catch(() => null),
         chatSessions().catch(() => [] as ChatSession[]),
+        adminFeedback('new').catch(() => [] as AdminFeedback[]),
       ]);
       setRows(a);
       setPlans(p);
       setBands(b);
       setMonths(f?.months ?? []);
       setChats(ch);
+      setFeedbackRows(fb);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -172,6 +176,9 @@ export default function AdminHome() {
       text: `${usageOf(r).used}/${usageOf(r).max} ${usageOf(r).label}. Paketi büyütmeyi önerin.`,
       onPress: () => openAccount(r),
     })),
+    ...(feedback.length
+      ? [{ key: 'feedback', icon: 'feedback' as IconName, tone: 'info' as const, title: `${feedback.length} yeni geri bildirim`, text: feedback.slice(0, 2).map((x) => x.message).join(' · '), onPress: () => router.push('/admin/feedback') }]
+      : []),
     ...(s.waitingChats.length
       ? [{ key: 'chats', icon: 'send' as IconName, tone: 'warn' as const, title: `${s.waitingChats.length} site sohbeti sizi bekliyor`, text: s.waitingChats.find((x) => x.contact)?.contact ?? 'Ziyaretçi bir insanla konuşmak istedi', onPress: () => router.push('/admin/chats') }]
       : []),

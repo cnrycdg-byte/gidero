@@ -173,6 +173,7 @@ export default function Profile() {
       <Group>
         {(active || bureaus.length > 0) && <Row icon="settings" title="Şirket ve ayarlar" subtitle="Şirketler, araçlarım, abonelik, ekip" onPress={() => router.push('/settings')} />}
         <Row icon="bell" title="Bildirimler" onPress={() => router.push('/notifications')} />
+        <Row icon="feedback" title="Geri bildirim gönder" subtitle="Öneri, hata ya da sorunuzu Gidero ekibine yazın" onPress={() => router.push({ pathname: '/feedback', params: { from: 'Hesabım' } })} />
         {(active || bureaus.length > 0) && <Row icon="doc" title="Uygulamayı tanıt" subtitle="Fiş girme, onay ve takip: kısa tanıtımı yeniden izleyin" onPress={() => router.push({ pathname: '/tour', params: { all: '1' } })} />}
         {platformAdmin && <Row icon="settings" title="Gidero Yönetim Paneli" onPress={() => router.push('/admin')} />}
         {(platformAdmin || demo.testMode) && <Row icon="team" title="Test sürüşü" onPress={() => router.push('/test')} />}
