@@ -12,5 +12,6 @@ Bu klasördeki skill'ler, depo Claude Code ile açıldığında otomatik yüklen
 | turk-masraf-vergi | bu proje | - | Türk vergi kuralları ve parametreler |
 | fis-okuma | bu proje | - | Karekod + Claude okuma hattı, doğrulama, eval |
 | muhasebe-aktarim | bu proje | - | Yevmiye üretimi ve Logo/Mikro/Luca aktarımı |
+| turkce-metin | bu proje | - | Site, sunum ve uygulama metinlerini doğal ve tam Türkçeyle yazma |
 
 Kaynak depolar 24 Ekim 2026'da klonlandı; güncellemek için ilgili depodan klasörü yeniden kopyalayın.
