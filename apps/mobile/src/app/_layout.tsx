@@ -109,6 +109,7 @@ function RootStack() {
         <Stack.Screen name="admin/finance" options={{ title: 'Gelir ve gider' }} />
         <Stack.Screen name="admin/feedback" options={{ title: 'Geri bildirimler' }} />
         <Stack.Screen name="admin/ai" options={{ title: 'Yapay zekâ maliyeti' }} />
+        <Stack.Screen name="admin/settings" options={{ title: 'Ayarlar' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />

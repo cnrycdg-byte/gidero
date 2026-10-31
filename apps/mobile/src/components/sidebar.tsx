@@ -17,7 +17,7 @@ export function Sidebar() {
   const c = useColors();
   const scheme = useScheme();
   const path = usePathname();
-  const { session, active, bureaus, platformAdmin, hasRole } = useSession();
+  const { session, active, bureaus, platformAdmin, hasRole, uiPrefs } = useSession();
   const n = useNavCounts();
   const bureauFirm = !!active?.bureau_account_id && !active.roles.includes('employee');
 
@@ -55,15 +55,18 @@ export function Sidebar() {
       title: 'Gidero',
       items: [
         { href: '/admin', label: 'Yönetim paneli', icon: 'settings' },
+        { href: '/admin/settings', label: 'Ayarlar', icon: 'settings' },
         { href: '/test', label: 'Test sürüşü', icon: 'team' },
       ],
     });
 
-  const branded = !!active?.companies.brand_primary;
+  // Seçilmiş bir ana renk varsa (şirketin ya da yöneticinin) koyu görünümde de o renk kullanılır
+  const branded = !!active?.companies.brand_primary || (platformAdmin && !!uiPrefs.accent);
   const bg = scheme === 'dark' && !branded ? '#0C1A17' : c.deep;
   const logo = logoUrl(active?.companies.logo_path);
   const name = String(session?.user.user_metadata?.full_name || session?.user.email || '');
-  const isOn = (h: string) => (h === '/' ? path === '/' : path === h || path.startsWith(`${h}/`));
+  const isOn = (h: string) =>
+    h === '/' ? path === '/' : h === '/admin' ? path === h || (path.startsWith('/admin/') && !path.startsWith('/admin/settings')) : path === h || path.startsWith(`${h}/`);
 
   return (
     <View style={[styles.rail, { backgroundColor: bg }]}>
