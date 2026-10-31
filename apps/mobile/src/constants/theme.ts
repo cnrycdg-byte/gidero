@@ -68,10 +68,33 @@ const darkContrast: Partial<typeof light> = { muted: '#EBEBF5CC', faint: '#EBEBF
 
 export type Palette = typeof light;
 
-// Görünüm her zaman telefonun ayarını izler; uygulamaya özel açık/koyu seçeneği yoktur
-// (Dark Mode > "Avoid offering an app-specific appearance setting").
+// Görünüm varsayılan olarak telefonun ayarını izler (HIG Dark Mode: "Avoid offering an app-specific appearance setting").
+// Gidero yöneticisi kendi Ayarlar ekranından açık ya da koyu seçebilir; seçim profilinde saklanır.
+export type ThemePref = 'system' | 'light' | 'dark';
+let themePref: ThemePref = 'system';
+const themeSubs = new Set<() => void>();
+export function setThemePref(p: ThemePref) {
+  if (themePref === p) return;
+  themePref = p;
+  themeSubs.forEach((f) => f());
+}
+function useThemePref(): ThemePref {
+  return useSyncExternalStore(
+    (f) => {
+      themeSubs.add(f);
+      return () => {
+        themeSubs.delete(f);
+      };
+    },
+    () => themePref,
+    () => themePref,
+  );
+}
+
 export function useScheme(): 'light' | 'dark' {
-  return useColorScheme() === 'dark' ? 'dark' : 'light';
+  const sys = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const pref = useThemePref();
+  return pref === 'system' ? sys : pref;
 }
 
 /** Ayarlar > Erişilebilirlik > Karşıtlığı artır (iOS). Diğer platformlarda kapalı sayılır. */

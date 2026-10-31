@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { BrandContext } from '@/constants/theme';
+import { BrandContext, setThemePref, type ThemePref } from '@/constants/theme';
 import { supabase } from './supabase';
 import type { Membership } from './types';
 
@@ -26,7 +26,12 @@ type Ctx = {
   finishRecovery: () => void;
   /** Bağlantı geçersiz ya da süresi dolmuşsa giriş ekranında gösterilir */
   authNotice: string | null;
+  /** Kişisel görünüm tercihi (şimdilik yalnızca Gidero yöneticisinde uygulanır) */
+  uiPrefs: UiPrefs;
+  saveUiPrefs: (p: UiPrefs) => Promise<void>;
 };
+
+export type UiPrefs = { theme: ThemePref; accent: string | null };
 
 /** Web'de e-posta bağlantısından dönüşte adres çubuğundaki oturum bilgisini okur ve adresten siler. */
 async function consumeAuthRedirect(): Promise<{ recovery: boolean; notice: string | null; invite?: boolean }> {
@@ -187,10 +192,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Seçili şirketin renkleri tüm ekranlara uygulanır; şirket değişince palet de değişir
   const brandPrimary = active?.companies.brand_primary ?? null;
   const brandAccent = active?.companies.brand_accent ?? null;
-  // Gidero yöneticisi her zaman Gidero renklerini görür (müşteri firmalarının rengini değiştirmek onu etkilemez)
+  // Gidero yöneticisinin görünümü kendi seçimidir (müşteri firmalarının rengi onu etkilemez)
+  const [uiPrefs, setUiPrefs] = useState<UiPrefs>({ theme: 'system', accent: null });
+  useEffect(() => {
+    if (!userId) return setUiPrefs({ theme: 'system', accent: null });
+    supabase
+      .from('profiles')
+      .select('ui_theme, ui_accent')
+      .eq('id', userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as { ui_theme?: ThemePref; ui_accent?: string | null } | null;
+        setUiPrefs({ theme: d?.ui_theme ?? 'system', accent: d?.ui_accent ?? null });
+      }, () => {});
+  }, [userId]);
+  useEffect(() => {
+    setThemePref(platformAdmin ? uiPrefs.theme : 'system');
+  }, [platformAdmin, uiPrefs.theme]);
+  const saveUiPrefs = useCallback(async (p: UiPrefs) => {
+    const { error } = await supabase.rpc('set_ui_prefs', { p_theme: p.theme, p_accent: p.accent });
+    if (error) throw error;
+    setUiPrefs(p);
+  }, []);
+  const adminAccent = uiPrefs.accent;
   const brand = useMemo(
-    () => (platformAdmin ? { primary: null, accent: null } : { primary: brandPrimary, accent: brandAccent }),
-    [brandPrimary, brandAccent, platformAdmin],
+    () => (platformAdmin ? { primary: adminAccent, accent: null } : { primary: brandPrimary, accent: brandAccent }),
+    [brandPrimary, brandAccent, platformAdmin, adminAccent],
   );
 
   const value = useMemo<Ctx>(
@@ -209,8 +236,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       invite,
       finishRecovery: () => setRecovery(false),
       authNotice,
+      uiPrefs,
+      saveUiPrefs,
     }),
-    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice],
+    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice, uiPrefs, saveUiPrefs],
   );
 
   return (
