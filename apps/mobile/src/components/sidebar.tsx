@@ -50,23 +50,60 @@ export function Sidebar() {
     if (admin.length) groups.push({ title: 'Şirket', items: admin });
   }
   if (bureaus.length) groups.push({ title: 'Büro', items: [{ href: '/clients', label: 'Müşteri firmalar ve ekip', icon: 'team' }] });
-  if (platformAdmin)
-    groups.push({
-      title: 'Gidero',
-      items: [
-        { href: '/admin', label: 'Yönetim paneli', icon: 'settings' },
-        { href: '/admin/settings', label: 'Ayarlar', icon: 'settings' },
-        { href: '/test', label: 'Test sürüşü', icon: 'team' },
-      ],
-    });
+  if (platformAdmin) {
+    // Gidero yöneticisi: işler türüne göre gruplanır; sayılar sizi bekleyen işi gösterir
+    groups.push(
+      {
+        items: [
+          { href: '/admin', label: 'Genel bakış', icon: 'chart' },
+          { href: '/admin/new-customer', label: 'Müşteri ekle', icon: 'personAdd' },
+        ],
+      },
+      {
+        title: 'Satış',
+        items: [
+          { href: '/admin/leads/find', label: 'Firma bul', icon: 'search' },
+          { href: '/admin/leads', label: 'Müşteri adayları', icon: 'people' },
+          { href: '/admin/outbox', label: 'Gönderim kutusu', icon: 'mail', count: n.outbox },
+          { href: '/admin/chats', label: 'Site sohbetleri', icon: 'send' },
+          { href: '/admin/campaigns', label: 'Kampanyalar', icon: 'plus' },
+        ],
+      },
+      {
+        title: 'Gelir',
+        items: [
+          { href: '/admin/plans', label: 'Fiyatlar', icon: 'receipt' },
+          { href: '/admin/orders', label: 'Siparişler', icon: 'inbox' },
+          { href: '/admin/finance', label: 'Gelir ve gider', icon: 'doc' },
+          { href: '/admin/ai', label: 'Yapay zekâ maliyeti', icon: 'chart' },
+        ],
+      },
+      {
+        title: 'Destek',
+        items: [
+          { href: '/admin/feedback', label: 'Geri bildirimler', icon: 'feedback', count: n.feedback },
+          { href: '/test', label: 'Test sürüşü', icon: 'team' },
+          { href: '/admin/settings', label: 'Ayarlar', icon: 'settings' },
+        ],
+      },
+    );
+  }
 
   // Seçilmiş bir ana renk varsa (şirketin ya da yöneticinin) koyu görünümde de o renk kullanılır
   const branded = !!active?.companies.brand_primary || (platformAdmin && !!uiPrefs.accent);
   const bg = scheme === 'dark' && !branded ? '#0C1A17' : c.deep;
   const logo = logoUrl(active?.companies.logo_path);
   const name = String(session?.user.user_metadata?.full_name || session?.user.email || '');
+  // Alt sayfalar ait oldukları menü satırını seçili gösterir (ör. müşteri ayrıntısı > Genel bakış)
+  const SUB: Record<string, string[]> = {
+    '/admin': ['/admin/account', '/admin/company'],
+    '/admin/plans': ['/admin/plan-details'],
+    '/admin/outbox': ['/admin/outreach-settings'],
+  };
   const isOn = (h: string) =>
-    h === '/' ? path === '/' : h === '/admin' ? path === h || (path.startsWith('/admin/') && !path.startsWith('/admin/settings')) : path === h || path.startsWith(`${h}/`);
+    h === '/' ? path === '/'
+    : h === '/admin/leads' ? path === h
+    : path === h || (h !== '/admin' && path.startsWith(`${h}/`)) || (SUB[h] ?? []).some((s) => path.startsWith(s));
 
   return (
     <View style={[styles.rail, { backgroundColor: bg }]}>

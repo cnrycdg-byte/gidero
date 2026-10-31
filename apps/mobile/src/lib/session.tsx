@@ -92,7 +92,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [bureaus, setBureaus] = useState<Bureau[]>([]);
   const [platformAdmin, setPlatformAdmin] = useState(false);
-  const [membershipsReady, setMembershipsReady] = useState(false);
+  // Hangi kişi için yüklendiği: oturum açılınca bir anlığına eski (oturumsuz) sonuç "hazır" sayılmasın;
+  // yoksa yönetim sayfaları kapalı görünür ve yenilenen sayfa ana ekrana atılır
+  const [loadedFor, setLoadedFor] = useState<string | null | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(false);
   const [invite, setInvite] = useState(false);
@@ -126,7 +128,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setMemberships([]);
       setBureaus([]);
       setPlatformAdmin(false);
-      setMembershipsReady(true);
+      setLoadedFor(null);
       return;
     }
     // Gidero sahibinin hesabı ilk girişte yönetici olarak tanınır (sunucu doğrular)
@@ -179,11 +181,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     setMemberships(list);
     setActiveId((cur) => (cur && list.some((m) => m.company_id === cur) ? cur : list[0]?.company_id ?? null));
-    setMembershipsReady(true);
+    setLoadedFor(userId);
   }, [userId]);
 
   useEffect(() => {
-    setMembershipsReady(false);
     reloadMemberships();
   }, [reloadMemberships]);
 
@@ -222,7 +223,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      ready: authReady && (!userId || membershipsReady),
+      ready: authReady && (!userId || loadedFor === userId),
       session,
       userId,
       memberships,
@@ -239,7 +240,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       uiPrefs,
       saveUiPrefs,
     }),
-    [authReady, membershipsReady, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice, uiPrefs, saveUiPrefs],
+    [authReady, loadedFor, session, userId, memberships, bureaus, platformAdmin, active, reloadMemberships, recovery, invite, authNotice, uiPrefs, saveUiPrefs],
   );
 
   return (

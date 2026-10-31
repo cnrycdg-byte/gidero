@@ -27,13 +27,13 @@ jobs:
         with:
           node-version: 22
       - name: Birim testleri
-        run: node --test supabase/functions/_shared/receipt/test/receipt.test.ts supabase/functions/_shared/payments/test/iyzico.test.ts supabase/functions/_shared/sitechat/test/chat.test.ts supabase/functions/_shared/notify/test/send.test.ts
+        run: node --test supabase/functions/_shared/receipt/test/receipt.test.ts supabase/functions/_shared/payments/test/iyzico.test.ts supabase/functions/_shared/sitechat/test/chat.test.ts supabase/functions/_shared/notify/test/send.test.ts supabase/functions/_shared/leads/test/lib.test.ts
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - name: Tip kontrolü
         working-directory: supabase/functions
-        run: deno check read-receipt/index.ts payments/index.ts site-chat/index.ts notify/index.ts demo-login/index.ts people/index.ts
+        run: deno check read-receipt/index.ts payments/index.ts site-chat/index.ts notify/index.ts demo-login/index.ts people/index.ts leads/index.ts unsubscribe/index.ts
 
   deploy:
     needs: test
@@ -57,11 +57,11 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         with:
           version: 2.122.0
-      - name: Fonksiyonları kur (read-receipt, payments, site-chat, notify, demo-login, people)
+      - name: Fonksiyonları kur (read-receipt, payments, site-chat, notify, demo-login, people, leads, unsubscribe)
         if: steps.check.outputs.ready == 'true'
         run: |
           set +e
-          for fn in read-receipt payments site-chat notify demo-login people; do
+          for fn in read-receipt payments site-chat notify demo-login people leads unsubscribe; do
             out=$(supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --use-api 2>&1); code=$?
             echo "$out"
             if [ $code -ne 0 ]; then

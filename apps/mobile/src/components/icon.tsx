@@ -39,6 +39,9 @@ const ICONS = {
   building: { ios: 'building.2', android: 'apartment' },
   chart: { ios: 'chart.bar', android: 'bar_chart' },
   feedback: { ios: 'bubble.left.and.text.bubble.right', android: 'feedback' },
+  search: { ios: 'magnifyingglass', android: 'search' },
+  mail: { ios: 'envelope', android: 'mail' },
+  people: { ios: 'person.3', android: 'groups' },
 } satisfies Record<string, { ios: SFSymbol; android: AndroidSymbol }>;
 
 export type IconName = keyof typeof ICONS;
@@ -49,7 +52,7 @@ const WEB_GLYPH: Partial<Record<IconName, string>> = {
   chevron: '›', check: '✓', checkCircle: '✓', close: '✕', plus: '+', warning: '!', error: '!', camera: '◉',
   gallery: '▦', settings: '⚙', team: '◎', personAdd: '+', logout: '⏻', trash: '✕', receipt: '▤', doc: '▤',
   clock: '◷', send: '➤', undo: '↺', inbox: '▣', flashOn: 'ϟ', flashOff: 'ϟ', info: 'i', bell: '◔', person: '◉',
-  creditcard: '▭', share: '⇪', printer: '⎙', building: '▥', chart: '▮', feedback: '✎',
+  creditcard: '▭', share: '⇪', printer: '⎙', building: '▥', chart: '▮', feedback: '✎', search: '⌕', mail: '✉', people: '◎',
 };
 
 export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color: ColorValue }) {

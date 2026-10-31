@@ -110,6 +110,10 @@ function RootStack() {
         <Stack.Screen name="admin/feedback" options={{ title: 'Geri bildirimler' }} />
         <Stack.Screen name="admin/ai" options={{ title: 'Yapay zekâ maliyeti' }} />
         <Stack.Screen name="admin/settings" options={{ title: 'Ayarlar' }} />
+        <Stack.Screen name="admin/leads/index" options={{ title: 'Müşteri adayları' }} />
+        <Stack.Screen name="admin/leads/find" options={{ title: 'Firma bul' }} />
+        <Stack.Screen name="admin/outbox" options={{ title: 'Gönderim kutusu' }} />
+        <Stack.Screen name="admin/outreach-settings" options={{ title: 'Gönderen ve şablonlar' }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="test" options={{ title: 'Test sürüşü' }} />
@@ -118,6 +122,8 @@ function RootStack() {
         <Stack.Screen name="feedback" options={{ title: 'Geri bildirim', presentation: 'modal' }} />
         <Stack.Screen name="tour" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack.Protected>
+      {/* E-postadaki listeden çıkma bağlantısı: oturum gerekmez */}
+      <Stack.Screen name="cikis" options={{ headerShown: false }} />
     </Stack>
     {signedIn && <DemoBar />}
     </View>

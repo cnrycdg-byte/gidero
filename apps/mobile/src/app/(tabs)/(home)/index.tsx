@@ -1,4 +1,4 @@
-import { Redirect, router, Stack, useFocusEffect } from 'expo-router';
+import { Redirect, router, Stack, useFocusEffect, usePathname } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -30,8 +30,10 @@ const landedOnAdmin = { done: false };
 // Ana adres her oturumda vardır: şirketi olmayan kişi büro ekranına ya da kuruluma yönlendirilir
 export default function Index() {
   const { active, bureaus, platformAdmin } = useSession();
+  const path = usePathname();
   // Gidero yöneticisinin ana ekranı yönetim panelidir
-  if (platformAdmin) return <Redirect href="/admin" />;
+  // Ana ekran yığının altında da kurulur: yönetici bir alt sayfayı yenilediğinde (/admin/ai gibi) oradan atılmasın
+  if (platformAdmin) return path === '/' ? <Redirect href="/admin" /> : null;
   if (!active) return <Redirect href={bureaus.length ? '/clients' : '/onboarding'} />;
   // Büro personeli müşteri firmasında: büro ekranı (fiş yükle, kayda al, döküm)
   if (active.phase === 'locked' && !platformAdmin) return <LockedHome />;
