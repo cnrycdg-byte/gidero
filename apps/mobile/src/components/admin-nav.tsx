@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { radius, space, useColors } from '@/constants/theme';
+import { useWide } from '@/lib/layout';
 
 const ITEMS: { href: string; label: string; icon: IconName; match?: string[] }[] = [
   { href: '/admin', label: 'Panel', icon: 'settings', match: ['/admin/account', '/admin/company'] },
@@ -14,6 +15,9 @@ const ITEMS: { href: string; label: string; icon: IconName; match?: string[] }[]
   { href: '/admin/orders', label: 'Siparişler', icon: 'inbox' },
   { href: '/admin/finance', label: 'Gelir ve gider', icon: 'doc' },
   { href: '/admin/ai', label: 'Yapay zekâ maliyeti', icon: 'chart' },
+  { href: '/admin/leads/find', label: 'Firma bul', icon: 'search' },
+  { href: '/admin/leads', label: 'Müşteri adayları', icon: 'people' },
+  { href: '/admin/outbox', label: 'Gönderim kutusu', icon: 'mail', match: ['/admin/outreach-settings'] },
   { href: '/admin/campaigns', label: 'Kampanyalar', icon: 'plus' },
   { href: '/admin/chats', label: 'Site sohbetleri', icon: 'send' },
   { href: '/admin/feedback', label: 'Geri bildirimler', icon: 'feedback' },
@@ -25,9 +29,12 @@ export function AdminNav() {
   const c = useColors();
   const path = usePathname();
   const scroller = useRef<ScrollViewInstance>(null);
+  const wide = useWide();
   const isOn = (it: (typeof ITEMS)[number]) =>
     it.href === '/admin' ? path === '/admin' || (it.match ?? []).some((m) => path.startsWith(m)) : path === it.href || (it.match ?? []).some((m) => path.startsWith(m));
 
+  // Bilgisayarda aynı bölümler soldaki menüde var; üstte tekrar gösterilmez
+  if (wide) return null;
   return (
     <View style={[styles.bar, { backgroundColor: c.canvas, borderBottomColor: c.paperLine }]}>
       <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} accessibilityRole="tablist">

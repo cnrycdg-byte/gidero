@@ -1,18 +1,20 @@
-// Soldaki menüdeki sayılar: onay, muhasebe, ödeme, geri gönderilen rapor ve okunmamış bildirim.
+// Soldaki menüdeki sayılar: onay, muhasebe, ödeme, geri gönderilen rapor, okunmamış bildirim;
+// Gidero yöneticisi için onay bekleyen tanıtım e-postası ve yeni geri bildirim.
 // Sayfa değişince, pencereye dönünce ve dakikada bir yenilenir; sorgular RLS'ten geçer.
 import { usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
+import { dueCount } from '@/lib/leads';
 import { unreadCount } from '@/lib/notifications';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-export type NavCounts = { approvals: number; accounting: number; payments: number; returned: number; notifications: number };
-const ZERO: NavCounts = { approvals: 0, accounting: 0, payments: 0, returned: 0, notifications: 0 };
+export type NavCounts = { approvals: number; accounting: number; payments: number; returned: number; notifications: number; outbox: number; feedback: number };
+const ZERO: NavCounts = { approvals: 0, accounting: 0, payments: 0, returned: 0, notifications: 0, outbox: 0, feedback: 0 };
 
 export function useNavCounts(): NavCounts {
-  const { userId, active } = useSession();
+  const { userId, active, platformAdmin } = useSession();
   const path = usePathname();
   const [counts, setCounts] = useState<NavCounts>(ZERO);
   const seq = useRef(0);
@@ -25,7 +27,7 @@ export function useNavCounts(): NavCounts {
     const has = (r: string) => roles.split(',').includes(r);
     const head = () => supabase.from('reports').select('id', { count: 'exact', head: true });
     const none = Promise.resolve({ count: 0 as number | null });
-    const [approvals, accounting, returned, payments, notifications] = await Promise.all([
+    const [approvals, accounting, returned, payments, notifications, outbox, feedback] = await Promise.all([
       company && (has('approver') || has('admin'))
         ? head().eq('company_id', company).eq('status', 'pending').contains('current_approver_ids', [userId])
         : none,
@@ -35,6 +37,11 @@ export function useNavCounts(): NavCounts {
         ? supabase.rpc('payment_queue', { p_company: company, p_paid: false }).then(({ data }) => ({ count: ((data ?? []) as unknown[]).length }))
         : none,
       unreadCount().catch(() => 0),
+      // Gidero yöneticisi: onay bekleyen tanıtım e-postaları ve yeni geri bildirimler
+      platformAdmin ? dueCount().catch(() => 0) : 0,
+      platformAdmin
+        ? supabase.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'new').then(({ count }) => count ?? 0)
+        : 0,
     ]);
     if (my !== seq.current) return; // daha yeni bir sorgu başladıysa eskisini yazma
     setCounts({
@@ -43,8 +50,10 @@ export function useNavCounts(): NavCounts {
       returned: returned.count ?? 0,
       payments: payments.count ?? 0,
       notifications,
+      outbox,
+      feedback,
     });
-  }, [userId, company, roles]);
+  }, [userId, company, roles, platformAdmin]);
 
   // Sayfa değişince (ör. onay verip geri dönünce) yenile
   useEffect(() => {

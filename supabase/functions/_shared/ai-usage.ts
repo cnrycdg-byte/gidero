@@ -10,12 +10,13 @@ export type ApiUsage = {
 };
 
 export type UsageRow = {
-  feature: "receipt" | "site_chat";
+  feature: "receipt" | "site_chat" | "lead_search";
   model: string;
   usage?: ApiUsage | null;
   company_id?: string | null;
   user_id?: string | null;
   expense_id?: string | null;
+  web_searches?: number;
 };
 
 export function toRow(r: UsageRow) {
@@ -30,6 +31,7 @@ export function toRow(r: UsageRow) {
     output_tokens: Math.max(0, Math.round(u.output_tokens ?? 0)),
     cache_read_tokens: Math.max(0, Math.round(u.cache_read_input_tokens ?? 0)),
     cache_write_tokens: Math.max(0, Math.round(u.cache_creation_input_tokens ?? 0)),
+    web_searches: Math.max(0, Math.round(r.web_searches ?? 0)),
   };
 }
 

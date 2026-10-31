@@ -436,6 +436,14 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+[functions.leads]
+enabled = true
+verify_jwt = true
+
+[functions.unsubscribe]
+enabled = true
+verify_jwt = false
+
 [functions.people]
 enabled = true
 verify_jwt = true

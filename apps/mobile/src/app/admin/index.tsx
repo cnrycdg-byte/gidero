@@ -14,6 +14,7 @@ import { useWide } from '@/lib/layout';
 import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
 import { useSession } from '@/lib/session';
 import { adminFeedback, type AdminFeedback } from '@/lib/feedback';
+import { dueCount } from '@/lib/leads';
 import { aiReport, type AiReport } from '@/lib/ai-usage';
 import { errorText } from '@/lib/supabase';
 
@@ -49,6 +50,7 @@ export default function AdminHome() {
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [feedback, setFeedbackRows] = useState<AdminFeedback[]>([]);
   const [ai, setAi] = useState<AiReport | null>(null);
+  const [outboxDue, setOutboxDue] = useState(0);
   const [months, setMonths] = useState<FinanceMonth[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function AdminHome() {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
       const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
-      const [a, p, b, f, ch, fb, air] = await Promise.all([
+      const [a, p, b, f, ch, fb, air, due] = await Promise.all([
         adminAccounts(),
         fetchPlans(),
         fetchBands(),
@@ -70,6 +72,7 @@ export default function AdminHome() {
         chatSessions().catch(() => [] as ChatSession[]),
         adminFeedback('new').catch(() => [] as AdminFeedback[]),
         aiReport(7).catch(() => null),
+        dueCount().catch(() => 0),
       ]);
       setRows(a);
       setPlans(p);
@@ -78,6 +81,7 @@ export default function AdminHome() {
       setChats(ch);
       setFeedbackRows(fb);
       setAi(air);
+      setOutboxDue(due);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -190,6 +194,9 @@ export default function AdminHome() {
         ? [{ key: 'ai', icon: 'chart' as IconName, tone: 'warn' as const, title: `Yapay zekâ harcaması bugün arttı: ${(today * ai.usd_try).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL`, text: `Son günlerin ortalaması ${(avg * ai.usd_try).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL. Nedenini ve tasarruf önerilerini görün.`, onPress: () => router.push('/admin/ai') }]
         : [];
     })(),
+    ...(outboxDue
+      ? [{ key: 'outbox', icon: 'mail' as IconName, tone: 'info' as const, title: `${outboxDue} tanıtım e-postası onayınızı bekliyor`, text: 'Okuyup gönderin; takip e-postaları da zamanı gelince buraya düşer.', onPress: () => router.push('/admin/outbox') }]
+      : []),
     ...(feedback.length
       ? [{ key: 'feedback', icon: 'feedback' as IconName, tone: 'info' as const, title: `${feedback.length} yeni geri bildirim`, text: feedback.slice(0, 2).map((x) => x.message).join(' · '), onPress: () => router.push('/admin/feedback') }]
       : []),
