@@ -14,6 +14,7 @@ import { useWide } from '@/lib/layout';
 import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
 import { useSession } from '@/lib/session';
 import { adminFeedback, type AdminFeedback } from '@/lib/feedback';
+import { aiReport, type AiReport } from '@/lib/ai-usage';
 import { errorText } from '@/lib/supabase';
 
 type Filter = 'all' | 'trial' | 'active' | 'expired' | 'bureau' | 'company' | 'orders' | 'full';
@@ -47,6 +48,7 @@ export default function AdminHome() {
   const [bands, setBands] = useState<Band[]>([]);
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [feedback, setFeedbackRows] = useState<AdminFeedback[]>([]);
+  const [ai, setAi] = useState<AiReport | null>(null);
   const [months, setMonths] = useState<FinanceMonth[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,13 +62,14 @@ export default function AdminHome() {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
       const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
-      const [a, p, b, f, ch, fb] = await Promise.all([
+      const [a, p, b, f, ch, fb, air] = await Promise.all([
         adminAccounts(),
         fetchPlans(),
         fetchBands(),
         fetchFinance(from, now.toISOString().slice(0, 10)).catch(() => null),
         chatSessions().catch(() => [] as ChatSession[]),
         adminFeedback('new').catch(() => [] as AdminFeedback[]),
+        aiReport(7).catch(() => null),
       ]);
       setRows(a);
       setPlans(p);
@@ -74,6 +77,7 @@ export default function AdminHome() {
       setMonths(f?.months ?? []);
       setChats(ch);
       setFeedbackRows(fb);
+      setAi(air);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -176,6 +180,16 @@ export default function AdminHome() {
       text: `${usageOf(r).used}/${usageOf(r).max} ${usageOf(r).label}. Paketi büyütmeyi önerin.`,
       onPress: () => openAccount(r),
     })),
+    // Yapay zekâ harcaması önceki 6 günün ortalamasının iki katını geçtiyse uyar
+    ...(() => {
+      if (!ai) return [];
+      const prev = ai.daily.slice(0, -1);
+      const avg = prev.reduce((x, d) => x + d.cost, 0) / Math.max(1, prev.length);
+      const today = ai.today.cost;
+      return today > 0.05 && today > avg * 2
+        ? [{ key: 'ai', icon: 'chart' as IconName, tone: 'warn' as const, title: `Yapay zekâ harcaması bugün arttı: ${(today * ai.usd_try).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL`, text: `Son günlerin ortalaması ${(avg * ai.usd_try).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL. Nedenini ve tasarruf önerilerini görün.`, onPress: () => router.push('/admin/ai') }]
+        : [];
+    })(),
     ...(feedback.length
       ? [{ key: 'feedback', icon: 'feedback' as IconName, tone: 'info' as const, title: `${feedback.length} yeni geri bildirim`, text: feedback.slice(0, 2).map((x) => x.message).join(' · '), onPress: () => router.push('/admin/feedback') }]
       : []),

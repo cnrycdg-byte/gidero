@@ -30,6 +30,10 @@ Türk şirketleri ve muhasebe büroları için masraf uygulaması: çalışan fi
 4. **Denetim izi:** masraf, rapor, onay ve ayar değişiklikleri silinmez; eski/yeni değer, kim, ne zaman saklanır.
 5. **Kullanıcıya görünen tüm metinler Türkçe**, sade ve eylem söyleyen cümlelerle.
 6. Para tutarları `numeric(14,2)`; kuruş hesabında yuvarlama HALF_UP, 2 hane.
+7. **Yapay zekâ maliyeti her kararda düşünülür:** her Claude çağrısı `ai_usage`'a yazılır (`_shared/ai-usage.ts`);
+   önce ucuz model, güçlü model yalnızca gerçekten gerektiğinde; görsel boyutu, çıktı uzunluğu ve tekrar okuma
+   en aza indirilir. Yeni bir yapay zekâ özelliği, fiş başı/çağrı başı tahmini maliyetiyle birlikte önerilir.
+   Rapor: Yönetim paneli > Yapay zekâ maliyeti.
 
 ## Skill'ler
 

@@ -58,6 +58,15 @@ export type Turn = { role: "visitor" | "assistant"; content: string };
 type Fetch = typeof fetch;
 
 export async function askClaude(apiKey: string, history: Turn[], fetchImpl: Fetch = fetch): Promise<string> {
+  return (await askClaudeWithUsage(apiKey, history, fetchImpl)).text;
+}
+
+/** Yanıt ve token kullanımı (maliyet raporu için) */
+export async function askClaudeWithUsage(
+  apiKey: string,
+  history: Turn[],
+  fetchImpl: Fetch = fetch,
+): Promise<{ text: string; model: string; usage: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } | null }> {
   // Anthropic mesajları user ile başlamalı ve sırayla gelmeli; ardışık aynı rolleri birleştir.
   const messages: { role: "user" | "assistant"; content: string }[] = [];
   for (const t of history) {
@@ -75,5 +84,5 @@ export async function askClaude(apiKey: string, history: Turn[], fetchImpl: Fetc
   const data = await res.json();
   const text = (data.content ?? []).find((b: { type: string }) => b.type === "text")?.text;
   if (!text) throw new Error("Claude yanıtında metin yok");
-  return String(text).trim().slice(0, 3000);
+  return { text: String(text).trim().slice(0, 3000), model: CHAT_MODEL, usage: data.usage ?? null };
 }
