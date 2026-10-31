@@ -16,6 +16,7 @@ import { MAX_RECEIPTS_PER_PHOTO, readPhoto, type ImageInput } from "../_shared/r
 import { alcoholFlag, evaluateTaxRules } from "../_shared/receipt/tax-rules.ts";
 import type { ReceiptFields, TaxContext } from "../_shared/receipt/types.ts";
 import { normalizePlate } from "../_shared/receipt/validate.ts";
+import { logUsage } from "../_shared/ai-usage.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,10 @@ Deno.serve(async (req) => {
     return json(502, { error: "Fiş şu anda okunamadı. Tutarı elle girebilir veya biraz sonra tekrar deneyebilirsiniz." });
   }
   const qrUsed = qr?.total != null;
+  // Her model denemesinin token'ları maliyet raporu için kaydedilir (ikinci model de ayrı satır)
+  await logUsage(admin, read.attempts.map((a) => ({
+    feature: "receipt" as const, model: a.model, usage: a.usage, company_id: exp.company_id, user_id: exp.created_by, expense_id: exp.id,
+  })));
 
   // Fotoğraftaki bir parça yeniden okunuyorsa yalnızca o fiş alınır, yeni masraf açılmaz
   if (exp.photo_part && exp.photo_parts && exp.photo_parts > 1) {

@@ -136,7 +136,7 @@ export interface ClaudeCallResult {
   receipts: ReceiptFields[];
   /** Fotoğraftaki toplam belge sayısı (okunmayanlar dahil) */
   count: number;
-  usage: { input_tokens: number; output_tokens: number };
+  usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
 }
 
 type Fetch = typeof fetch;
@@ -220,8 +220,12 @@ export function applyQr(receipts: ReceiptFields[], qr: Partial<ReceiptFields> | 
   return receipts.map((r, k) => (k === i ? mergeQr(r, qr) : r));
 }
 
-/** Güçlü modele gitmeyi gerektirmeyen sorunlar (kullanıcı ekranda zaten kontrol eder). */
-const SOFT_ISSUES = new Set(["düşük güven"]);
+/**
+ * Güçlü modele gitmeyi gerektirmeyen sorunlar (kullanıcı ekranda zaten kontrol eder).
+ * Maliyet: güçlü model 20 kat pahalı ve fotoğrafın tamamını yeniden okur. Geçersiz VKN'yi kullanıcı
+ * kontrol ekranında görür, vergi kuralı da ayrıca uyarır; bunun için ikinci okuma yapılmaz.
+ */
+const SOFT_ISSUES = new Set(["düşük güven", "satıcı VKN geçersiz"]);
 
 /** Önce hızlı model; sonuç tutarsızsa güçlü model. Karekod alanları her zaman önceliklidir. */
 export async function readPhoto(

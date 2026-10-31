@@ -9,7 +9,8 @@
 // 30 mesaj, tüm site için günde 2.000 mesaj.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { askClaude, cleanMessage, extractContact, MAX_PER_SESSION, type Turn, wantsHuman } from "../_shared/sitechat/chat.ts";
+import { logUsage } from "../_shared/ai-usage.ts";
+import { askClaudeWithUsage, cleanMessage, extractContact, MAX_PER_SESSION, type Turn, wantsHuman } from "../_shared/sitechat/chat.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,9 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (apiKey) {
     try {
-      reply = await askClaude(apiKey, history.slice(-20));
+      const r = await askClaudeWithUsage(apiKey, history.slice(-20));
+      reply = r.text;
+      await logUsage(db, [{ feature: "site_chat", model: r.model, usage: r.usage }]);
     } catch (e) {
       console.error("site-chat claude", e);
     }

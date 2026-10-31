@@ -13,6 +13,7 @@ const ITEMS: { href: string; label: string; icon: IconName; match?: string[] }[]
   { href: '/admin/plans', label: 'Fiyatlar', icon: 'receipt', match: ['/admin/plan-details'] },
   { href: '/admin/orders', label: 'Siparişler', icon: 'inbox' },
   { href: '/admin/finance', label: 'Gelir ve gider', icon: 'doc' },
+  { href: '/admin/ai', label: 'Yapay zekâ maliyeti', icon: 'chart' },
   { href: '/admin/campaigns', label: 'Kampanyalar', icon: 'plus' },
   { href: '/admin/chats', label: 'Site sohbetleri', icon: 'send' },
   { href: '/admin/feedback', label: 'Geri bildirimler', icon: 'feedback' },

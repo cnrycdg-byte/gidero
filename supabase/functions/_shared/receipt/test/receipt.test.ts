@@ -137,6 +137,11 @@ test("Claude: hızlı model tutarlıysa güçlü modele gidilmez; tutarsızsa gi
   r = await readReceipt("k", img, null, [1, 10, 20], fakeFetch([base({ total: 999 }), base()]));
   assert.deepEqual(calls, ["claude-haiku-5-5", "claude-sonnet-5-5"]);
   assert.equal(r.fields.total, 1100);
+
+  // Maliyet: yalnızca VKN geçersizse pahalı modele gidilmez
+  calls.length = 0;
+  r = await readReceipt("k", img, null, [1, 10, 20], fakeFetch([base({ seller_vkn: "1234567891" })]));
+  assert.deepEqual(calls, ["claude-haiku-5-5"]);
 });
 
 test("plaka: sadeleştirme ve kişi kartıyla eşleşme", () => {
@@ -238,4 +243,13 @@ test("görseli olmayan masraf uyarı alır; e-Fatura dosyasıyla eşleşince uya
   assert.ok(!flags.some((x) => x.code === "no_image"));
   flags = evaluateTaxRules(ctx({ fields: base({}), has_image: true }));
   assert.ok(!flags.some((x) => x.code === "no_image"));
+});
+
+test("kullanım kaydı: önbellek token'ları ayrı yazılır, eksik değerler sıfır olur", async () => {
+  const { toRow } = await import("../../ai-usage.ts");
+  const r = toRow({ feature: "receipt", model: "claude-haiku-5-5", usage: { input_tokens: 4200, output_tokens: 700, cache_read_input_tokens: 1800 }, expense_id: "e1" });
+  assert.equal(r.input_tokens, 4200);
+  assert.equal(r.cache_read_tokens, 1800);
+  assert.equal(r.cache_write_tokens, 0);
+  assert.equal(r.company_id, null);
 });
