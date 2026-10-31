@@ -71,7 +71,7 @@ function RootStack() {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !hasMembership && !hasBureau}>
+      <Stack.Protected guard={signedIn && !hasMembership && !hasBureau && !platformAdmin}>
         <Stack.Screen name="onboarding" options={{ title: 'Hoş geldiniz', headerLargeTitle: true }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && hasCompany}>

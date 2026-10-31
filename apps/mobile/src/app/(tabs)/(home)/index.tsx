@@ -30,6 +30,8 @@ const landedOnAdmin = { done: false };
 // Ana adres her oturumda vardır: şirketi olmayan kişi büro ekranına ya da kuruluma yönlendirilir
 export default function Index() {
   const { active, bureaus, platformAdmin } = useSession();
+  // Gidero yöneticisinin ana ekranı yönetim panelidir
+  if (platformAdmin) return <Redirect href="/admin" />;
   if (!active) return <Redirect href={bureaus.length ? '/clients' : '/onboarding'} />;
   // Büro personeli müşteri firmasında: büro ekranı (fiş yükle, kayda al, döküm)
   if (active.phase === 'locked' && !platformAdmin) return <LockedHome />;

@@ -152,6 +152,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }));
       setBureaus(ws.bureaus ?? []);
       setPlatformAdmin(!!ws.platform_admin);
+      // Gidero yöneticisi hiçbir şirketin içine girmez: yalnızca yönetim panelini görür.
+      // Kendi açtığı şirketler müşterilerin yöneticilerine aittir; bir şirkete bakmak için
+      // yönetim panelindeki firma sayfası ya da Test sürüşü kullanılır.
+      if (ws.platform_admin) {
+        list = [];
+        setBureaus([]);
+      }
     } else {
       // Sunucu henüz güncellenmediyse eski sorgu
       const { data: rows } = await supabase
