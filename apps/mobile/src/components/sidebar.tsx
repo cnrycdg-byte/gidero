@@ -49,7 +49,14 @@ export function Sidebar() {
     if (hasRole('admin') || hasRole('accountant') || hasRole('approver')) admin.push({ href: '/limits', label: 'Sınır durumu', icon: 'warning' });
     if (admin.length) groups.push({ title: 'Şirket', items: admin });
   }
-  if (bureaus.length) groups.push({ title: 'Büro', items: [{ href: '/clients', label: 'Müşteri firmalar ve ekip', icon: 'team' }] });
+  if (bureaus.length)
+    groups.push({
+      title: 'Büro',
+      items: [
+        { href: '/clients', label: 'Müşteri firmalar ve ekip', icon: 'team' },
+        ...(bureaus.some((b) => b.role === 'owner') ? [{ href: '/clients?muhasebeci=1', label: 'Muhasebeci ekle', icon: 'personAdd' as IconName }] : []),
+      ],
+    });
   if (platformAdmin) {
     // Gidero yöneticisi: işler türüne göre gruplanır; sayılar sizi bekleyen işi gösterir
     groups.push(

@@ -72,3 +72,26 @@ export function randomPassword() {
   globalThis.crypto?.getRandomValues?.(arr);
   return Array.from(arr, (n, i) => chars[(n || Math.floor(Math.random() * 1e9) + i) % chars.length]).join('');
 }
+
+/** Gidero yöneticisi: yeni müşteri şirketine muhasebeci / ödeme yetkilisi ekler. Bağlantı yalnızca yeni açılan kişiye gelir. */
+export async function adminAddPerson(p: { companyId: string; fullName: string; email: string; roles: ('accountant' | 'payer')[] }) {
+  const { data, error } = await supabase.functions.invoke('people', {
+    body: { action: 'admin_add', company_id: p.companyId, full_name: p.fullName, email: p.email, roles: p.roles },
+  });
+  if (error) throw await functionError(error);
+  return data as { user_id: string; email: string; link: string | null };
+}
+
+export type RequiredRole = 'accountant' | 'payer';
+
+/** Şirkette eksik olan zorunlu görevler (muhasebeci, ödeme yetkilisi). Eksikse rapor onaya gönderilemez. */
+export async function missingRoles(companyId: string): Promise<RequiredRole[]> {
+  const { data, error } = await supabase.rpc('company_missing_roles', { p_company: companyId });
+  if (error) return [];
+  return (data ?? []) as RequiredRole[];
+}
+
+export const REQUIRED_ROLE_TEXT: Record<RequiredRole, { title: string; why: string }> = {
+  accountant: { title: 'Muhasebeci', why: 'Onaylanan raporları kontrol eder ve muhasebe programına aktarır.' },
+  payer: { title: 'Ödeme yetkilisi', why: 'Aktarılan masrafları çalışana öder ve "Ödendi" der; o olmadan süreç tamamlanmaz.' },
+};

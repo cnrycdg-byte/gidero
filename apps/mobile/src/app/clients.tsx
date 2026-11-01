@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
@@ -35,7 +35,12 @@ export default function Clients() {
   // sorumlu değiştirme
   const [editingFirm, setEditingFirm] = useState<string | null>(null);
   // muhasebeci ekleme
-  const [staffOpen, setStaffOpen] = useState(false);
+  // Sol menüdeki "Muhasebeci ekle" bu sayfayı form açık gelir
+  const { muhasebeci } = useLocalSearchParams<{ muhasebeci?: string }>();
+  const [staffOpen, setStaffOpen] = useState(muhasebeci === '1');
+  useEffect(() => {
+    if (muhasebeci === '1') setStaffOpen(true);
+  }, [muhasebeci]);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffFirms, setStaffFirms] = useState<string[]>([]);
@@ -194,6 +199,39 @@ export default function Clients() {
       {invite && <InviteLink link={invite.link} name={invite.name} email={invite.email} onClose={() => setInvite(null)} />}
       {full && isOwner && <Notice tone="warn" text="Paketinizdeki firma hakkının hepsi kullanılıyor. Yeni firma için paketinizi büyütün." />}
 
+      {/* Muhasebeci ekleme sayfanın başında: büro sahibi ekibini buradan kurar */}
+      {isOwner &&
+        (!staffOpen ? (
+          <Button variant="secondary" icon="personAdd" title="Muhasebeci ekle" onPress={() => setStaffOpen(true)} />
+        ) : (
+          <View style={[styles.box, { backgroundColor: c.paper }]}>
+            <Text style={[type.small, { color: c.muted }]}>
+              Muhasebeciyi siz açarsınız; önceden kaydolması gerekmez. Ekleyince çıkan giriş bağlantısını WhatsApp'tan gönderin, tıklayıp şifresini belirler.
+            </Text>
+            <Field label="Ad soyad" value={staffName} onChangeText={setStaffName} placeholder="Örnek: Can Yıldız" />
+            <Field label="E-posta" value={staffEmail} onChangeText={setStaffEmail} autoCapitalize="none" keyboardType="email-address" hint="Muhasebeci bu e-postayla giriş yapar." />
+            <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Baktığı firmalar</Text>
+            <View style={styles.chips}>
+              {firms.map((f) => {
+                const on = staffFirms.includes(f.company_id);
+                return (
+                  <Pressable
+                    key={f.company_id}
+                    onPress={() => setStaffFirms(on ? staffFirms.filter((x) => x !== f.company_id) : [...staffFirms, f.company_id])}
+                    style={chip(on)}>
+                    <Text style={chipText(on)}>{f.companies.legal_name}</Text>
+                  </Pressable>
+                );
+              })}
+              {firms.length === 0 && <Text style={[type.small, { color: c.muted }]}>Firma ekledikten sonra atayabilirsiniz.</Text>}
+            </View>
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <Button variant="secondary" title="Vazgeç" onPress={() => setStaffOpen(false)} style={{ flex: 1, backgroundColor: c.canvas }} />
+              <Button title="Muhasebeciyi ekle" onPress={addStaff} loading={staffBusy} style={{ flex: 1 }} />
+            </View>
+          </View>
+        ))}
+
       {/* ------------------------------ Firmalar ------------------------------ */}
       {isOwner && (
         <View style={{ gap: space.sm }}>
@@ -215,7 +253,7 @@ export default function Clients() {
                 ))}
               </View>
               {accountants.length === 0 && (
-                <Text style={[type.small, { color: c.muted }]}>Henüz muhasebeciniz yok; firma size bağlanır. Aşağıdan muhasebeci ekleyince firmaları ona atayabilirsiniz.</Text>
+                <Text style={[type.small, { color: c.muted }]}>Henüz muhasebeciniz yok; firma size bağlanır. Yukarıdaki "Muhasebeci ekle" ile ekip kurunca firmaları ona atayabilirsiniz.</Text>
               )}
               <View style={{ flexDirection: 'row', gap: space.sm }}>
                 <Button variant="secondary" title="Vazgeç" onPress={() => setAdding(false)} style={{ flex: 1, backgroundColor: c.canvas }} />
@@ -297,7 +335,7 @@ export default function Clients() {
                         );
                       })}
                     </View>
-                    {accountants.length === 0 && <Text style={[type.small, { color: c.muted }]}>Önce aşağıdan muhasebeci ekleyin.</Text>}
+                    {accountants.length === 0 && <Text style={[type.small, { color: c.muted }]}>Önce yukarıdan muhasebeci ekleyin.</Text>}
                   </View>
                 )}
               </View>
@@ -372,37 +410,6 @@ export default function Clients() {
         </View>
       ))}
 
-      {isOwner &&
-        (!staffOpen ? (
-          <Button variant="secondary" icon="personAdd" title="Muhasebeci ekle" onPress={() => setStaffOpen(true)} />
-        ) : (
-          <View style={[styles.box, { backgroundColor: c.paper }]}>
-            <Text style={[type.small, { color: c.muted }]}>
-              Muhasebeciyi siz açarsınız; önceden kaydolması gerekmez. Ekleyince çıkan giriş bağlantısını WhatsApp'tan gönderin, tıklayıp şifresini belirler.
-            </Text>
-            <Field label="Ad soyad" value={staffName} onChangeText={setStaffName} placeholder="Örnek: Can Yıldız" />
-            <Field label="E-posta" value={staffEmail} onChangeText={setStaffEmail} autoCapitalize="none" keyboardType="email-address" hint="Muhasebeci bu e-postayla giriş yapar." />
-            <Text style={[type.small, { color: c.muted, fontWeight: '600' }]}>Baktığı firmalar</Text>
-            <View style={styles.chips}>
-              {firms.map((f) => {
-                const on = staffFirms.includes(f.company_id);
-                return (
-                  <Pressable
-                    key={f.company_id}
-                    onPress={() => setStaffFirms(on ? staffFirms.filter((x) => x !== f.company_id) : [...staffFirms, f.company_id])}
-                    style={chip(on)}>
-                    <Text style={chipText(on)}>{f.companies.legal_name}</Text>
-                  </Pressable>
-                );
-              })}
-              {firms.length === 0 && <Text style={[type.small, { color: c.muted }]}>Firma ekledikten sonra atayabilirsiniz.</Text>}
-            </View>
-            <View style={{ flexDirection: 'row', gap: space.sm }}>
-              <Button variant="secondary" title="Vazgeç" onPress={() => setStaffOpen(false)} style={{ flex: 1, backgroundColor: c.canvas }} />
-              <Button title="Muhasebeciyi ekle" onPress={addStaff} loading={staffBusy} style={{ flex: 1 }} />
-            </View>
-          </View>
-        ))}
     </ScrollView>
   );
 }

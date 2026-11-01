@@ -72,7 +72,7 @@ select test.ok((select status from public.reports where id = '50000000-0000-0000
 
 -- 4) Büro firmasının kendi muhasebecisi kendi masrafını onaysız kayda alamaz, ödendi yapamaz
 insert into public.memberships (company_id, user_id, roles)
-values ('20000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf4', '{employee,accountant}');
+values ('20000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000adf4', '{employee,accountant,payer}');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000adf4"}', false);
 set role authenticated;
 insert into public.reports (id, company_id, owner_user_id, created_by, title, period)
