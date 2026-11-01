@@ -11,10 +11,14 @@ import { BrandPicker, type BrandDraft } from '@/components/brand-picker';
 import { uploadLogo } from '@/lib/brand';
 import { normalizeHex } from '@/lib/brand/colors';
 import { fetchBands, unitPrice, type Band } from '@/lib/pricing';
-import { ownerLink } from '@/lib/people';
+import { adminAddPerson, ownerLink } from '@/lib/people';
+import { InviteLink } from '@/components/invite-link';
 import { fetchPlans, type Plan } from '@/lib/billing';
 import { amountInput, dateInput, money, parseAmount, parseDate } from '@/lib/format';
 import { errorText, supabase } from '@/lib/supabase';
+
+type Who = { mode: 'owner' | 'other'; name: string; email: string };
+const OWNER: Who = { mode: 'owner', name: '', email: '' };
 
 const addDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 
@@ -42,6 +46,11 @@ export default function NewCustomer() {
   }, []);
   const [brand, setBrand] = useState<BrandDraft>({ primary: '', accent: '', logoUri: null });
   const [busy, setBusy] = useState(false);
+  // Zorunlu görevler: muhasebeci ve ödeme yetkilisi (boş bırakılırsa hesap sahibi üstlenir)
+  const [acc, setAcc] = useState<Who>(OWNER);
+  const [pay, setPay] = useState<Who>(OWNER);
+  const [links, setLinks] = useState<{ link: string; name: string; email: string }[] | null>(null);
+  const [next, setNext] = useState<(() => void) | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
@@ -70,6 +79,12 @@ export default function NewCustomer() {
     if (!e) return setError('Bitiş tarihini GG.AA.YYYY biçiminde yazın.');
     if (status === 'active' && !planId && !demo) return setError('Ücretli müşteri için paket seçin.');
     if (demo && ownerName.trim().length < 2) return setError('Test kişisinin adını soyadını yazın.');
+    if (kind === 'company') {
+      for (const [w, label] of [[acc, 'Muhasebecinin'], [pay, 'Ödeme yetkilisinin']] as const) {
+        if (w.mode === 'other' && w.name.trim().length < 2) return setError(`${label} adını soyadını yazın.`);
+        if (w.mode === 'other' && !demo && !w.email.includes('@')) return setError(`${label} e-postasını yazın.`);
+      }
+    }
     if (kind === 'company' && brand.primary && !normalizeHex(brand.primary)) return setError('Ana rengi #1A2B3C biçiminde yazın.');
     if (kind === 'company' && brand.accent && !normalizeHex(brand.accent)) return setError('Vurgu rengini #1A2B3C biçiminde yazın.');
     setBusy(true);
@@ -104,14 +119,33 @@ export default function NewCustomer() {
           brandFailed = true;
         }
       }
-      if (demo) {
-        // Test müşterisinin sahibi hemen açılır; test ekranından ona geçilir
-        await ownerLink(r.account_id, ownerName.trim());
-        router.replace('/test');
-        return;
+      if (demo) await ownerLink(r.account_id, ownerName.trim());
+      else if (ownerName.trim()) await ownerLink(r.account_id, ownerName.trim()).catch(() => null);
+
+      // Muhasebeci ve ödeme yetkilisi başka biriyse eklenir; hesap sahibi o görevi bırakır
+      const made: { link: string; name: string; email: string }[] = [];
+      if (kind === 'company' && r.company_id) {
+        const same = acc.mode === 'other' && pay.mode === 'other' && acc.email.trim() && acc.email.trim().toLowerCase() === pay.email.trim().toLowerCase();
+        const jobs: { who: Who; roles: ('accountant' | 'payer')[] }[] = same
+          ? [{ who: acc, roles: ['accountant', 'payer'] }]
+          : [
+              ...(acc.mode === 'other' ? [{ who: acc, roles: ['accountant'] as ('accountant' | 'payer')[] }] : []),
+              ...(pay.mode === 'other' ? [{ who: pay, roles: ['payer'] as ('accountant' | 'payer')[] }] : []),
+            ];
+        for (const j of jobs) {
+          const p = await adminAddPerson({ companyId: r.company_id, fullName: j.who.name.trim(), email: j.who.email.trim(), roles: j.roles });
+          if (p.link) made.push({ link: p.link, name: j.who.name.trim(), email: p.email });
+        }
       }
-      if (ownerName.trim()) await ownerLink(r.account_id, ownerName.trim()).catch(() => null);
-      router.replace({ pathname: '/admin/account/[id]', params: { id: r.account_id, created: r.invited ? 'invited' : 'linked', ...(brandFailed ? { brand: 'failed' } : {}) } });
+      const go = () =>
+        demo
+          ? router.replace('/test')
+          : router.replace({ pathname: '/admin/account/[id]', params: { id: r.account_id, created: r.invited ? 'invited' : 'linked', ...(brandFailed ? { brand: 'failed' } : {}) } });
+      // Yeni açılan kişilerin giriş bağlantıları gösterilir, sonra müşteri sayfasına geçilir
+      if (made.length) {
+        setLinks(made);
+        setNext(() => go);
+      } else go();
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -241,8 +275,28 @@ export default function NewCustomer() {
         </>
       )}
 
+      {kind === 'company' && (
+        <>
+          <SectionTitle title="Muhasebeci ve ödeme yetkilisi" />
+          <Text style={[type.small, { color: c.muted }]}>
+            Onaylanan masrafın tamamlanması için ikisi de gerekir. Hesap sahibi üstlenebilir ya da şimdi başka birini ekleyebilirsiniz; müşteri sonra Ekip ekranından değiştirir.
+          </Text>
+          <RolePick title="Muhasebeci" who={acc} onChange={setAcc} demo={demo} />
+          <RolePick title="Ödeme yetkilisi" who={pay} onChange={setPay} demo={demo} />
+        </>
+      )}
+
+      {links && (
+        <View style={{ gap: space.sm }}>
+          <Notice tone="ok" text="Müşteri açıldı. Eklenen kişilere giriş bağlantılarını gönderin." />
+          {links.map((l) => (
+            <InviteLink key={l.link} link={l.link} name={l.name} email={l.email} />
+          ))}
+          <Button title="Müşteri sayfasına geç" onPress={() => next?.()} />
+        </View>
+      )}
       {error && <Notice tone="bad" text={error} />}
-      <Button title={demo ? 'Test müşterisini aç' : 'Müşteriyi aç'} onPress={save} loading={busy} disabled={!name.trim() || vkn.length < 10 || !email.includes('@')} />
+      {!links && <Button title={demo ? 'Test müşterisini aç' : 'Müşteriyi aç'} onPress={save} loading={busy} disabled={!name.trim() || vkn.length < 10 || !email.includes('@')} />}
     </Page>
   );
 }
@@ -252,3 +306,35 @@ const styles = StyleSheet.create({
   chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   sum: { borderRadius: radius.lg, padding: space.lg, gap: 4 },
 });
+
+function RolePick({ title, who, onChange, demo }: { title: string; who: Who; onChange: (w: Who) => void; demo: boolean }) {
+  const c = useColors();
+  const chip = (on: boolean) => [styles.chip, { backgroundColor: on ? c.pen : c.paper }];
+  const chipText = (on: boolean) => ({ color: on ? c.onPen : c.ink, fontWeight: (on ? '600' : '400') as '600' | '400' });
+  return (
+    <View style={{ gap: space.sm }}>
+      <Text style={[type.body, { color: c.ink, fontWeight: '600' }]}>{title}</Text>
+      <View style={styles.chips}>
+        <Pressable onPress={() => onChange({ ...who, mode: 'owner' })} style={chip(who.mode === 'owner')}>
+          <Text style={chipText(who.mode === 'owner')}>Hesap sahibi</Text>
+        </Pressable>
+        <Pressable onPress={() => onChange({ ...who, mode: 'other' })} style={chip(who.mode === 'other')}>
+          <Text style={chipText(who.mode === 'other')}>Başka biri</Text>
+        </Pressable>
+      </View>
+      {who.mode === 'other' && (
+        <>
+          <Field label="Ad soyad" value={who.name} onChangeText={(v) => onChange({ ...who, name: v })} placeholder="Örnek: Selin Er" />
+          <Field
+            label="E-posta"
+            value={who.email}
+            onChangeText={(v) => onChange({ ...who, email: v })}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            hint={demo ? 'Test müşterisinde boş bırakabilirsiniz.' : 'Kişi bu e-postayla giriş yapar.'}
+          />
+        </>
+      )}
+    </View>
+  );
+}

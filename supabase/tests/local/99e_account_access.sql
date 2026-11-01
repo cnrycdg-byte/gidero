@@ -6,7 +6,7 @@ insert into auth.users (id, email, encrypted_password, raw_user_meta_data, last_
  ('00000000-0000-0000-0000-00000000aee2', 'girdi@x.test', 'gecici', '{"must_change_password":"true"}', now());
 insert into public.memberships (company_id, user_id, roles, manager_user_id) values
  ('20000000-0000-0000-0000-000000000ae0', '00000000-0000-0000-0000-00000000aee1', '{employee}', '00000000-0000-0000-0000-000000000ae5'),
- ('20000000-0000-0000-0000-000000000ae0', '00000000-0000-0000-0000-00000000aee2', '{employee}', null);
+ ('20000000-0000-0000-0000-000000000ae0', '00000000-0000-0000-0000-00000000aee2', '{employee,accountant,payer}', null);
 select test.ok(not private.user_activated('00000000-0000-0000-0000-00000000aee1'), 'Geçici şifreyle hiç girmemiş kişi davet bekliyor sayılır');
 select test.ok(private.user_activated('00000000-0000-0000-0000-00000000aee2'), 'Geçici şifreyle giriş yapmış kişi hesabını kullanıyor sayılır');
 select test.ok(private.user_activated('00000000-0000-0000-0000-00000000aee3'), 'Davetle girip şifre koymadan çıkan kişi de hesabını kullanıyor sayılır (yönetici şifresine dokunamaz)');

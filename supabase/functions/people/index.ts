@@ -5,6 +5,8 @@
 //        → { user_id, link|null, password_set }  (password verilirse geçici şifre; kişi ilk girişte değiştirir)
 //   { action: 'link', company_id, user_id }                                   → { link }
 //   { action: 'owner_link', account_id, full_name? }                           → { link|null, email }   (Gidero yöneticisi)
+//   { action: 'admin_add', company_id, full_name, email?, roles }               → { user_id, link|null } (Gidero yöneticisi;
+//        yeni müşteri açarken muhasebeci / ödeme yetkilisi; bağlantı yalnızca yeni açılan kişiye verilir)
 //   { action: 'add_staff', account_id, full_name, email, company_ids? }        → { user_id, link|null } (büro sahibi)
 //   { action: 'staff_link', account_id, user_id }                              → { link }               (büro sahibi)
 //   { action: 'set_password', company_id | account_id, user_id, password }      → { ok }  geçici şifre; kişi ilk girişte değiştirir
@@ -193,6 +195,37 @@ Deno.serve(async (req) => {
       });
       if (upErr) return json(400, { error: /weak|short|characters/i.test(upErr.message) ? 'Şifre çok zayıf; harf ve rakam karışık daha uzun bir şifre yazın.' : upErr.message });
       return json(200, { ok: true, email: u.user.email });
+    }
+
+    if (b.action === 'admin_add') {
+      const company = String(b.company_id ?? '');
+      const name = String(b.full_name ?? '').trim();
+      if (name.length < 2) return json(400, { error: 'Ad soyad yazın.' });
+      const { data: ws } = await asCaller.rpc('my_workspace');
+      if (!(ws as { platform_admin?: boolean } | null)?.platform_admin) return json(403, { error: 'Bu işlem yalnızca Gidero yöneticisine açıktır.' });
+      const { data: co } = await admin.from('companies').select('account_id').eq('id', company).single();
+      const { data: acc } = co ? await admin.from('accounts').select('is_demo').eq('id', co.account_id).single() : { data: null };
+      const demo = !!acc?.is_demo;
+      let email = String(b.email ?? '').trim().toLowerCase();
+      if (!email && demo) email = `kisi-${crypto.randomUUID().slice(0, 8)}@test.gidero.app`;
+      if (!EMAIL_RE.test(email)) return json(400, { error: 'Kişinin e-postasını yazın; giriş bu e-postayla yapılır.' });
+      const target = await inviteTarget(admin, email);
+      let userId = target.user_id;
+      let created = false;
+      if (!userId) {
+        userId = await createUser(admin, email, name);
+        created = true;
+      }
+      const roles = (Array.isArray(b.roles) ? b.roles : []).filter((r) => r === 'accountant' || r === 'payer');
+      const { error: addErr } = await asCaller.rpc('admin_add_member', { p_company: company, p_user: userId, p_roles: roles });
+      if (addErr) {
+        if (created) await admin.auth.admin.deleteUser(userId);
+        return json(400, { error: addErr.message });
+      }
+      if (!created) await admin.from('profiles').update({ full_name: name }).eq('id', userId).eq('full_name', '');
+      // Bağlantı yalnızca yeni açılan kişiye (başkasının hesabına bağlantı verilmez); test müşterisinde gerekmez
+      const link = created && !demo ? inviteUrl(await recoveryToken(admin, email)) : null;
+      return json(200, { user_id: userId, email, link });
     }
 
     if (b.action === 'owner_link') {

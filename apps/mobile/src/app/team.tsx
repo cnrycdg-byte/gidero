@@ -12,7 +12,7 @@ import { ROLE_LABEL } from '@/lib/types';
 import { bankFromIban, ibanError, saveBank } from '@/lib/bank';
 import { Credentials, InviteLink, TempPassword } from '@/components/invite-link';
 import { confirm } from '@/lib/confirm';
-import { addPerson, memberLink, randomPassword } from '@/lib/people';
+import { addPerson, memberLink, randomPassword, REQUIRED_ROLE_TEXT, type RequiredRole } from '@/lib/people';
 
 type Member = { user_id: string; roles: string[]; manager_user_id: string | null; vehicle_plates: string[]; full_name: string; title: string | null; final_approver: boolean };
 
@@ -51,6 +51,7 @@ export default function Team() {
   const [status, setStatus] = useState<Record<string, { activated: boolean; can_invite: boolean; email: string }>>({});
   const [tempFor, setTempFor] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState<string | null>(null);
+  const [preset, setPreset] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!active) return;
@@ -130,6 +131,7 @@ export default function Team() {
       setHolder('');
       setNewPw(randomPassword());
       setFullName('');
+      setPreset(null);
       setTitle('');
       setRoles(['employee']);
       load();
@@ -204,10 +206,47 @@ export default function Team() {
     if (m.user_id === userId) reloadMemberships();
   }
 
+  // Zorunlu görevler: muhasebeci ve ödeme yetkilisi olmadan raporlar onaya gönderilemez (büro firmaları hariç)
+  const required: RequiredRole[] = active?.bureau_account_id ? [] : ['accountant', 'payer'];
+  const holders = (r: RequiredRole) => members.filter((m) => m.roles.includes(r));
+  const missing = required.filter((r) => holders(r).length === 0);
+  function startAdd(r: RequiredRole) {
+    setRoles(['employee', r]);
+    setTitle(r === 'accountant' ? 'Muhasebe' : 'Finans');
+    setError(null);
+    setPreset(`Aşağıdaki formu doldurun; kişi "${REQUIRED_ROLE_TEXT[r].title}" görevine eklenecek. Ekipteki birine vermek için kişiye dokunup görevini değiştirebilirsiniz.`);
+  }
+
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.lg, gap: space.lg }} keyboardShouldPersistTaps="handled">
+      {required.length > 0 && (
+        <View style={[styles.box, { backgroundColor: c.paper, borderWidth: missing.length ? 2 : 0, borderColor: c.red }]}>
+          <Text style={[type.section, { color: c.ink }]}>{missing.length ? 'Süreci tamamlamak için eksik görev var' : 'Zorunlu görevler tamam'}</Text>
+          <Text style={[type.small, { color: c.muted }]}>
+            Her şirkette en az bir muhasebeci ve bir ödeme yetkilisi olmalı. Eksikse çalışanlar raporlarını onaya gönderemez.
+          </Text>
+          {required.map((r) => {
+            const h = holders(r);
+            return (
+              <View key={r} style={styles.reqRow}>
+                <View style={{ gap: 2 }}>
+                  <Text style={[type.body, { color: c.ink, fontWeight: '600' }]}>{REQUIRED_ROLE_TEXT[r].title}</Text>
+                  <Text style={[type.small, { color: h.length ? c.green : c.red }]}>
+                    {h.length ? h.map((m) => (m.user_id === userId ? `${m.full_name} (siz)` : m.full_name)).join(', ') : 'Tanımlı değil'}
+                  </Text>
+                  <Text style={[type.caption, { color: c.muted }]}>{REQUIRED_ROLE_TEXT[r].why}</Text>
+                </View>
+                <View style={{ alignSelf: 'flex-start' }}>
+                  <Button variant={h.length ? 'secondary' : 'primary'} icon="personAdd" title={`${REQUIRED_ROLE_TEXT[r].title} ekle`} onPress={() => startAdd(r)} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
       <SectionTitle title="Kişi ekle" />
       <View style={[styles.box, { backgroundColor: c.paper }]}>
+        {preset && <Notice text={preset} />}
         <Text style={[type.small, { color: c.muted }]}>
           Kişiyi siz açarsınız; önceden kaydolması gerekmez. İlk girişi bağlantıyla ya da sizin belirlediğiniz geçici şifreyle yapar.
         </Text>
@@ -413,6 +452,7 @@ export default function Team() {
 }
 
 const styles = StyleSheet.create({
+  reqRow: { gap: space.sm, paddingTop: space.sm },
   box: { borderRadius: radius.lg, padding: space.lg, gap: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },

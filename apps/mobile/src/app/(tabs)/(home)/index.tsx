@@ -17,6 +17,7 @@ import { fetchUsage, usageState, type Usage } from '@/lib/limits';
 import { unreadCount } from '@/lib/notifications';
 import { useQueue } from '@/lib/queue';
 import { createWithoutImage, pickFromLibrary } from '@/lib/receipts';
+import { missingRoles, REQUIRED_ROLE_TEXT, type RequiredRole } from '@/lib/people';
 import { useSession } from '@/lib/session';
 import { pendingPages, sectionsFor } from '@/lib/tour';
 import { tourState } from '@/lib/tour/state';
@@ -77,6 +78,7 @@ function Home() {
   const [sub, setSub] = useState<AccountStatus | null>(null);
   const [waiting, setWaiting] = useState(0);
   const [toPay, setToPay] = useState(0);
+  const [missing, setMissing] = useState<RequiredRole[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<null | 'camera' | 'gallery'>(null);
@@ -131,6 +133,7 @@ function Home() {
         .catch(() => setSub(null));
     }
     unreadCount().then(setUnread).catch(() => setUnread(0));
+    missingRoles(active.company_id).then(setMissing);
     if (active.roles.includes('payer')) {
       supabase
         .rpc('payment_queue', { p_company: active.company_id, p_paid: false })
@@ -230,6 +233,26 @@ function Home() {
             )}
           </Pressable>
         </Pressable>
+
+        {missing.length > 0 && (
+          <Pressable
+            onPress={() => (active?.roles.includes('admin') ? router.push('/team') : null)}
+            accessibilityRole={active?.roles.includes('admin') ? 'button' : undefined}
+            style={[styles.missing, { backgroundColor: c.redSoft }]}>
+            <Icon name="warning" size={18} color={c.red} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[type.body, { color: c.ink, fontWeight: '600' }]}>
+                {`${missing.map((r) => REQUIRED_ROLE_TEXT[r].title).join(' ve ')} tanımlı değil`}
+              </Text>
+              <Text style={[type.small, { color: c.muted }]}>
+                {active?.roles.includes('admin')
+                  ? 'Bu görev verilmeden raporlar onaya gönderilemez ve masraflar ödenemez. Ekip ekranından ekleyin.'
+                  : 'Şirket yöneticiniz bu görevi verene kadar raporlar onaya gönderilemez.'}
+              </Text>
+            </View>
+            {active?.roles.includes('admin') ? <Icon name="chevron" size={12} color={c.muted} /> : null}
+          </Pressable>
+        )}
 
         {platformAdmin && (
           <Pressable onPress={() => router.push('/admin')} style={[styles.trial, { backgroundColor: c.deep }]}>
@@ -494,6 +517,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  missing: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderRadius: radius.md, padding: space.md },
   pick: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 10 },
   bell: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
