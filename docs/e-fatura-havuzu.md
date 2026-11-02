@@ -79,3 +79,26 @@ Sırayla otomatik eşleştirme, olmazsa çalışan arar:
 - İlk desteklenecek entegratörler hangileri?
 - Gelen e-posta altyapısı (alan adı, servis seçimi).
 - GİB İnteraktif VD listesi: dosya yükleme mi, şifreyle otomatik çekme mi?
+
+## 6. Netleşen çözüm (2 Kasım 2026)
+
+Kasada çoğunlukla yalnızca VKN verildiği için e-posta kanalı ana yol değildir. Çözüm "havuz" değil, **eşleştirme**dir:
+
+1. **Fatura şirkete gelir; yalnız muhasebe görür.** Gelen faturalar (önce entegratör portalından indirilen ZIP, sonra entegratör
+   API'si) "Gelen faturalar" listesine girer. Bu listeyi yalnızca muhasebeci ve şirket yöneticisi görür (RLS).
+2. **Çalışan harcamayı bildirir.** Ya fişin/slipin fotoğrafını çeker (bugünkü akış) ya da fiş yoksa "Faturası gelecek" kaydı açar:
+   nerede, ne zaman, ne kadar.
+3. **Gidero ikisini eşleştirir.** Satıcı VKN + tutar + tarih (±3 gün) tek bir faturaya denk gelirse fatura o masrafa bağlanır,
+   çalışana "Faturanız geldi" bildirimi gider. Çalışan yalnızca kendi masrafına bağlanan faturayı görür.
+4. **Eşleşmeyen faturalar muhasebecide kalır.** 7 gün sahipsiz kalan fatura için muhasebeci ya kişiye atar ya da "şirket ödemesi"
+   (kira, tedarikçi) olarak işaretler. Birden çok aday varsa (aynı lokantada aynı tutar) otomatik bağlanmaz, muhasebeciye sorulur.
+
+Görünürlük: çalışan → yalnız kendi eşleşen faturası; onaylayıcı → onayladığı rapordaki faturalar; muhasebeci/yönetici → hepsi.
+Hiçbir rolde "havuzu gezme" ekranı yoktur.
+
+e-Arşiv istisnası: e-Fatura kayıtlı olmayan satıcı, e-Fatura mükellefi şirkete de e-Arşiv keser. Bunların içeriği entegratöre
+gelmez; İnteraktif VD listesinden (muhasebecinin yüklediği dosya) yalnız başlık bilgisi gelir. Eşleştirme yine çalışır;
+belgenin kendisi çalışanın fotoğrafı ya da satıcının e-postasıdır.
+
+Piyasa: Masraff gelen e-faturaları entegratörlerden otomatik çekip onay akışına sokuyor ve tüm GİB onaylı entegratörlerle
+çalıştığını söylüyor ([Masraff GİB entegrasyonu](https://www.masraff.co/tr/integrations/gib-e-invoice/)).
