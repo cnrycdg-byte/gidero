@@ -11,6 +11,7 @@ Türk şirketleri ve muhasebe büroları için masraf uygulaması: çalışan fi
 - `docs/bagimsiz-inceleme.md`: YMM bakışıyla bağımsız inceleme; düzeltmeleri uygulanmıştır
 - `docs/rakip-fiyat.md`: rakipler ve fiyatlandırma
 - `docs/hig-tasarim.md`: mobil ekranların Apple HIG kararları ve kaynakları
+- `docs/e-fatura-havuzu.md`: gelen e-Fatura/e-Arşiv havuzu: mevzuat, entegrasyon kanalları, görünürlük riskleri
 
 ## Teknoloji
 
